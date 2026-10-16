@@ -1,9 +1,11 @@
-# TN-Player — Signal Gate identity
+# TN-Player supplied identity
 
-Original AI-generated coral/mint Signal Gate monogram on deep petrol. The interlocking folded straps suggest TN and frame a right-facing play symbol. Built-in image-generation mode; logo-brand; 16 October 2026.
+The final identity is the user-supplied angular black TN monogram with a blue/cyan play triangle and two sound-wave arcs. The original upload, including the Player wordmark, is preserved unchanged in `TN-Player-logo-original.jpeg`.
 
-Master: `TN-Player-logo.png`. The identical untouched PNG is used in `assets/tn-player-icon.png` and `app/src/main/res/drawable-nodpi/tn_logo.png`. Android legacy/adaptive launchers, toolbar, About, shortcuts and Pages share the identity. The icon remains a PNG; no editable vector master or trademark exclusivity is claimed.
+`TN-Player-logo.png` is a square launcher adaptation made using the built-in image editing tool on 16 October 2026. It removes the small Player wordmark and portrait whitespace while retaining the supplied symbol. Android, shortcuts, toolbar, About and Pages all use this square PNG. Android adaptive icons add a white background and safe inset.
 
-## Prompt
+## Adaptation prompt
 
-One distinctive premium Android icon for TN-Player. Signal Gate: two interlocking bold folded straps subtly reading T and N form an open asymmetric rounded triangle, with a right-facing play triangle cut through the center. Solid warm coral #FF7559, one pale mint #BFEAD5 segment, deep midnight petrol #081D21 opaque backdrop. Flat vector-like geometry, balanced negative space, softly rounded outer corners with sharp internal cuts, generous adaptive-icon margins and small-size legibility. No cyan/purple gradients, chrome, glow, bevels, wordmark, watermark or mockup.
+Preserve the supplied angular black TN monogram, blue-to-cyan play triangle and two cyan sound-wave arcs. Remove only the gray Player wordmark and excessive portrait whitespace. Center the symbol on a clean white square with adaptive-icon safe margins. No redesign, shadows, border, added symbols or typography.
+
+The source image is user supplied; ownership and trademark clearance have not been independently verified.

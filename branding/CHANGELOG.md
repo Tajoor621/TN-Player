@@ -1,5 +1,5 @@
-# Signal Gate upgrade
+# Supplied logo and feature upgrade
 
-New original coral/mint Signal Gate icon, shared across Android launcher, toolbar, About, shortcuts and the Pages site. Built-in generation prompt and PNG master are in this folder.
+Replaced the earlier generated Signal Gate proposal with the user-selected black TN and blue/cyan play-and-wave identity. Preserved the original JPEG and integrated its square launcher adaptation in Android and Pages.
 
-This source revision also adds validated local library backup/restore, observed media updates, bounded Glide thumbnails, persistent subtitle/display styling, two-finger gestures and pinch/pan, capability-aware service audio effects, shared-media queues, playback widget/shortcuts, PiP actions and bounded staged ZIP operations. Existing IDs, schema and playback/recovery architecture are retained. See FEATURE_STATUS.md for unfinished master-spec items and VALIDATION.md for executed checks.
+Added local backup/merge restore, bounded ZIP archives, media thumbnails, library change observation, subtitle styling, two-finger player gestures, audio-session effects, AMOLED theme, playback widget, shortcuts, multi-share queue and PiP actions. See FEATURE_STATUS.md for implementation limits and VALIDATION.md for verified results.

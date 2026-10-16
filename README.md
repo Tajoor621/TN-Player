@@ -37,7 +37,7 @@ The original TN icon is integrated into Android and the root Pages page. The Pag
 
 Debug APKs may use different signing keys between runs. Android may reject an in-place update; preserve needed data before uninstalling an existing build. Do not commit private development or release keys.
 
-## Signal Gate upgrade
+## TN-Player feature upgrade
 
 - **Settings → Export/Restore library backup:** versioned JSON for local favorites, playlists, bookmarks and UI preferences, with a restore preview. Merge preserves existing collections. The export is unencrypted metadata; network sources/credentials, media bytes and Android access grants are excluded. Limits: 2 MB, 10,000 entries and 200 playlists. Rechoose files when access is unavailable after import.
 - **Library:** debounced media-change refresh, local video thumbnails and MediaStore album art. Glide caches are bounded to 16 MB memory / 64 MB disk; no network URLs are used for thumbnails.
@@ -46,7 +46,7 @@ Debug APKs may use different signing keys between runs. Android may reject an in
 - **Files → item options:** create ZIP from a file/folder or extract ZIP to a new sibling folder. Originals are retained; no overwrite. ZIP operations are cancellable and bounded to 512 MB, 5,000 entries and 24 directory levels. Extraction rejects unsafe/colliding paths; creation checks written entry CRCs. Process interruption may leave a hidden `.tn-archive-*` staging result to review.
 - **Share to TN-Player:** multiple media files become a queue (maximum 1,000 entries). Temporary source permissions remain controlled by Android.
 - **Home screen:** add the TN-Player playback widget using your launcher's widget picker. The title opens the app; buttons control the service and can resume a saved queue. Long-press the launcher icon for Resume, Files or New stream. PiP has custom transport actions.
-- **Theme:** Signal Gate coral/mint identity, light/dark/system and an AMOLED option. Package, version and Room schema remain unchanged.
+- **Theme:** Your supplied black TN and blue/cyan play identity, light/dark/system and an AMOLED option. Package, version and Room schema remain unchanged.
 
 ## First use
 
