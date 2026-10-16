@@ -29,6 +29,8 @@ class BackupTest {
         dao.addToPlaylist(PlaylistItem(list, local, "Song", mimeType = "audio/mpeg"))
         dao.addToPlaylist(PlaylistItem(list, remote, "Stream"))
         dao.addBookmark(Bookmark(uri = local, title = "Song", position = 10000))
+        val duplicateName = dao.createPlaylist(Playlist(name = "Travel"))
+        dao.addToPlaylist(PlaylistItem(duplicateName, "content://media/external/audio/media/43", "Different song"))
         val snapshot = BackupRepository(source).snapshot(mapOf("seekMs" to 30000L, "gestures" to false))
         val bytes = BackupFormat.encode(snapshot)
         assertFalse(bytes.toString(Charsets.UTF_8).contains("never-export-this"))
@@ -37,8 +39,10 @@ class BackupTest {
         target.media().addFavorite(Favorite("content://media/external/audio/media/99", "Keep me"))
         repeat(2) { BackupRepository(target).merge(decoded) }
         assertEquals(2, target.media().favorites().size)
-        assertEquals(1, target.media().playlists().size)
-        assertEquals(1, target.media().playlistItems(target.media().playlists().single().id).size)
+        val restored = target.media().playlists().sortedBy { it.id }
+        assertEquals(2, restored.size)
+        assertEquals(local, target.media().playlistItems(restored[0].id).single().uri)
+        assertEquals("content://media/external/audio/media/43", target.media().playlistItems(restored[1].id).single().uri)
         assertEquals(1, target.media().bookmarks(local).size)
         assertEquals("audio/mpeg", target.media().favorites().first { it.uri == local }.mimeType)
         assertEquals(30000L, decoded.preferences["seekMs"])

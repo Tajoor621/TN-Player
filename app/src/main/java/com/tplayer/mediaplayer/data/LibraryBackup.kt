@@ -121,7 +121,7 @@ object BackupFormat {
 class BackupRepository(private val db: MediaDatabase) {
     suspend fun snapshot(preferences: Map<String, Any>): LibraryBackup = withContext(Dispatchers.IO) {
         db.withTransaction {
-            val raw = db.raw(); val lists = raw.backupPlaylists(); require(lists.size <= 200)
+            val raw = db.raw(); val lists = raw.backupPlaylists().sortedBy { it.id }; require(lists.size <= 200)
             val favorites = raw.backupFavorites(); val marks = raw.backupBookmarks()
             require(favorites.size <= 10000 && marks.size <= 10000)
             LibraryBackup(preferences, favorites.filter { BackupFormat.local(it.uri) }, lists.map { list ->
@@ -134,10 +134,16 @@ class BackupRepository(private val db: MediaDatabase) {
         // Revalidate before making any writes, even for programmatic callers.
         val value = BackupFormat.decode(BackupFormat.encode(backup))
         db.withTransaction {
-            val raw = db.raw(); val lists = raw.playlists().associateBy { it.name }.toMutableMap()
+            val raw = db.raw()
+            val lists = raw.playlists().sortedBy { it.id }.groupBy { it.name }
+                .mapValues { (_, entries) -> entries.map { it.id }.toMutableList() }.toMutableMap()
+            val occurrences = mutableMapOf<String, Int>()
             for (favorite in value.favorites) raw.addFavorite(favorite)
             for (list in value.playlists) {
-                val id = lists[list.name]?.id ?: raw.createPlaylist(Playlist(name = list.name)).also { lists[list.name] = Playlist(it, list.name) }
+                val ordinal = occurrences[list.name] ?: 0
+                occurrences[list.name] = ordinal + 1
+                val matching = lists.getOrPut(list.name) { mutableListOf() }
+                val id = matching.getOrNull(ordinal) ?: raw.createPlaylist(Playlist(name = list.name)).also { matching += it }
                 for (item in list.items) raw.addToPlaylist(PlaylistItem(id, item.uri, item.title, mimeType = item.mimeType))
             }
             val marks = raw.backupBookmarks(); require(marks.size <= 10000) { "Too many existing bookmarks to merge safely." }
