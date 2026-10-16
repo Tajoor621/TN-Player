@@ -1,5 +1,7 @@
 # TN-Player 1.0.0
 
+<img src="branding/TN-Player-logo.png" width="112" alt="TN-Player TN monogram and play icon">
+
 Native Android media-player core built from the TN-Player master specification.
 
 **Package:** `com.tplayer.mediaplayer` · **minSdk:** 21 · **target/compileSdk:** 34
@@ -27,7 +29,7 @@ Windows: use `gradlew.bat`. The real Gradle 8.7 wrapper JAR and scripts are incl
 Debug APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 `assembleRelease` produces an unsigned, R8-optimized release APK; configure your own signing key before distribution. Never commit keystores or signing passwords.
 
-The GitHub Actions workflow builds debug/release, runs unit tests/lint, and includes Android 14 emulator navigation, playback, Keystore, PiP and process-recovery checks. This workflow is supplied as source; it has not been uploaded to or executed in your GitHub account.
+The GitHub Actions workflow builds debug/release, runs unit tests/lint, and includes Android 14 emulator navigation, playback, Keystore, PiP and process-recovery checks. Both workflows are committed to this repository and run in GitHub Actions. Check the Actions tab for current results; historical validation is kept separately.
 
 ## Branding and GitHub Pages
 
