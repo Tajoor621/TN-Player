@@ -40,8 +40,9 @@ object ArchiveOperations {
                     override fun file(path: List<String>): OutputStream {
                         val folder = ensureDirectory(path.dropLast(1)); val name = path.last()
                         check(folder.findFile(name) == null) { "Archive paths collide." }
-                        val file = folder.createFile("application/octet-stream", name) ?: error("Cannot create extracted file.")
-                        check(file.name == name) { "The provider changed an extracted filename." }
+                        val mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase()) ?: "application/octet-stream"
+                        val file = folder.createFile(mime, name) ?: error("Cannot create extracted file.")
+                        if (file.name != name) check(folder.findFile(name) == null && file.renameTo(name) && file.name == name) { "The provider changed an extracted filename." }
                         return context.contentResolver.openOutputStream(file.uri) ?: error("Cannot write extracted file.")
                     }
                 }

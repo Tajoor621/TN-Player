@@ -113,6 +113,31 @@ class PlaybackDeviceTest {
             DevicePlayback.await("Home-screen playback action did not pause") { DevicePlayback.main { !controller.isPlaying } }
         } finally { DevicePlayback.stop(controller); scenario.close() }
     }
+    @Test fun archiveRoundTripPreservesUnknownExtensionsAndRejectsTraversal() = runBlocking {
+        val root = File(DevicePlayback.context.cacheDir, "archive-fixture-${java.util.UUID.randomUUID()}").apply { mkdirs() }
+        val source = File(root, "Source").apply { mkdir() }
+        val payload = ByteArray(10000) { (it % 251).toByte() }
+        File(source, "sample.custom-extension").writeBytes(payload)
+        val parent = androidx.documentfile.provider.DocumentFile.fromFile(root)
+        try {
+            com.tplayer.mediaplayer.data.ArchiveOperations.run(DevicePlayback.context,
+                androidx.documentfile.provider.DocumentFile.fromFile(source), parent, false) {}
+            val zip = File(root, "Source.zip"); assertTrue(zip.isFile)
+            com.tplayer.mediaplayer.data.ArchiveOperations.run(DevicePlayback.context,
+                androidx.documentfile.provider.DocumentFile.fromFile(zip), parent, true) {}
+            assertArrayEquals(payload, File(root, "Source-extracted/Source/sample.custom-extension").readBytes())
+            val outside = File(root, "outside.txt").apply { writeText("keep") }
+            val bad = File(root, "malicious.zip")
+            java.util.zip.ZipOutputStream(bad.outputStream()).use { output -> output.putNextEntry(java.util.zip.ZipEntry("../outside.txt")); output.write("changed".toByteArray()); output.closeEntry() }
+            try {
+                com.tplayer.mediaplayer.data.ArchiveOperations.run(DevicePlayback.context,
+                    androidx.documentfile.provider.DocumentFile.fromFile(bad), parent, true) {}
+                fail("Traversal archive accepted")
+            } catch (_: Exception) { }
+            assertEquals("keep", outside.readText())
+            assertFalse(File(root, "malicious-extracted").exists())
+        } finally { root.deleteRecursively() }
+    }
     @Test fun realAndroidKeystoreRoundTripsAndRejectsWrongPurpose() {
         val codec = AndroidSecretCodec(DevicePlayback.context)
         val encrypted = codec.encrypt("https://example.com/live?token=device-secret", "device-test")
