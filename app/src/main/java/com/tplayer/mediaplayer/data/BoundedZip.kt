@@ -44,8 +44,10 @@ object BoundedZip {
                 require(++count <= entriesLimit) { "Archive has too many entries." }
                 val parts = path(entry.name)
                 require(names.add(parts.joinToString("/").lowercase(Locale.ROOT))) { "Archive contains colliding paths." }
-                if (entry.isDirectory) sink.directory(parts)
-                else sink.file(parts).use { output ->
+                if (entry.isDirectory) {
+                    sink.directory(parts)
+                    require(zip.read() == -1) { "Directory entry unexpectedly contains data." }
+                } else sink.file(parts).use { output ->
                     while (true) {
                         currentCoroutineContext().ensureActive()
                         val size = zip.read(buffer); if (size < 0) break

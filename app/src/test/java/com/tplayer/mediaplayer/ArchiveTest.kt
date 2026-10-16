@@ -34,6 +34,7 @@ class ArchiveTest {
         try { BoundedZip.extract(ByteArrayInputStream(archive("large" to ByteArray(2048))), sink, limit = 64); fail("Expansion cap was ignored") } catch (_: IllegalArgumentException) { }
         assertTrue(sink.files.values.sumOf { it.size() } <= 64)
         try { BoundedZip.extract(ByteArrayInputStream(archive("A.txt" to byteArrayOf(1), "a.txt" to byteArrayOf(2))), Sink()); fail("Collision accepted") } catch (_: IllegalArgumentException) { }
+        try { BoundedZip.extract(ByteArrayInputStream(archive("folder/" to ByteArray(2048))), Sink()); fail("Directory payload bypassed bounds") } catch (_: IllegalArgumentException) { }
         try { BoundedZip.extract(ByteArrayInputStream("not a zip".toByteArray()), Sink()); fail("Invalid signature accepted") } catch (_: IllegalArgumentException) { }
     }
 }

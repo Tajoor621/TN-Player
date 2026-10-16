@@ -56,6 +56,7 @@ object ArchiveOperations {
                     if (doc.uri == stage.uri) return
                     require(depth <= 24 && files.size < BoundedZip.MAX_ENTRIES && seen.add(doc.uri.toString())) { "Folder is too deep, large or cyclic." }
                     BoundedZip.path(name)
+                    require(doc.canRead()) { "An archive source item is no longer readable." }
                     if (doc.isDirectory) {
                         files += doc to "$name/"
                         for (child in doc.listFiles()) collect(child, "$name/${child.name ?: error("Unknown filename.")}", depth + 1)

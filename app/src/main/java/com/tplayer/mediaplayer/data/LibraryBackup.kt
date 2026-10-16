@@ -45,6 +45,21 @@ object BackupFormat {
     }
     private fun json(value: Favorite) = JSONObject().put("uri", value.uri).put("title", value.title).put("mime", value.mimeType)
     fun encode(value: LibraryBackup): ByteArray {
+        // Bound serialized entries before building the complete JSON tree/string.
+        var estimated = JSONObject(value.preferences).toString().toByteArray(Charsets.UTF_8).size + 256
+        var count = 0
+        fun budget(entry: JSONObject) {
+            estimated += entry.toString().toByteArray(Charsets.UTF_8).size + 2
+            require(estimated <= MAX_BYTES && ++count <= MAX_ENTRIES) { "Collections exceed backup limits." }
+        }
+        for (entry in value.favorites) if (local(entry.uri)) budget(json(entry))
+        require(value.playlists.size <= 200)
+        for (list in value.playlists) {
+            budget(JSONObject().put("name", list.name))
+            estimated += 32
+            for (entry in list.items) if (local(entry.uri)) budget(json(entry))
+        }
+        for (entry in value.bookmarks) if (local(entry.uri)) budget(json(Favorite(entry.uri, entry.title)).put("position", entry.position))
         val root = JSONObject().put("app", "com.tplayer.mediaplayer").put("version", 1)
             .put("preferences", JSONObject(value.preferences))
             .put("favorites", JSONArray(value.favorites.filter { local(it.uri) }.map { json(it) }))
