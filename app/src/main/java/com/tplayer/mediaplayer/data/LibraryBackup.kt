@@ -60,7 +60,19 @@ object BackupFormat {
     }
     fun decode(bytes: ByteArray): LibraryBackup {
         require(bytes.size <= MAX_BYTES) { "Backup is larger than 2 MB." }
-        val root = JSONObject(bytes.toString(Charsets.UTF_8))
+        val text = bytes.toString(Charsets.UTF_8)
+        var depth = 0; var quoted = false; var escaped = false
+        for (character in text) {
+            if (quoted) {
+                if (escaped) escaped = false else if (character == '\\') escaped = true else if (character == '"') quoted = false
+            } else when (character) {
+                '"' -> quoted = true
+                '{', '[' -> { depth++; require(depth <= 32) { "Backup nesting is too deep." } }
+                '}', ']' -> { depth--; require(depth >= 0) { "Invalid backup structure." } }
+            }
+        }
+        require(depth == 0 && !quoted) { "Incomplete backup structure." }
+        val root = JSONObject(text)
         require(root.getString("app") == "com.tplayer.mediaplayer" && root.getInt("version") == 1) { "Unsupported backup format." }
         var count = 0
         fun entries(array: JSONArray): List<JSONObject> {

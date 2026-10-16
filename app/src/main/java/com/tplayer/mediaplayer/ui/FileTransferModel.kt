@@ -31,6 +31,19 @@ class FileTransferModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+    fun archive(source: DocumentFile, target: DocumentFile, extract: Boolean) {
+        if (work?.isActive == true) return
+        mutable.value = TransferUi(running = true, phase = if (extract) "Extracting ZIP" else "Creating ZIP")
+        work = viewModelScope.launch {
+            try {
+                com.tplayer.mediaplayer.data.ArchiveOperations.run(getApplication(), source, target, extract) { bytes ->
+                    mutable.value = TransferUi(true, if (extract) "Extracting ZIP" else "Creating ZIP", bytes)
+                }
+                mutable.value = TransferUi(notice = "Archive operation completed. Original retained.", succeeded = true)
+            } catch (_: CancellationException) { mutable.value = TransferUi(notice = "Archive operation cancelled. Original retained.") }
+            catch (e: Exception) { mutable.value = TransferUi(notice = e.message ?: "Archive operation failed. Original retained.") }
+        }
+    }
     fun cancel() { work?.cancel() }
     fun acknowledge() { mutable.value = TransferUi() }
 }

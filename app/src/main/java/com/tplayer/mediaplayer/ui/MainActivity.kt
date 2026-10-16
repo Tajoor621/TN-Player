@@ -323,9 +323,16 @@ class MainActivity : AppCompatActivity() {
     }
     private fun fileOptions(item: LibraryItem) {
         val doc = documents[item.uri] ?: return
-        val options = if (item.detail == "Folder") arrayOf("Rename", "Delete", "Properties") else arrayOf("Play", "Copy", "Move", "Rename", "Delete", "Share", "Properties")
+        val options = if (item.detail == "Folder") arrayOf("Rename", "Delete", "Properties", "Create ZIP") else arrayOf("Play", "Copy", "Move", "Rename", "Delete", "Share", "Properties", "Create ZIP", "Extract ZIP")
         MaterialAlertDialogBuilder(this).setTitle(item.title).setItems(options) { _, index ->
             when (options[index]) {
+                "Create ZIP", "Extract ZIP" -> {
+                    val parent = folder ?: return@setItems
+                    val extracting = options[index] == "Extract ZIP"
+                    MaterialAlertDialogBuilder(this).setTitle(options[index])
+                        .setMessage("Writes a new output beside the source; never overwrites or removes the original. Limits: 5,000 entries, 512 MB expanded/input bytes and 24 folder levels. A process interruption may leave a hidden .tn-archive staging output.")
+                        .setPositiveButton("Continue") { _, _ -> transfers.archive(doc, parent, extracting) }.setNegativeButton("Cancel", null).show()
+                }
                 "Play" -> play(item)
                 "Copy", "Move" -> { clipboard = doc to (options[index] == "Move"); Toast.makeText(this, "Open a destination folder and tap Paste/Move here.", Toast.LENGTH_LONG).show(); showFiles() }
                 "Rename" -> input("Rename", item.title) { name ->

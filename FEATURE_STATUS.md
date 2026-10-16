@@ -25,7 +25,7 @@
 | PiP | API 26+ guard, auto enter API 31+, runtime params, media-session system controls | Custom play/pause/previous/next RemoteActions implemented; add expanded PiP capability checks; measure transitions |
 | File browsing | User-chosen SAF folder, nested navigation, hidden toggle, search | No root escalation; system/other-app private folders remain protected |
 | File operations | Verified staged individual-file copy/move, rotation-safe progress/cancel UI, encrypted cleanup journal, rename, delete confirmation, share, new folder, properties | Add tree-recursive operations with self-descendant guards and multi-select; test document providers |
-| Archives | Not implemented | ZIP streaming with canonical-path containment and decompression size/count limits; separately license 7z/RAR implementations and verify write support |
+| Archives | Cancellable ZIP file/folder creation with CRC read-back; staged SAF extraction with path/collision, 512 MB, 5,000-entry and depth limits; originals retained | Process interruptions may leave hidden staging output; provider fault testing; separately license/test 7z/RAR |
 | SD card / USB | Through Android document providers and granted tree URIs | Test removable volumes and provider revocation; direct USB-host support requires explicit UsbManager consent, not a fictional USB_PERMISSION |
 | Streams | HTTPS progressive/HLS/DASH/SS; RTSP module | HTTP intentionally blocked. Add per-host opt-in only with explicit UX; RTMP/SMB/FTP/SFTP/NFS/DLNA/WebDAV require protocol-specific data sources and tests |
 | Downloads | Android Download Manager for direct HTTPS media; local completed-file list | Add real queue/progress/error UI and Media3 DownloadService/cache for offline adaptive media; reject DRM/offline assumptions |

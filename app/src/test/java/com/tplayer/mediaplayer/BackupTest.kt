@@ -45,7 +45,11 @@ class BackupTest {
     }
     @Test fun malformedOrForeignSourcesAreRejectedBeforeAnyRestore() = runBlocking {
         val valid = BackupFormat.encode(LibraryBackup(emptyMap(), listOf(Favorite("content://media/1", "Safe")), emptyList(), emptyList())).toString(Charsets.UTF_8)
-        for (bad in listOf(valid.replace("content://media/1", "https://example.com/private?token=secret"), valid.replace("\"version\":1", "\"version\":2"), "{}", valid.replace("content://media/1", "javascript:alert(1)"))) {
+        fun withUri(uri: String): String = org.json.JSONObject(valid).apply {
+            getJSONArray("favorites").getJSONObject(0).put("uri", uri)
+        }.toString()
+        val foreignVersion = org.json.JSONObject(valid).put("version", 2).toString()
+        for (bad in listOf(withUri("https://example.com/private?token=secret"), foreignVersion, "{}", "[".repeat(100) + "]".repeat(100), withUri("javascript:alert(1)"))) {
             try { BackupFormat.decode(bad.toByteArray()); fail("Invalid backup accepted") } catch (_: Exception) { }
         }
         assertTrue(target.media().favorites().isEmpty())
