@@ -14,6 +14,7 @@ object ArchiveOperations {
     private val gate = Mutex()
     suspend fun run(context: Context, source: DocumentFile, parent: DocumentFile, extract: Boolean,
         progress: (Long) -> Unit) = withContext(Dispatchers.IO) { gate.withLock {
+        require(source.uri != parent.uri) { "The destination cannot be the selected source folder." }
         require(source.canRead() && parent.isDirectory && parent.canWrite()) { "Choose a readable source and writable folder." }
         val sourceName = source.name ?: error("Unknown source name.")
         val finalName = if (extract) sourceName.substringBeforeLast('.', sourceName) + "-extracted" else "$sourceName.zip"
@@ -49,7 +50,10 @@ object ArchiveOperations {
                 checkNotNull(context.contentResolver.openInputStream(source.uri)).use { BoundedZip.extract(it, sink, progress = progress) }
             } else {
                 val files = mutableListOf<Pair<DocumentFile, String>>(); val seen = mutableSetOf<String>()
+                val operation = currentCoroutineContext()
                 fun collect(doc: DocumentFile, name: String, depth: Int) {
+                    operation.ensureActive()
+                    if (doc.uri == stage.uri) return
                     require(depth <= 24 && files.size < BoundedZip.MAX_ENTRIES && seen.add(doc.uri.toString())) { "Folder is too deep, large or cyclic." }
                     BoundedZip.path(name)
                     if (doc.isDirectory) {

@@ -155,7 +155,7 @@ class MainActivity : AppCompatActivity() {
                     transferProgress.isIndeterminate = state.total <= 0
                     if (state.total > 0) transferProgress.progress = (state.bytes * 100 / state.total).toInt().coerceIn(0, 100)
                     state.notice?.let {
-                        if (state.succeeded) clipboard = null
+                        if (state.clearClipboard) clipboard = null
                         if (screen == Screen.FILES) showFiles()
                         transfers.acknowledge(); info("File transfer", it)
                     }
