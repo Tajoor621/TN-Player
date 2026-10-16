@@ -1,6 +1,7 @@
 package com.tplayer.mediaplayer.ui
 
 import android.content.Context
+import com.bumptech.glide.Glide
 import android.view.ViewGroup
 import android.widget.*
 import androidx.recyclerview.widget.RecyclerView
@@ -32,6 +33,8 @@ class MediaAdapter(private val click: (LibraryItem) -> Unit, private val more: (
             minimumHeight = ctx.dp(76); setPadding(ctx.dp(16), ctx.dp(8), ctx.dp(8), ctx.dp(8))
             isFocusable = true
         }
+        val image = ImageView(ctx).apply { scaleType = ImageView.ScaleType.CENTER_CROP; importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO }
+        row.addView(image, LinearLayout.LayoutParams(ctx.dp(64), ctx.dp(56)).apply { marginEnd = ctx.dp(12) })
         val labels = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
         val title = TextView(ctx).apply { textSize = 16f; maxLines = 2 }
         val detail = TextView(ctx).apply { textSize = 12f; alpha = .7f }
@@ -39,16 +42,24 @@ class MediaAdapter(private val click: (LibraryItem) -> Unit, private val more: (
         row.addView(labels, LinearLayout.LayoutParams(0, -2, 1f))
         val menu = ctx.button("⋮") {}.apply { minWidth = ctx.dp(48) }
         row.addView(menu, LinearLayout.LayoutParams(ctx.dp(56), ctx.dp(56)))
-        return Holder(row, title, detail, menu)
+        return Holder(row, title, detail, menu, image)
     }
     override fun getItemCount() = rows.size
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = rows[position]
         holder.title.text = item.title; holder.detail.text = item.detail
+        val local = android.net.Uri.parse(item.uri).scheme in setOf("content", "file")
+        val artwork = item.artworkUri ?: item.uri.takeIf { local && item.mimeType.startsWith("video/") }
+        Glide.with(holder.image).clear(holder.image)
+        if (artwork != null) Glide.with(holder.image).load(android.net.Uri.parse(artwork))
+            .override(holder.itemView.context.dp(96), holder.itemView.context.dp(72)).centerCrop()
+            .placeholder(android.R.drawable.ic_media_play).error(android.R.drawable.ic_media_play).into(holder.image)
+        else holder.image.setImageResource(if (item.detail == "Folder") android.R.drawable.ic_menu_agenda else android.R.drawable.ic_media_play)
         holder.itemView.setOnClickListener { click(item) }
         holder.itemView.setOnLongClickListener { more(item); true }
         holder.menu.contentDescription = "Options for ${item.title}"
         holder.menu.setOnClickListener { more(item) }
     }
-    class Holder(row: LinearLayout, val title: TextView, val detail: TextView, val menu: MaterialButton) : RecyclerView.ViewHolder(row)
+    override fun onViewRecycled(holder: Holder) { Glide.with(holder.image.context.applicationContext).clear(holder.image); super.onViewRecycled(holder) }
+    class Holder(row: LinearLayout, val title: TextView, val detail: TextView, val menu: MaterialButton, val image: ImageView) : RecyclerView.ViewHolder(row)
 }

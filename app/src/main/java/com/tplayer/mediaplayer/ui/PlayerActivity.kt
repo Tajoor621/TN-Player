@@ -22,6 +22,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.ui.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.common.util.concurrent.ListenableFuture
+import com.tplayer.mediaplayer.R
 import com.tplayer.mediaplayer.data.*
 import com.tplayer.mediaplayer.playback.MediaPlaybackService
 import com.tplayer.mediaplayer.playback.PlaybackPolicy
@@ -29,6 +30,7 @@ import kotlinx.coroutines.*
 
 class PlayerActivity : AppCompatActivity() {
     private lateinit var video: PlayerView
+    private lateinit var gestures: PlayerGestures
     private lateinit var top: LinearLayout
     private lateinit var title: TextView
     private var future: ListenableFuture<MediaController>? = null
@@ -73,21 +75,32 @@ class PlayerActivity : AppCompatActivity() {
         catch (e: Exception) { info("Action unavailable", e.message ?: "Check storage access and try again.") }
     }
     override fun onCreate(savedInstanceState: Bundle?) {
+        if (settings.amoled) setTheme(R.style.Theme_TNPlayer_Amoled)
         super.onCreate(savedInstanceState)
         pendingIntent = if (savedInstanceState?.getBoolean("consumed") == true) null else intent
         locked = savedInstanceState?.getBoolean("locked") ?: false
         resumeRequested = savedInstanceState?.getBoolean("resumeRequested") ?: false
         val frame = FrameLayout(this)
-        video = PlayerView(this).apply {
+        video = (layoutInflater.inflate(R.layout.player_surface, frame, false) as PlayerView).apply {
             setShowSubtitleButton(true); setShowNextButton(true); setShowPreviousButton(true)
             setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
             controllerShowTimeoutMs = 4000
             setBackgroundColor(android.graphics.Color.BLACK)
         }
         frame.addView(video, FrameLayout.LayoutParams(-1, -1))
+        video.resizeMode = intArrayOf(AspectRatioFrameLayout.RESIZE_MODE_FIT, AspectRatioFrameLayout.RESIZE_MODE_FILL, AspectRatioFrameLayout.RESIZE_MODE_ZOOM)[settings.aspectRatio]
+        applySubtitleStyle()
+        val gestureOverlay = TextView(this).apply {
+            textSize = 20f; setTextColor(-1); setBackgroundColor(0xCC081D21.toInt())
+            setPadding(dp(18), dp(12), dp(18), dp(12)); visibility = View.GONE
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
+        frame.addView(gestureOverlay, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
+        gestures = PlayerGestures(this, video, gestureOverlay, { controller },
+            { settings.gestures && !locked && !inPip() }, { settings.seekMs })
         top = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL; setPadding(dp(4), dp(4), dp(4), dp(4))
-            setBackgroundColor(0xCC17132B.toInt())
+            setBackgroundColor(0xCC081D21.toInt())
         }
         top.addView(button("Back") { finish() })
         title = TextView(this).apply { text = "TN-Player"; textSize = 16f; setTextColor(-1); maxLines = 2 }
@@ -163,6 +176,18 @@ class PlayerActivity : AppCompatActivity() {
             if (items.isNotEmpty()) { player.setMediaItems(items); player.prepare(); player.play() }
             return
         }
+        if (source.action == Intent.ACTION_SEND_MULTIPLE) {
+            @Suppress("DEPRECATION")
+            val shared = source.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM).orEmpty()
+            require(shared.size in 1..1000)
+            val items = shared.mapNotNull { uri ->
+                require(uri.scheme?.lowercase() in setOf("content", "file"))
+                try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: SecurityException) { }
+                makeItem(uri, displayName(uri), source.type?.takeUnless { it.contains('*') })
+            }
+            if (items.isNotEmpty()) { resumeRequested = false; player.setMediaItems(items); player.prepare(); player.play() }
+            return
+        }
         @Suppress("DEPRECATION")
         val uri = source.data ?: source.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
         if (uri == null) {
@@ -200,14 +225,14 @@ class PlayerActivity : AppCompatActivity() {
     }
     private fun menu() {
         val player = controller ?: return
-        val choices = arrayOf("Playback speed", "Aspect ratio", "External subtitle", "Subtitle size", "Add/remove favorite", "Add bookmark", "Bookmarks", "Set A–B repeat", "Clear A–B repeat", "Loop / shuffle", "Sleep timer", "Rotate screen", "Lock controls", "Stop playback")
+        val choices = arrayOf("Playback speed", "Aspect ratio", "External subtitle", "Subtitle size", "Add/remove favorite", "Add bookmark", "Bookmarks", "Set A–B repeat", "Clear A–B repeat", "Loop / shuffle", "Sleep timer", "Rotate screen", "Lock controls", "Stop playback", "Subtitle style", "Audio enhancements", "Reset zoom")
         MaterialAlertDialogBuilder(this).setTitle("Playback controls").setItems(choices) { _, index ->
             when (index) {
                 0 -> { val values = floatArrayOf(.25f, .5f, .75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f)
                     MaterialAlertDialogBuilder(this).setTitle("Playback speed").setItems(values.map { "${it}×" }.toTypedArray()) { _, i -> player.setPlaybackSpeed(values[i]) }.show() }
-                1 -> MaterialAlertDialogBuilder(this).setTitle("Aspect ratio").setItems(arrayOf("Fit", "Fill / stretch", "Crop / zoom")) { _, i -> video.resizeMode = intArrayOf(AspectRatioFrameLayout.RESIZE_MODE_FIT, AspectRatioFrameLayout.RESIZE_MODE_FILL, AspectRatioFrameLayout.RESIZE_MODE_ZOOM)[i] }.show()
+                1 -> MaterialAlertDialogBuilder(this).setTitle("Aspect ratio").setItems(arrayOf("Fit", "Fill / stretch", "Crop / zoom")) { _, i -> settings.aspectRatio = i; video.resizeMode = intArrayOf(AspectRatioFrameLayout.RESIZE_MODE_FIT, AspectRatioFrameLayout.RESIZE_MODE_FILL, AspectRatioFrameLayout.RESIZE_MODE_ZOOM)[i] }.show()
                 2 -> subtitlePicker.launch(arrayOf("*/*"))
-                3 -> MaterialAlertDialogBuilder(this).setTitle("Subtitle size").setItems(arrayOf("Small", "Medium", "Large")) { _, i -> video.subtitleView?.setFractionalTextSize(floatArrayOf(.035f, .0533f, .075f)[i]) }.show()
+                3 -> MaterialAlertDialogBuilder(this).setTitle("Subtitle size").setItems(arrayOf("Small", "Medium", "Large")) { _, i -> settings.subtitleSize = i; applySubtitleStyle() }.show()
                 4 -> launchUi {
                     val item = player.currentMediaItem ?: return@launchUi
                     if (dao.isFavorite(item.mediaId)) { dao.removeFavorite(item.mediaId); Toast.makeText(this@PlayerActivity, "Favorite removed", Toast.LENGTH_SHORT).show() }
@@ -237,8 +262,71 @@ class PlayerActivity : AppCompatActivity() {
                 11 -> requestedOrientation = if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                 12 -> { locked = true; top.visibility = View.GONE; video.useController = false; Toast.makeText(this, "Long press video to unlock controls", Toast.LENGTH_LONG).show() }
                 13 -> { player.stop(); player.clearMediaItems(); finish() }
+                14 -> subtitleStyleMenu()
+                15 -> audioEnhancements(player)
+                16 -> gestures.resetZoom()
             }
         }.show()
+    }
+    private fun applySubtitleStyle() {
+        video.subtitleView?.apply {
+            setApplyEmbeddedStyles(false)
+            setFractionalTextSize(floatArrayOf(.035f, .0533f, .075f)[settings.subtitleSize])
+            setBottomPaddingFraction(settings.subtitlePosition / 100f)
+            setStyle(CaptionStyleCompat(settings.subtitleColor,
+                if (settings.subtitleBackground) 0xB0000000.toInt() else android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_OUTLINE, android.graphics.Color.BLACK,
+                arrayOf(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.SERIF, android.graphics.Typeface.MONOSPACE)[settings.subtitleFont]))
+        }
+    }
+    private fun subtitleStyleMenu() {
+        MaterialAlertDialogBuilder(this).setTitle("Subtitle style").setItems(arrayOf("Text size", "Text color", "Typeface", "Toggle background", "Position")) { _, choice ->
+            when (choice) {
+                0 -> MaterialAlertDialogBuilder(this).setTitle("Text size").setSingleChoiceItems(arrayOf("Small", "Medium", "Large"), settings.subtitleSize) { dialog, index -> settings.subtitleSize = index; applySubtitleStyle(); dialog.dismiss() }.show()
+                1 -> MaterialAlertDialogBuilder(this).setTitle("Text color").setItems(arrayOf("White", "Yellow", "Cyan")) { _, index -> settings.subtitleColor = intArrayOf(-1, -256, -16711681)[index]; applySubtitleStyle() }.show()
+                2 -> MaterialAlertDialogBuilder(this).setTitle("Typeface").setSingleChoiceItems(arrayOf("Sans", "Serif", "Monospace"), settings.subtitleFont) { dialog, index -> settings.subtitleFont = index; applySubtitleStyle(); dialog.dismiss() }.show()
+                3 -> { settings.subtitleBackground = !settings.subtitleBackground; applySubtitleStyle() }
+                4 -> MaterialAlertDialogBuilder(this).setTitle("Position").setItems(arrayOf("Low", "Raised", "High")) { _, index -> settings.subtitlePosition = intArrayOf(8, 16, 28)[index]; applySubtitleStyle() }.show()
+            }
+        }.show()
+    }
+    private fun audioEnhancements(player: MediaController) {
+        val result = player.sendCustomCommand(SessionCommand("AUDIO_EFFECTS_STATE", Bundle.EMPTY), Bundle.EMPTY)
+        result.addListener({
+            if (isFinishing || isDestroyed) return@addListener
+            val response = try { result.get() } catch (_: Exception) { null }
+            if (response?.resultCode != SessionResult.RESULT_SUCCESS) { info("Audio enhancements", "Effects are unavailable for this audio output."); return@addListener }
+            val state = response.extras
+            if (!state.getBoolean("eq") && !state.getBoolean("bass") && !state.getBoolean("virtualizer")) { info("Audio enhancements", "Start audio playback first. Device effects may be unavailable for this output or passthrough path."); return@addListener }
+            val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(12), dp(20), dp(12)) }
+            val enabled = CheckBox(this).apply { text = "Enable equalizer"; isChecked = state.getBoolean("enabled"); isEnabled = state.getBoolean("eq") }
+            box.addView(enabled)
+            val frequencies = state.getIntArray("frequencies") ?: intArrayOf()
+            val levels = state.getIntArray("levels") ?: intArrayOf()
+            val low = state.getInt("min"); val high = state.getInt("max")
+            fun slider(label: String, min: Int, max: Int, value: Int): SeekBar {
+                val heading = TextView(this).apply { text = "$label: $value" }; box.addView(heading)
+                val seek = SeekBar(this).apply { this.max = (max - min).coerceAtLeast(1); progress = (value - min).coerceIn(0, this.max); contentDescription = label; minimumHeight = dp(48) }
+                seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) { heading.text = "$label: ${progress + min}" }
+                    override fun onStartTrackingTouch(bar: SeekBar) {}
+                    override fun onStopTrackingTouch(bar: SeekBar) {}
+                })
+                box.addView(seek); return seek
+            }
+            val bands = frequencies.indices.map { index -> slider("${frequencies[index]} Hz · millibels", low, high, levels.getOrElse(index) { 0 }) }
+            box.addView(button("Reset bands to flat") { bands.forEach { it.progress = -low } })
+            val bass = if (state.getBoolean("bass")) slider("Bass strength", 0, 1000, state.getInt("bassStrength")) else null
+            val virtual = if (state.getBoolean("virtualizer")) slider("Virtualizer strength", 0, 1000, state.getInt("virtualizerStrength")) else null
+            MaterialAlertDialogBuilder(this).setTitle("Audio · ${bands.size} device EQ bands")
+                .setView(ScrollView(this).apply { addView(box) }).setNegativeButton("Cancel", null)
+                .setPositiveButton("Apply") { _, _ ->
+                    sendCommand(player, "AUDIO_EFFECTS_SET", Bundle().apply {
+                        putBoolean("enabled", enabled.isChecked); putIntArray("levels", bands.map { it.progress + low }.toIntArray())
+                        putInt("bassStrength", bass?.progress ?: 0); putInt("virtualizerStrength", virtual?.progress ?: 0)
+                    }, "Audio effects applied")
+                }.show()
+        }, ContextCompat.getMainExecutor(this))
     }
     private fun attachSubtitle(uri: Uri) {
         val player = controller ?: return
@@ -266,6 +354,16 @@ class PlayerActivity : AppCompatActivity() {
         val height = (size?.height ?: 0).takeIf { it > 0 } ?: 9
         val ratio = (width.toFloat() / height).coerceIn(0.42f, 2.39f)
         val builder = PictureInPictureParams.Builder().setAspectRatio(Rational((ratio * 1000).toInt(), 1000))
+        if (player != null) {
+            val specs = listOf(Triple("PREVIOUS", "Previous", android.R.drawable.ic_media_previous),
+                Triple("TOGGLE_PLAYBACK", if (player.isPlaying) "Pause" else "Play", if (player.isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play),
+                Triple("NEXT", "Next", android.R.drawable.ic_media_next))
+            builder.setActions(specs.map { (action, label, icon) -> android.app.RemoteAction(
+                android.graphics.drawable.Icon.createWithResource(this, icon), label, label,
+                com.tplayer.mediaplayer.widget.PlaybackActions.pending(this, action)).apply {
+                    isEnabled = when (action) { "PREVIOUS" -> player.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS); "NEXT" -> player.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT); else -> true }
+                } })
+        }
         if (Build.VERSION.SDK_INT >= 31) builder.setAutoEnterEnabled(settings.autoPip && player?.isPlaying == true && player.currentTracks.isTypeSelected(C.TRACK_TYPE_VIDEO))
         return builder.build()
     }

@@ -27,6 +27,11 @@ data class Bookmark(@PrimaryKey(autoGenerate = true) val id: Long = 0, val uri: 
 
 @Dao
 interface RawMediaDao {
+    @Query("SELECT * FROM bookmarks LIMIT 10001") suspend fun backupBookmarks(): List<Bookmark>
+    @Query("SELECT * FROM favorites LIMIT 10001") suspend fun backupFavorites(): List<Favorite>
+    @Query("SELECT * FROM playlists LIMIT 201") suspend fun backupPlaylists(): List<Playlist>
+    @Query("SELECT * FROM playlist_items WHERE playlistId = :id ORDER BY addedAt LIMIT 10001") suspend fun backupItems(id: Long): List<PlaylistItem>
+
     @Query("DELETE FROM uri_secrets WHERE id NOT IN (SELECT uri FROM history UNION SELECT uri FROM favorites UNION SELECT uri FROM streams UNION SELECT uri FROM playlist_items UNION SELECT uri FROM bookmarks)") suspend fun collectSecrets()
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun putSecret(secret: UriSecret)
     @Query("SELECT * FROM uri_secrets WHERE id = :id LIMIT 1") suspend fun secret(id: String): UriSecret?

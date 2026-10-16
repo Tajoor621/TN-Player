@@ -23,4 +23,55 @@ class Settings(context: Context) {
     var tree: String?
         get() = prefs.getString("tree", null)
         set(value) { prefs.edit().putString("tree", value).apply() }
+    var gestures: Boolean
+        get() = prefs.getBoolean("gestures", true)
+        set(value) { prefs.edit().putBoolean("gestures", value).apply() }
+    var amoled: Boolean
+        get() = prefs.getBoolean("amoled", false)
+        set(value) { prefs.edit().putBoolean("amoled", value).apply() }
+    var subtitleSize: Int
+        get() = prefs.getInt("subtitleSize", 1).coerceIn(0, 2)
+        set(value) { prefs.edit().putInt("subtitleSize", value.coerceIn(0, 2)).apply() }
+    var subtitleFont: Int
+        get() = prefs.getInt("subtitleFont", 0).coerceIn(0, 2)
+        set(value) { prefs.edit().putInt("subtitleFont", value.coerceIn(0, 2)).apply() }
+    var subtitleColor: Int
+        get() = prefs.getInt("subtitleColor", -1)
+        set(value) { prefs.edit().putInt("subtitleColor", value).apply() }
+    var subtitleBackground: Boolean
+        get() = prefs.getBoolean("subtitleBackground", true)
+        set(value) { prefs.edit().putBoolean("subtitleBackground", value).apply() }
+    var subtitlePosition: Int
+        get() = prefs.getInt("subtitlePosition", 8).coerceIn(0, 35)
+        set(value) { prefs.edit().putInt("subtitlePosition", value.coerceIn(0, 35)).apply() }
+    var aspectRatio: Int
+        get() = prefs.getInt("aspectRatio", 0).coerceIn(0, 2)
+        set(value) { prefs.edit().putInt("aspectRatio", value.coerceIn(0, 2)).apply() }
+    var eqEnabled: Boolean
+        get() = prefs.getBoolean("eqEnabled", false)
+        set(value) { prefs.edit().putBoolean("eqEnabled", value).apply() }
+    var eqLevels: String
+        get() = prefs.getString("eqLevels", "").orEmpty()
+        set(value) { prefs.edit().putString("eqLevels", value).apply() }
+    var bass: Int
+        get() = prefs.getInt("bass", 0).coerceIn(0, 1000)
+        set(value) { prefs.edit().putInt("bass", value.coerceIn(0, 1000)).apply() }
+    var virtualizer: Int
+        get() = prefs.getInt("virtualizer", 0).coerceIn(0, 1000)
+        set(value) { prefs.edit().putInt("virtualizer", value.coerceIn(0, 1000)).apply() }
+    fun backupValues(): Map<String, Any> = mapOf(
+        "theme" to theme, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
+        "seekMs" to seekMs, "gestures" to gestures, "amoled" to amoled,
+        "subtitleSize" to subtitleSize, "subtitleFont" to subtitleFont, "subtitleColor" to subtitleColor,
+        "subtitleBackground" to subtitleBackground, "subtitlePosition" to subtitlePosition,
+        "aspectRatio" to aspectRatio)
+    fun restoreValues(values: Map<String, Any>) {
+        val editor = prefs.edit()
+        for ((key, value) in values) when (value) {
+            is Boolean -> editor.putBoolean(key, value)
+            is Long -> editor.putLong(key, value)
+            is Int -> editor.putInt(key, value)
+        }
+        check(editor.commit()) { "Collections restored, but preferences could not be saved." }
+    }
 }

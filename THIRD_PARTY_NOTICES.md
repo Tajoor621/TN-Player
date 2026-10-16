@@ -13,3 +13,5 @@ Upstream references:
 - https://github.com/Kotlin/kotlinx.coroutines
 - https://github.com/junit-team/junit4
 - https://github.com/robolectric/robolectric
+
+Glide 4.16.0 (image/video thumbnail loading, compiler and transitive artifacts): BSD-style / Apache-2.0 components; see https://github.com/bumptech/glide/blob/v4.16.0/LICENSE. Audit the resolved distribution before production release.

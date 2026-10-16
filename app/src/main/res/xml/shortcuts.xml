@@ -1,5 +1,11 @@
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
-<shortcut android:shortcutId="streams" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/app_name">
+<shortcut android:shortcutId="streams" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_stream">
 <intent android:action="com.tplayer.OPEN_STREAMS" android:targetPackage="com.tplayer.mediaplayer" android:targetClass="com.tplayer.mediaplayer.ui.MainActivity" />
+</shortcut>
+<shortcut android:shortcutId="resume" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_resume">
+<intent android:action="android.intent.action.VIEW" android:targetPackage="com.tplayer.mediaplayer" android:targetClass="com.tplayer.mediaplayer.ui.PlayerActivity"><extra android:name="resume" android:value="true" /></intent>
+</shortcut>
+<shortcut android:shortcutId="files" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_files">
+<intent android:action="com.tplayer.OPEN_FILES" android:targetPackage="com.tplayer.mediaplayer" android:targetClass="com.tplayer.mediaplayer.ui.MainActivity" />
 </shortcut>
 </shortcuts>

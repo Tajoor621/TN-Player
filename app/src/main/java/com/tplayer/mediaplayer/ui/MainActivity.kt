@@ -40,6 +40,40 @@ class BrowserState : ViewModel() {
 }
 class MainActivity : AppCompatActivity() {
     private val settings by lazy { Settings(this) }
+    private val mediaHandler = Handler(Looper.getMainLooper())
+    private val refreshLibrary = Runnable { if (screen == Screen.VIDEOS || screen == Screen.MUSIC) renderScreen() }
+    private var observingMedia = false
+    private val mediaObserver = object : android.database.ContentObserver(mediaHandler) {
+        override fun onChange(selfChange: Boolean) {
+            mediaHandler.removeCallbacks(refreshLibrary); mediaHandler.postDelayed(refreshLibrary, 750)
+        }
+    }
+    private val exportBackup = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) launchUi {
+            val values = settings.backupValues()
+            withContext(Dispatchers.IO) {
+                val backup = BackupRepository(MediaDatabase.get(this@MainActivity)).snapshot(values)
+                val bytes = BackupFormat.encode(backup)
+                checkNotNull(contentResolver.openOutputStream(uri, "wt")) { "Cannot write this backup." }.use { it.write(bytes) }
+            }
+            info("Backup saved", "Local favorites, playlists, bookmarks and preferences were exported. Network sources, credentials and media bytes were excluded.")
+        }
+    }
+    private val importBackup = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) launchUi {
+            val backup = withContext(Dispatchers.IO) {
+                checkNotNull(contentResolver.openInputStream(uri)).use { BackupFormat.decode(BackupFormat.read(it)) }
+            }
+            MaterialAlertDialogBuilder(this@MainActivity).setTitle("Restore backup?").setMessage(backup.summary())
+                .setNegativeButton("Cancel", null).setPositiveButton("Merge") { _, _ -> launchUi {
+                    BackupRepository(MediaDatabase.get(this@MainActivity)).merge(backup)
+                    withContext(Dispatchers.IO) { settings.restoreValues(backup.preferences) }
+                    AppCompatDelegate.setDefaultNightMode(settings.theme)
+                    Toast.makeText(applicationContext, "Collections restored. Rechoose media if access has changed.", Toast.LENGTH_LONG).show()
+                    recreate()
+                } }.show()
+        }
+    }
     private val dao by lazy { MediaDatabase.get(this).media() }
     private lateinit var content: LinearLayout
     private lateinit var status: TextView
@@ -91,8 +125,9 @@ class MainActivity : AppCompatActivity() {
         catch (e: Exception) { info("Action unavailable", e.message ?: "Check storage access and try again.") }
     }
     override fun onCreate(savedInstanceState: Bundle?) {
+        if (settings.amoled) setTheme(R.style.Theme_TNPlayer_Amoled)
         super.onCreate(savedInstanceState)
-        tab = savedInstanceState?.getInt("tab") ?: if (intent.action == "com.tplayer.OPEN_STREAMS") 4 else 1
+        tab = savedInstanceState?.getInt("tab") ?: when (intent.action) { "com.tplayer.OPEN_STREAMS" -> 4; "com.tplayer.OPEN_FILES" -> 3; else -> 1 }
         screen = if (savedInstanceState != null) Screen.restore(savedInstanceState.getString("screen")) else Screen.forTab(tab)
         activePlaylist = savedInstanceState?.getLong("playlist", -1L)?.takeIf { it >= 0 }
         if (folder == null) folder = settings.tree?.let { DocumentFile.fromTreeUri(applicationContext, Uri.parse(it)) }
@@ -155,6 +190,19 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt("tab", tab); outState.putString("screen", screen.name); outState.putLong("playlist", activePlaylist ?: -1)
         super.onSaveInstanceState(outState)
+    }
+    override fun onStart() {
+        super.onStart()
+        try {
+            contentResolver.registerContentObserver(android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true, mediaObserver)
+            contentResolver.registerContentObserver(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true, mediaObserver)
+            observingMedia = true
+        } catch (_: SecurityException) { contentResolver.unregisterContentObserver(mediaObserver) }
+    }
+    override fun onStop() {
+        mediaHandler.removeCallbacks(refreshLibrary)
+        if (observingMedia) { contentResolver.unregisterContentObserver(mediaObserver); observingMedia = false }
+        super.onStop()
     }
     override fun onResume() { super.onResume(); if (::content.isInitialized) renderScreen() }
     private fun renderScreen() {
@@ -448,9 +496,16 @@ class MainActivity : AppCompatActivity() {
         toggle("Resume unfinished media", settings.resume) { settings.resume = it }
         toggle("Auto picture-in-picture for videos", settings.autoPip) { settings.autoPip = it }
         toggle("Show hidden files in chosen folders", settings.hidden) { settings.hidden = it }
+        toggle("Player swipe and pinch gestures", settings.gestures) { settings.gestures = it }
+        toggle("AMOLED black theme", settings.amoled) {
+            settings.amoled = it
+            if (it) { settings.theme = AppCompatDelegate.MODE_NIGHT_YES; AppCompatDelegate.setDefaultNightMode(settings.theme) }
+            recreate()
+        }
         box.addView(button("Theme") { MaterialAlertDialogBuilder(this).setTitle("Theme").setItems(arrayOf("System", "Light", "Dark")) { _, i ->
+            settings.amoled = false
             settings.theme = listOf(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM, AppCompatDelegate.MODE_NIGHT_NO, AppCompatDelegate.MODE_NIGHT_YES)[i]
-            AppCompatDelegate.setDefaultNightMode(settings.theme)
+            AppCompatDelegate.setDefaultNightMode(settings.theme); recreate()
         }.show() })
         box.addView(button("Seek interval: ${settings.seekMs / 1000}s") { MaterialAlertDialogBuilder(this).setTitle("Seek interval").setItems(arrayOf("5 seconds", "10 seconds", "30 seconds")) { _, i ->
             settings.seekMs = listOf(5000L, 10000L, 30000L)[i]; showSettings()
@@ -459,10 +514,17 @@ class MainActivity : AppCompatActivity() {
         box.addView(button("App permissions") {
             startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
         })
+        box.addView(button("Export library backup") {
+            MaterialAlertDialogBuilder(this).setTitle("Export local collections")
+                .setMessage("The JSON backup contains collection names, local media paths and preferences. It is not encrypted. Network sources, credentials, media bytes and storage grants are excluded.")
+                .setPositiveButton("Choose destination") { _, _ -> exportBackup.launch("TN-Player-backup.json") }.setNegativeButton("Cancel", null).show()
+        })
+        box.addView(button("Restore library backup") { importBackup.launch(arrayOf("application/json", "text/plain")) })
+        box.addView(button("Gesture guide") { info("Player gestures", "Enable gestures, then use two fingers on the video: swipe horizontally to seek, vertically on the left for volume, or on the right for this window's brightness. Pinch to zoom up to 3×. Double-tap either side to seek. Standard player buttons remain available; gestures are disabled while controls are locked or PiP is active.") })
         box.addView(button("Help & supported features") { help() })
         box.addView(button("Privacy") { info("Privacy", "Media, history, favorites and settings remain on your device. No analytics, ads, crash upload, account or cloud sync is included. Saved network addresses and playback checkpoints are encrypted using local Android Keystore-protected keys. Streams contact the URL you choose. Android backups are disabled. Clearing app data or uninstalling removes this app's database and downloads. RTSP is supported but is not encrypted; use trusted sources.") })
         box.addView(ImageView(this).apply { setImageResource(R.drawable.tn_logo); contentDescription = "TN-Player logo" }, LinearLayout.LayoutParams(dp(96), dp(96)).apply { gravity = Gravity.CENTER_HORIZONTAL })
         box.addView(TextView(this).apply { text = "TN-Player 1.0.0\ncom.tplayer.mediaplayer\nAndroid 5.0+ · Native Media3 playback\n\nCodec support depends on device and source. FFmpeg, cast, cloud sync and private vault are not included in this build."; textSize = 13f; setPadding(dp(8), dp(20), dp(8), dp(20)) })
     }
-    private fun help() { info("TN-Player help", "Videos/Music: grant library access or use Open file. Selected-video access is supported on Android 14.\n\nFiles: choose a folder, tap a folder to enter, or use ⋮ for copy, move, rename, share and delete. Copy/move supports individual files. Android controls which folders are accessible.\n\nPlayer: use built-in controls for seeking, audio/subtitle tracks and speed. More offers A–B repeat, bookmarks, external SRT/VTT subtitles, aspect ratio and sleep timer. PiP requires Android 8+ and device support. Audio continues in the background.\n\nStreams: add a direct HTTPS or RTSP media URL. Web page links and DRM-locked services are not media URLs. Downloads support direct HTTPS files only.\n\nLibrary menu: favorites, history, playlists and downloads. No sample files are shown as your own media.\n\nThis is the native core build. Universal FFmpeg decoding, SMB/FTP, casting, encrypted vault, audio DSP and widgets require further development.") }
+    private fun help() { info("TN-Player help", "Videos/Music: grant library access or use Open file. Selected-video access is supported on Android 14.\n\nFiles: choose a folder, tap a folder to enter, or use ⋮ for copy, move, rename, share and delete. Copy/move supports individual files. Android controls which folders are accessible.\n\nPlayer: use built-in controls for seeking, audio/subtitle tracks and speed. More offers A–B repeat, bookmarks, external SRT/VTT subtitles, aspect ratio and sleep timer. PiP requires Android 8+ and device support. Audio continues in the background.\n\nStreams: add a direct HTTPS or RTSP media URL. Web page links and DRM-locked services are not media URLs. Downloads support direct HTTPS files only.\n\nLibrary menu: favorites, history, playlists and downloads. No sample files are shown as your own media.\n\nThis is the native core build. Universal FFmpeg decoding, SMB/FTP, casting, encrypted vault, advanced PCM processing and additional widget types require further development.") }
 }

@@ -16,11 +16,13 @@ import com.tplayer.mediaplayer.data.History
 import com.tplayer.mediaplayer.data.MediaDatabase
 import com.tplayer.mediaplayer.data.Settings
 import com.tplayer.mediaplayer.ui.PlayerActivity
+import com.tplayer.mediaplayer.widget.PlaybackWidget
 import kotlinx.coroutines.*
 
 @UnstableApi
 class MediaPlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
+    private val effects by lazy { AudioEffects(Settings(this)) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val handler = Handler(Looper.getMainLooper())
     private val persistence by lazy { PlaybackPersistence.get(this) }
@@ -43,7 +45,7 @@ class MediaPlaybackService : MediaSessionService() {
     private val ticker = object : Runnable {
         override fun run() {
             if (session?.player?.isPlaying != true) return
-            save(); handler.postDelayed(this, 5000)
+            save(); PlaybackWidget.render(this@MediaPlaybackService, session?.player); handler.postDelayed(this, 5000)
         }
     }
     private fun updateTimers() {
@@ -54,6 +56,9 @@ class MediaPlaybackService : MediaSessionService() {
         }
     }
     private val listener = object : Player.Listener {
+        override fun onAudioSessionIdChanged(audioSessionId: Int) { effects.attach(audioSessionId) }
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) { PlaybackWidget.render(this@MediaPlaybackService, session?.player) }
+
         override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
             val player = session?.player ?: return
             val version = ++transition
@@ -85,7 +90,7 @@ class MediaPlaybackService : MediaSessionService() {
             }
             save()
         }
-        override fun onIsPlayingChanged(isPlaying: Boolean) { updateTimers(); save() }
+        override fun onIsPlayingChanged(isPlaying: Boolean) { updateTimers(); save(); PlaybackWidget.render(this@MediaPlaybackService, session?.player) }
         override fun onPlaybackStateChanged(playbackState: Int) { save() }
         override fun onRepeatModeChanged(repeatMode: Int) { save() }
         override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) { save() }
@@ -107,7 +112,9 @@ class MediaPlaybackService : MediaSessionService() {
                     if (controller.packageName != packageName && !controller.isTrusted) return MediaSession.ConnectionResult.reject()
                     return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                         .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
-                            .add(SessionCommand("SET_LOOP", Bundle.EMPTY)).add(SessionCommand("SLEEP_TIMER", Bundle.EMPTY)).build()).build()
+                            .add(SessionCommand("SET_LOOP", Bundle.EMPTY)).add(SessionCommand("SLEEP_TIMER", Bundle.EMPTY))
+                            .add(SessionCommand("AUDIO_EFFECTS_STATE", Bundle.EMPTY)).add(SessionCommand("AUDIO_EFFECTS_SET", Bundle.EMPTY))
+                            .add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).build()).build()
                 }
                 override fun onPlaybackResumption(session: MediaSession, controller: MediaSession.ControllerInfo): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
                     val result = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
@@ -121,6 +128,32 @@ class MediaPlaybackService : MediaSessionService() {
                 }
                 override fun onCustomCommand(session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle): ListenableFuture<SessionResult> {
                     when (customCommand.customAction) {
+                        "TOGGLE_PLAYBACK" -> {
+                            val result = SettableFuture.create<SessionResult>()
+                            scope.launch {
+                                while (restoring) delay(20)
+                                if (player.mediaItemCount == 0) result.set(SessionResult(SessionError.ERROR_INVALID_STATE))
+                                else {
+                                    if (player.isPlaying) player.pause() else {
+                                        if (player.playbackState == Player.STATE_ENDED) player.seekToDefaultPosition()
+                                        if (player.playbackState == Player.STATE_IDLE) player.prepare()
+                                        player.play()
+                                    }
+                                    result.set(SessionResult(SessionResult.RESULT_SUCCESS))
+                                }
+                            }
+                            return result
+                        }
+                        "AUDIO_EFFECTS_STATE" -> {
+                            return try {
+                                effects.attach(player.audioSessionId)
+                                Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS, effects.state()))
+                            } catch (_: RuntimeException) { Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED)) }
+                        }
+                        "AUDIO_EFFECTS_SET" -> {
+                            try { effects.apply(args) }
+                            catch (_: RuntimeException) { effects.release(); return Futures.immediateFuture(SessionResult(SessionError.ERROR_BAD_VALUE)) }
+                        }
                         "SET_LOOP" -> {
                             val a = args.getLong("a", -1); val b = args.getLong("b", -1)
                             if (a == -1L && b == -1L) { loopA = -1; loopB = -1 }
@@ -141,6 +174,7 @@ class MediaPlaybackService : MediaSessionService() {
                 }
             }).build()
         player.addListener(listener)
+        effects.attach(player.audioSessionId)
         scope.launch {
             try {
                 val saved = persistence.read()
@@ -175,6 +209,6 @@ class MediaPlaybackService : MediaSessionService() {
     override fun onDestroy() {
         save(); handler.removeCallbacksAndMessages(null); historyRestore?.cancel()
         session?.run { player.removeListener(listener); player.release(); release() }; session = null
-        scope.cancel(); super.onDestroy()
+        effects.release(); PlaybackWidget.render(this, null); scope.cancel(); super.onDestroy()
     }
 }

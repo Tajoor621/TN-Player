@@ -97,6 +97,22 @@ class PlaybackDeviceTest {
             assertTrue(DevicePlayback.main { controller.isPlaying })
         } finally { DevicePlayback.stop(controller); scenario.close() }
     }
+    @Test fun sharedMediaCreatesAQueueAndHomeScreenActionPausesPlayback() {
+        val audio = DevicePlayback.fixture("audio-fixture.wav")
+        val video = DevicePlayback.fixture("video-fixture.mp4")
+        val intent = Intent(DevicePlayback.context, PlayerActivity::class.java).setAction(Intent.ACTION_SEND_MULTIPLE)
+            .setType("*/*").putParcelableArrayListExtra(Intent.EXTRA_STREAM, arrayListOf(audio, video))
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val scenario = ActivityScenario.launch<PlayerActivity>(intent)
+        val controller = DevicePlayback.controller()
+        try {
+            DevicePlayback.await("Shared media queue was not prepared") { DevicePlayback.main { controller.mediaItemCount == 2 && controller.isPlaying } }
+            assertEquals(audio.toString(), DevicePlayback.main { controller.getMediaItemAt(0).mediaId })
+            assertEquals(video.toString(), DevicePlayback.main { controller.getMediaItemAt(1).mediaId })
+            DevicePlayback.context.sendBroadcast(Intent(DevicePlayback.context, com.tplayer.mediaplayer.widget.PlaybackActionReceiver::class.java).setAction("com.tplayer.TOGGLE_PLAYBACK"))
+            DevicePlayback.await("Home-screen playback action did not pause") { DevicePlayback.main { !controller.isPlaying } }
+        } finally { DevicePlayback.stop(controller); scenario.close() }
+    }
     @Test fun realAndroidKeystoreRoundTripsAndRejectsWrongPurpose() {
         val codec = AndroidSecretCodec(DevicePlayback.context)
         val encrypted = codec.encrypt("https://example.com/live?token=device-secret", "device-test")
