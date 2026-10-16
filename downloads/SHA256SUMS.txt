@@ -1,1 +1,1 @@
-09c9c73dc77e321c2dc8c1b2fbeaea96166b693011165bcd6ab0973bcc6aa0fd  TN-Player-1.0.0-debug.apk
+41648b22a6fa93df9fe022c81d4275f2a148d411ab51cb305c55c19949f3e5ec  TN-Player-1.0.0-debug.apk
