@@ -32,7 +32,7 @@
 | Transfers / servers / Wi-Fi Direct | Not implemented | Design authenticated explicit sharing sessions, ephemeral credentials, foreground service only during transfers and tested connection lifecycles |
 | Cast | Not implemented | Add Cast SDK with receiver capability checks and separate DLNA discovery/control; local files require explicitly enabled authenticated LAN serving |
 | Cloud storage / sync | Not implemented | OAuth via provider SDK or Android document provider; encrypt secrets using Keystore; queue sync with conflict resolution and user opt-in |
-| Themes | Light/dark/system and AMOLED with Signal Gate accent palette | Add accent presets and scheduled theme; physical-device contrast QA |
+| Themes | Light/dark/system and AMOLED with blue/cyan accent palette | Add accent presets and scheduled theme; physical-device contrast QA |
 | Gestures / controls | Standard controls, lock, keyboard and configurable-on/off two-finger swipes, double-tap seek and pinch/pan; disabled under touch exploration | Add custom mapping presets; verify unlock using touch and TalkBack |
 | TV and D-pad | Some standard focusable controls; no TV launcher claim | TV banner, Leanback UI, D-pad focus graph and emulator/physical TV certification |
 | Settings / privacy / help | Resume, PiP, hidden files, themes, seek interval, notifications, feature help | Add settings migration and test full large-font landscape layouts |

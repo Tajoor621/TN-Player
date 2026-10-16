@@ -3,7 +3,7 @@
 | Path | Purpose |
 |---|---|
 | app/ | Android app, tests and media fixtures |
-| branding/ | Original logo master and generation notes |
+| branding/ | User-supplied original logo, square adaptation and editing notes |
 | assets/ | Shared Pages icon |
 | index.html | GitHub Pages landing page |
 | downloads/ | Built testing APK and its SHA-256 checksum |
