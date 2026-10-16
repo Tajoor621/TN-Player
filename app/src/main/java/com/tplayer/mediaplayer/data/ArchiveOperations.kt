@@ -21,8 +21,8 @@ object ArchiveOperations {
         require(DocumentOperations.validName(finalName))
         require(parent.findFile(finalName) == null) { "Destination exists. Nothing was overwritten." }
         val stageName = ".tn-archive-${UUID.randomUUID()}"
-        val stage = if (extract) parent.createDirectory(stageName) else parent.createFile("application/zip", "$stageName.zip")
-        checkNotNull(stage) { "Cannot create archive staging output." }
+        val stage = (if (extract) parent.createDirectory(stageName) else parent.createFile("application/zip", "$stageName.zip"))
+            ?: error("Cannot create archive staging output.")
         var committed = false
         try {
             if (extract) {

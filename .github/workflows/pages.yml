@@ -14,6 +14,7 @@ jobs:
     permissions:
       contents: write
       pages: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -35,6 +36,13 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+      - name: Require successful Android build and device validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id=$(gh run list --workflow android.yml --commit "$GITHUB_SHA" --limit 1 --json databaseId --jq '.[0].databaseId')
+          test -n "$run_id" && test "$run_id" != "null"
+          gh run watch "$run_id" --exit-status --interval 10
       - name: Publish APK into the configured main/root source
         env:
           GH_TOKEN: ${{ github.token }}

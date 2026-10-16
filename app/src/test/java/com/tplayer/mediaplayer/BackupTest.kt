@@ -68,5 +68,8 @@ class BackupTest {
         assertEquals(28, Settings(context).subtitlePosition)
         assertFalse(Settings(context).gestures)
         assertEquals(2, Settings(context).aspectRatio)
+        val dark = copy.copy(preferences = mapOf("amoled" to true, "theme" to 1))
+        val normalized = BackupFormat.decode(BackupFormat.encode(dark))
+        assertEquals(2, normalized.preferences["theme"])
     }
 }

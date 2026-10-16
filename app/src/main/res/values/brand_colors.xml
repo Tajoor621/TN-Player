@@ -1,1 +1,1 @@
-<resources><color name="tn_icon_background">#081D21</color><color name="tn_accent">#B13D2C</color><color name="tn_secondary">#235846</color></resources>
+<resources><color name="tn_icon_background">#081D21</color><color name="tn_accent">#B13D2C</color><color name="tn_secondary">#235846</color><color name="tn_on_accent">#FFFFFF</color></resources>

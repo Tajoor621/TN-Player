@@ -98,6 +98,8 @@ object BackupFormat {
         }
         if (prefs.has("subtitleColor")) { val color = prefs.getInt("subtitleColor"); require(color in setOf(-1, -256, -16711681)); values["subtitleColor"] = color }
         if (prefs.has("seekMs")) { val seek = prefs.getLong("seekMs"); require(seek in setOf(5000L, 10000L, 30000L)); values["seekMs"] = seek }
+        if (values["amoled"] == true) values["theme"] = 2
+        else if (values["theme"] != null && values["theme"] != 2) values["amoled"] = false
         return LibraryBackup(values, favorites, playlists, bookmarks)
     }
 }
