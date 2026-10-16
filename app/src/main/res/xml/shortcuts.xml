@@ -1,0 +1,5 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+<shortcut android:shortcutId="streams" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/app_name">
+<intent android:action="com.tplayer.OPEN_STREAMS" android:targetPackage="com.tplayer.mediaplayer" android:targetClass="com.tplayer.mediaplayer.ui.MainActivity" />
+</shortcut>
+</shortcuts>

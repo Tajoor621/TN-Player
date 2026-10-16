@@ -1,0 +1,183 @@
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/AndroidManifest.xml:17: Warning: Attribute usesCleartextTraffic is only used in API level 23 and higher (current min is 21) [UnusedAttribute]
+        android:usesCleartextTraffic="false">
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/AndroidManifest.xml:26: Warning: Attribute resizeableActivity is only used in API level 24 and higher (current min is 21) [UnusedAttribute]
+            android:launchMode="singleTop" android:resizeableActivity="true"
+                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/AndroidManifest.xml:27: Warning: Attribute supportsPictureInPicture is only used in API level 24 and higher (current min is 21) [UnusedAttribute]
+            android:supportsPictureInPicture="true" android:hardwareAccelerated="true"
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/res/xml/shortcuts.xml:2: Warning: Attribute shortcutId is only used in API level 25 and higher (current min is 21) [UnusedAttribute]
+<shortcut android:shortcutId="streams" android:enabled="true" android:icon="@drawable/ic_tplayer" android:shortcutShortLabel="@string/app_name">
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/res/xml/shortcuts.xml:2: Warning: Attribute shortcutShortLabel is only used in API level 25 and higher (current min is 21) [UnusedAttribute]
+<shortcut android:shortcutId="streams" android:enabled="true" android:icon="@drawable/ic_tplayer" android:shortcutShortLabel="@string/app_name">
+                                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UnusedAttribute":
+   This check finds attributes set in XML files that were introduced in a
+   version newer than the oldest version targeted by your application (with
+   the minSdkVersion attribute).
+
+   This is not an error; the application will simply ignore the attribute.
+   However, if the attribute is important to the appearance or functionality
+   of your application, you should consider finding an alternative way to
+   achieve the same result with only available attributes, and then you can
+   optionally create a copy of the layout in a layout-vNN folder which will be
+   used on API NN or higher where you can take advantage of the newer
+   attribute.
+
+   Note: This check does not only apply to attributes. For example, some tags
+   can be unused too, such as the new <tag> element in layouts introduced in
+   API 21.
+
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/AndroidManifest.xml:58: Warning: Exported service does not require permission [ExportedService]
+        <service android:name=".playback.MediaPlaybackService" android:exported="true"
+         ~~~~~~~
+
+   Explanation for issues of type "ExportedService":
+   Exported services (services which either set exported=true or contain an
+   intent-filter and do not specify exported=false) should define a permission
+   that an entity must have in order to launch the service or bind to it.
+   Without this, any application can use this service.
+
+   https://goo.gle/ExportedService
+
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/Ui.kt:27: Warning: It will always be more efficient to use more specific change events if you can. Rely on notifyDataSetChanged as a last resort. [NotifyDataSetChanged]
+    fun filter(value: String) { query = value; rows = all.filter { it.title.contains(value, true) }; notifyDataSetChanged() }
+                                                                                                     ~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "NotifyDataSetChanged":
+   The RecyclerView adapter's onNotifyDataSetChanged method does not specify
+   what about the data set has changed, forcing any observers to assume that
+   all existing items and structure may no longer be valid. `LayoutManager`s
+   will be forced to fully rebind and relayout all visible views.
+
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/playback/PlaybackCheckpoint.kt:84: Warning: Do not place Android context classes in static fields (static reference to PlaybackPersistence which has field app pointing to Context); this is a memory leak [StaticFieldLeak]
+        @Volatile private var instance: PlaybackPersistence? = null
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "StaticFieldLeak":
+   A static field will leak contexts.
+
+   Non-static inner classes have an implicit reference to their outer class.
+   If that outer class is for example a Fragment or Activity, then this
+   reference means that the long-running handler/loader/task will hold a
+   reference to the activity which prevents it from getting garbage
+   collected.
+
+   Similarly, direct field references to activities and fragments from these
+   longer running instances can cause leaks.
+
+   ViewModel classes should never point to Views or non-application Contexts.
+
+/workspace/scratch/0a6b45a52ea3/T-Player/app/build.gradle.kts:47: Warning: This library supports using KSP instead of kapt, which greatly improves performance. Learn more: https://developer.android.com/studio/build/migrate-to-ksp [KaptUsageInsteadOfKsp]
+    kapt("androidx.room:room-compiler:2.6.1")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "KaptUsageInsteadOfKsp":
+   KSP is a more efficient replacement for kapt. For libraries that support
+   both, KSP should be used to improve build times.
+
+   https://developer.android.com/studio/build/migrate-to-ksp
+
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/NowPlayingBar.kt:23: Warning: Custom view NowPlayingBar is missing constructor used by tools: (Context) or (Context,AttributeSet) or (Context,AttributeSet,int) [ViewConstructor]
+class NowPlayingBar(private val activity: MainActivity) : LinearLayout(activity), DefaultLifecycleObserver {
+      ~~~~~~~~~~~~~
+
+   Explanation for issues of type "ViewConstructor":
+   Some layout tools (such as the Android layout editor) need to find a
+   constructor with one of the following signatures:
+   * View(Context context)
+   * View(Context context, AttributeSet attrs)
+   * View(Context context, AttributeSet attrs, int defStyle)
+
+   If your custom view needs to perform initialization which does not apply
+   when used in a layout editor, you can surround the given code with a check
+   to see if View#isInEditMode() is false, since that method will return false
+   at runtime but true within a user interface editor.
+
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:116: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+                    transferLabel.text = "${state.phase} · ${state.bytes / 1024} KB" + if (state.total > 0) " / ${state.total / 1024} KB" else ""
+                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:116: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+                    transferLabel.text = "${state.phase} · ${state.bytes / 1024} KB" + if (state.total > 0) " / ${state.total / 1024} KB" else ""
+                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:116: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+                    transferLabel.text = "${state.phase} · ${state.bytes / 1024} KB" + if (state.total > 0) " / ${state.total / 1024} KB" else ""
+                                                                                ~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:211: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        if (!hasFull && !hasPartial) { status.text = "Grant library access, or open an individual file without library permission."; return }
+                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:218: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+            job?.cancel(); more.isEnabled = false; status.text = "Reading your media…"
+                                                                  ~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:228: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+                catch (_: Exception) { status.text = "Library unavailable. Open a file or grant access again." }
+                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:249: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        if (target == null) { status.text = "Choose a folder to browse files, including SD/USB storage exposed by Android."; return }
+                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:263: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+                status.text = "${snapshot.second} · ${snapshot.first.size} items · ${if (snapshot.third) "Read/write" else "Read only"}"
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:263: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+                status.text = "${snapshot.second} · ${snapshot.first.size} items · ${if (snapshot.third) "Read/write" else "Read only"}"
+                                                                          ~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:264: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+            } catch (e: Exception) { if (e is CancellationException) throw e; status.text = "Folder unavailable. Choose it again to restore access." }
+                                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:296: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        status.text = "HTTPS · HLS · DASH · SmoothStreaming · RTSP"
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:366: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        screen = Screen.FAVORITES; activePlaylist = null; setup("Favorites"); status.text = "Saved on this device"
+                                                                                             ~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:371: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        val actions = setup("Recently played"); status.text = "Tap a file to resume playback"
+                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:378: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        status.text = "Completed app downloads · Use Android notifications for active downloads"
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:406: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+            val items = dao.playlistItems(id); status.text = "${items.size} tracks"
+                                                             ~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:406: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+            val items = dao.playlistItems(id); status.text = "${items.size} tracks"
+                                                                           ~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:431: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        box.addView(TextView(this).apply { text = "Make it yours"; textSize = 28f; setPadding(0, 0, 0, dp(16)) })
+                                                   ~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:449: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+        box.addView(TextView(this).apply { text = "T-Player 1.0.0\ncom.tplayer.mediaplayer\nAndroid 5.0+ · Native Media3 playback\n\nCodec support depends on device and source. FFmpeg, cast, cloud sync and private vault are not included in this build."; textSize = 13f; setPadding(dp(8), dp(20), dp(8), dp(20)) })
+                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:449: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        box.addView(TextView(this).apply { text = "T-Player 1.0.0\ncom.tplayer.mediaplayer\nAndroid 5.0+ · Native Media3 playback\n\nCodec support depends on device and source. FFmpeg, cast, cloud sync and private vault are not included in this build."; textSize = 13f; setPadding(dp(8), dp(20), dp(8), dp(20)) })
+                                                   ~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:449: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        box.addView(TextView(this).apply { text = "T-Player 1.0.0\ncom.tplayer.mediaplayer\nAndroid 5.0+ · Native Media3 playback\n\nCodec support depends on device and source. FFmpeg, cast, cloud sync and private vault are not included in this build."; textSize = 13f; setPadding(dp(8), dp(20), dp(8), dp(20)) })
+                                                                   ~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:449: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        box.addView(TextView(this).apply { text = "T-Player 1.0.0\ncom.tplayer.mediaplayer\nAndroid 5.0+ · Native Media3 playback\n\nCodec support depends on device and source. FFmpeg, cast, cloud sync and private vault are not included in this build."; textSize = 13f; setPadding(dp(8), dp(20), dp(8), dp(20)) })
+                                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/MainActivity.kt:449: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        box.addView(TextView(this).apply { text = "T-Player 1.0.0\ncom.tplayer.mediaplayer\nAndroid 5.0+ · Native Media3 playback\n\nCodec support depends on device and source. FFmpeg, cast, cloud sync and private vault are not included in this build."; textSize = 13f; setPadding(dp(8), dp(20), dp(8), dp(20)) })
+                                                                                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/0a6b45a52ea3/T-Player/app/src/main/java/com/tplayer/mediaplayer/ui/PlayerActivity.kt:93: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+        title = TextView(this).apply { text = "T-Player"; textSize = 16f; setTextColor(-1); maxLines = 2 }
+                                               ~~~~~~~~
+
+   Explanation for issues of type "SetTextI18n":
+   When calling TextView#setText
+   * Never call Number#toString() to format numbers; it will not handle
+   fraction separators and locale-specific digits properly. Consider using
+   String#format with proper format specifications (%d or %f) instead.
+   * Do not pass a string literal (e.g. "Hello") to display text. Hardcoded
+   text can not be properly translated to other languages. Consider using
+   Android resource strings instead.
+   * Do not build messages by concatenating text chunks. Such messages can not
+   be properly translated.
+
+   https://developer.android.com/guide/topics/resources/localization.html
+
+0 errors, 33 warnings

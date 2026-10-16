@@ -1,0 +1,810 @@
+* daemon not running; starting now at tcp:5037
+* daemon started successfully
+BOOT_COMPLETED
+
+Performing Streamed Install
+Success
+
+Performing Streamed Install
+Success
+
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.NavigationTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+com.tplayer.mediaplayer.NavigationTest:
+INSTRUMENTATION_STATUS: test=settingsAndHelpAreReachableWithoutMediaPermission
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.NavigationTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stack=androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+Root{application-window-token=android.view.ViewRootImpl$W@2aee141, window-token=android.view.ViewRootImpl$W@2aee141, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill) sim={forwardNavigation} ty=BASE_APPLICATION wanim=0x10302fe
+  fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+  pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+  bhv=DEFAULT
+  fitSides=}, decor-view-string=DecorView{id=-1, visibility=VISIBLE, width=480, height=854, has-focus=false, has-focusable=true, has-window-focus=false, is-clickable=false, is-enabled=true, is-focused=false, is-focusable=false, is-layout-requested=false, is-selected=false, layout-params={(0,0)(fillxfill) sim={forwardNavigation} ty=BASE_APPLICATION wanim=0x10302fe
+  fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+  pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+  bhv=DEFAULT
+  fitSides=}, tag=null, root-is-layout-requested=false, has-input-connection=false, x=0.0, y=0.0, child-count=2}}
+	at dalvik.system.VMStack.getThreadStackTrace(Native Method)
+	at java.lang.Thread.getStackTrace(Thread.java:1841)
+	at androidx.test.espresso.base.EspressoExceptionHandler.handleSafely(EspressoExceptionHandler.java:34)
+	at androidx.test.espresso.base.EspressoExceptionHandler.handleSafely(EspressoExceptionHandler.java:26)
+	at androidx.test.espresso.base.DefaultFailureHandler$TypedFailureHandler.handle(DefaultFailureHandler.java:158)
+	at androidx.test.espresso.base.DefaultFailureHandler.handle(DefaultFailureHandler.java:120)
+	at androidx.test.espresso.ViewInteraction.waitForAndHandleInteractionResults(ViewInteraction.java:385)
+	at androidx.test.espresso.ViewInteraction.desugaredPerform(ViewInteraction.java:212)
+	at androidx.test.espresso.ViewInteraction.perform(ViewInteraction.java:140)
+	at com.tplayer.mediaplayer.NavigationTest.settingsAndHelpAreReachableWithoutMediaPermission(NavigationTest.kt:17)
+
+INSTRUMENTATION_STATUS: stream=
+Error in settingsAndHelpAreReachableWithoutMediaPermission(com.tplayer.mediaplayer.NavigationTest):
+androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+Root{application-window-token=android.view.ViewRootImpl$W@2aee141, window-token=android.view.ViewRootImpl$W@2aee141, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill) sim={forwardNavigation} ty=BASE_APPLICATION wanim=0x10302fe
+  fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+  pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+  bhv=DEFAULT
+  fitSides=}, decor-view-string=DecorView{id=-1, visibility=VISIBLE, width=480, height=854, has-focus=false, has-focusable=true, has-window-focus=false, is-clickable=false, is-enabled=true, is-focused=false, is-focusable=false, is-layout-requested=false, is-selected=false, layout-params={(0,0)(fillxfill) sim={forwardNavigation} ty=BASE_APPLICATION wanim=0x10302fe
+  fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+  pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+  bhv=DEFAULT
+  fitSides=}, tag=null, root-is-layout-requested=false, has-input-connection=false, x=0.0, y=0.0, child-count=2}}
+	at dalvik.system.VMStack.getThreadStackTrace(Native Method)
+	at java.lang.Thread.getStackTrace(Thread.java:1841)
+	at androidx.test.espresso.base.EspressoExceptionHandler.handleSafely(EspressoExceptionHandler.java:34)
+	at androidx.test.espresso.base.EspressoExceptionHandler.handleSafely(EspressoExceptionHandler.java:26)
+	at androidx.test.espresso.base.DefaultFailureHandler$TypedFailureHandler.handle(DefaultFailureHandler.java:158)
+	at androidx.test.espresso.base.DefaultFailureHandler.handle(DefaultFailureHandler.java:120)
+	at androidx.test.espresso.ViewInteraction.waitForAndHandleInteractionResults(ViewInteraction.java:385)
+	at androidx.test.espresso.ViewInteraction.desugaredPerform(ViewInteraction.java:212)
+	at androidx.test.espresso.ViewInteraction.perform(ViewInteraction.java:140)
+	at com.tplayer.mediaplayer.NavigationTest.settingsAndHelpAreReachableWithoutMediaPermission(NavigationTest.kt:17)
+
+INSTRUMENTATION_STATUS: test=settingsAndHelpAreReachableWithoutMediaPermission
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.PlaybackDeviceTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+com.tplayer.mediaplayer.PlaybackDeviceTest:
+INSTRUMENTATION_STATUS: test=realAndroidKeystoreRoundTripsAndRejectsWrongPurpose
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.PlaybackDeviceTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=realAndroidKeystoreRoundTripsAndRejectsWrongPurpose
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.PlaybackDeviceTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=videoEntersPipAndPlaybackSurvivesTheTransition
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.PlaybackDeviceTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Video never started
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.tplayer.mediaplayer.DevicePlayback.await(PlaybackDeviceTest.kt:45)
+	at com.tplayer.mediaplayer.DevicePlayback.await$default(PlaybackDeviceTest.kt:42)
+	at com.tplayer.mediaplayer.PlaybackDeviceTest.videoEntersPipAndPlaybackSurvivesTheTransition(PlaybackDeviceTest.kt:89)
+
+INSTRUMENTATION_STATUS: stream=
+Error in videoEntersPipAndPlaybackSurvivesTheTransition(com.tplayer.mediaplayer.PlaybackDeviceTest):
+java.lang.AssertionError: Video never started
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.tplayer.mediaplayer.DevicePlayback.await(PlaybackDeviceTest.kt:45)
+	at com.tplayer.mediaplayer.DevicePlayback.await$default(PlaybackDeviceTest.kt:42)
+	at com.tplayer.mediaplayer.PlaybackDeviceTest.videoEntersPipAndPlaybackSurvivesTheTransition(PlaybackDeviceTest.kt:89)
+
+INSTRUMENTATION_STATUS: test=videoEntersPipAndPlaybackSurvivesTheTransition
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.PlaybackDeviceTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=localFileMoveVerifiesItsBytesBeforeRemovingSource
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.PlaybackDeviceTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=localFileMoveVerifiesItsBytesBeforeRemovingSource
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.PlaybackDeviceTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=audioContinuesAfterActivityClosesAndPauseClearsScreenAwake
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.tplayer.mediaplayer.PlaybackDeviceTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=audioContinuesAfterActivityClosesAndPauseClearsScreenAwake
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 333.47
+There were 2 failures:
+1) settingsAndHelpAreReachableWithoutMediaPermission(com.tplayer.mediaplayer.NavigationTest)
+androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+Root{application-window-token=android.view.ViewRootImpl$W@2aee141, window-token=android.view.ViewRootImpl$W@2aee141, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill) sim={forwardNavigation} ty=BASE_APPLICATION wanim=0x10302fe
+  fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+  pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+  bhv=DEFAULT
+  fitSides=}, decor-view-string=DecorView{id=-1, visibility=VISIBLE, width=480, height=854, has-focus=false, has-focusable=true, has-window-focus=false, is-clickable=false, is-enabled=true, is-focused=false, is-focusable=false, is-layout-requested=false, is-selected=false, layout-params={(0,0)(fillxfill) sim={forwardNavigation} ty=BASE_APPLICATION wanim=0x10302fe
+  fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+  pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+  bhv=DEFAULT
+  fitSides=}, tag=null, root-is-layout-requested=false, has-input-connection=false, x=0.0, y=0.0, child-count=2}}
+	at dalvik.system.VMStack.getThreadStackTrace(Native Method)
+	at java.lang.Thread.getStackTrace(Thread.java:1841)
+	at androidx.test.espresso.base.EspressoExceptionHandler.handleSafely(EspressoExceptionHandler.java:34)
+	at androidx.test.espresso.base.EspressoExceptionHandler.handleSafely(EspressoExceptionHandler.java:26)
+	at androidx.test.espresso.base.DefaultFailureHandler$TypedFailureHandler.handle(DefaultFailureHandler.java:158)
+	at androidx.test.espresso.base.DefaultFailureHandler.handle(DefaultFailureHandler.java:120)
+	at androidx.test.espresso.ViewInteraction.waitForAndHandleInteractionResults(ViewInteraction.java:385)
+	at androidx.test.espresso.ViewInteraction.desugaredPerform(ViewInteraction.java:212)
+	at androidx.test.espresso.ViewInteraction.perform(ViewInteraction.java:140)
+	at com.tplayer.mediaplayer.NavigationTest.settingsAndHelpAreReachableWithoutMediaPermission(NavigationTest.kt:17)
+2) videoEntersPipAndPlaybackSurvivesTheTransition(com.tplayer.mediaplayer.PlaybackDeviceTest)
+java.lang.AssertionError: Video never started
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.tplayer.mediaplayer.DevicePlayback.await(PlaybackDeviceTest.kt:45)
+	at com.tplayer.mediaplayer.DevicePlayback.await$default(PlaybackDeviceTest.kt:42)
+	at com.tplayer.mediaplayer.PlaybackDeviceTest.videoEntersPipAndPlaybackSurvivesTheTransition(PlaybackDeviceTest.kt:89)
+
+FAILURES!!!
+Tests run: 5,  Failures: 2
+
+
+INSTRUMENTATION_CODE: -1
+
+--------- beginning of system
+10-16 00:01:14.811   533   533 W Looper  : Slow dispatch took 793ms main h=android.app.PropertyInvalidatedCache$AutoCorker$1 c=null m=0
+10-16 00:01:15.043   533   533 W Looper  : Slow dispatch took 228ms main h=android.app.PropertyInvalidatedCache$AutoCorker$1 c=null m=0
+--------- beginning of main
+10-16 00:01:15.277   872   938 D EGL_emulation: app_time_stats: avg=6087.28ms min=6087.28ms max=6087.28ms count=1
+10-16 00:01:15.281   533   617 W system_server: Long monitor contention with owner android.bg (564) at boolean android.os.MessageQueue.enqueueMessage(android.os.Message, long)(MessageQueue.java:600) waiters=0 in android.os.Message android.os.MessageQueue.next() for 295ms
+10-16 00:01:15.306   872  1457 I OpenGLRenderer: Davey! duration=4796ms; Flags=0, FrameTimelineVsyncId=14430, IntendedVsync=879587401434, Vsync=880287401406, InputEventId=0, HandleInputStart=880290717739, AnimationStart=880290724249, PerformTraversalsStart=880560277000, DrawStart=883732447655, FrameDeadline=879604068100, FrameInterval=880287550426, FrameStartTime=16666666, SyncQueued=883738049170, SyncStart=883741552994, IssueDrawCommandsStart=883756034896, SwapBuffers=884358409994, FrameCompleted=884387851843, DequeueBufferDuration=55314, QueueBufferDuration=11267026, GpuCompleted=884385684766, SwapBuffersCompleted=884387851843, DisplayPresentTime=72077385254212096, CommandSubmissionCompleted=884358409994, 
+10-16 00:01:15.309   533   565 W ActivityManager: Slow operation: 477ms so far, now at startProcess: done creating new process record
+10-16 00:01:15.349   533   565 W ActivityManager: Slow operation: 517ms so far, now at startProcess: stepping in to startProcess
+10-16 00:01:15.410   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(7)
+10-16 00:01:15.809   872   908 W Looper  : Slow delivery took 73ms wmshell.main h=android.os.Handler c=com.android.wm.shell.bubbles.BubbleController$$ExternalSyntheticLambda12@ca69f9d m=0
+10-16 00:01:15.899   533   565 W ActivityManager: Slow operation: 548ms so far, now at startProcess: done updating cpu stats
+10-16 00:01:15.952   533   565 W ActivityManager: Slow operation: 602ms so far, now at startProcess: getting gids from package manager
+10-16 00:01:15.955   533   565 W ActivityManager: Slow operation: 605ms so far, now at startProcess: building args
+10-16 00:01:15.966   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:16.051   533   565 D CompatibilityChangeReporter: Compat change id reported: 135634846; UID 1002; state: DISABLED
+10-16 00:01:16.169   533   566 W ActivityManager: Slow operation: 800ms so far, now at startProcess: asking zygote to start proc
+10-16 00:01:16.186   533   565 W ActivityManager: Slow operation: 1354ms so far, now at startProcess: done starting proc!
+10-16 00:01:16.308   533   533 W Looper  : Slow dispatch took 209ms main h=android.app.PropertyInvalidatedCache$AutoCorker$1 c=null m=0
+10-16 00:01:16.556   533  1243 W system_server: Long monitor contention with owner ActivityManager (565) at void com.android.server.am.ActiveServices$ServiceRestarter.run()(ActiveServices.java:4086) waiters=0 in void com.android.server.am.ActivityManagerService.setServiceForeground(android.content.ComponentName, android.os.IBinder, int, android.app.Notification, int, int) for 1.277s
+10-16 00:01:16.777   329   329 D Zygote  : Forked child process 3451
+10-16 00:01:17.036   533   566 W ActivityManager: Slow operation: 1686ms so far, now at startProcess: returned from zygote!
+10-16 00:01:17.056   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(3)
+10-16 00:01:17.107   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(4)
+10-16 00:01:17.297  3451  3451 I droid.bluetooth: Using CollectorTypeCC GC.
+10-16 00:01:17.453   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(3)
+10-16 00:01:17.455  3451  3451 W droid.bluetooth: Unexpected CPU variant for x86: x86_64.
+10-16 00:01:17.455  3451  3451 W droid.bluetooth: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+10-16 00:01:17.634   533   571 W system_server: Long monitor contention with owner appscheduling.default (617) at boolean android.os.MessageQueue.enqueueMessage(android.os.Message, long)(MessageQueue.java:600) waiters=0 in android.os.Message android.os.MessageQueue.next() for 130ms
+10-16 00:01:17.661   872   872 D MediaDataManager: State updated outside of notification
+10-16 00:01:17.699   533   624 W system_server: Long monitor contention with owner appscheduling.default (617) at void com.android.server.am.ActivityManagerService$LocalService.updateDeviceIdleTempAllowlist(int[], int, boolean, long, int, int, java.lang.String, int)(ActivityManagerService.java:17648) waiters=5 in void com.android.server.am.CachedAppOptimizer$FreezeHandler.handleMessage(android.os.Message) for 390ms
+10-16 00:01:17.709   533   624 D ActivityManager: freezing 2600 android.process.acore
+10-16 00:01:17.718   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(7)
+10-16 00:01:17.740   533   566 W system_server: Long monitor contention with owner appscheduling.default (617) at void com.android.server.am.ActivityManagerService$LocalService.updateDeviceIdleTempAllowlist(int[], int, boolean, long, int, int, java.lang.String, int)(ActivityManagerService.java:17648) waiters=4 in void com.android.server.am.ProcessList.lambda$handleProcessStart$1(com.android.server.am.ProcessRecord, java.lang.String, int[], int, int, int, java.lang.String, java.lang.String, java.lang.String, long) for 703ms
+10-16 00:01:17.849   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:17.896  3451  3451 E droid.bluetooth: Not starting debugger since process cannot load the jdwp agent.
+10-16 00:01:17.994   533   566 W ActivityManager: Slow operation: 2644ms so far, now at startProcess: done updating battery stats
+10-16 00:01:17.997   533   566 W ActivityManager: Slow operation: 2647ms so far, now at startProcess: building log message
+10-16 00:01:17.998   533   566 I ActivityManager: Start proc 3451:com.android.bluetooth/1002 for service {com.android.bluetooth/com.android.bluetooth.btservice.AdapterService}
+10-16 00:01:18.011   533   566 W ActivityManager: Slow operation: 2661ms so far, now at startProcess: starting to update pids map
+10-16 00:01:18.126   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:18.292   533   566 W ActivityManager: Slow operation: 2924ms so far, now at startProcess: done updating pids map
+10-16 00:01:18.488   533   533 W Looper  : Slow dispatch took 122ms main h=com.android.server.notification.NotificationManagerService$WorkerHandler c=com.android.server.notification.NotificationManagerService$EnqueueNotificationRunnable@a703352 m=0
+10-16 00:01:18.569   872   937 W Looper  : Slow dispatch took 2997ms SysUiBg h=android.os.Handler c=com.android.systemui.media.controls.pipeline.MediaDataManager$loadMediaData$1@b9a1207 m=0
+10-16 00:01:18.590   872   937 W Looper  : Slow delivery took 2577ms SysUiBg h=android.os.Handler c=com.android.systemui.people.widget.PeopleSpaceWidgetManager$$ExternalSyntheticLambda6@a81ff34 m=0
+10-16 00:01:18.848   533   533 W Looper  : Slow dispatch took 150ms main h=com.android.server.notification.NotificationManagerService$WorkerHandler c=com.android.server.notification.NotificationManagerService$PostNotificationRunnable@4d50623 m=0
+10-16 00:01:18.984  2085  2085 I Choreographer: Skipped 372 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:19.442   533   533 W Looper  : Slow delivery took 506ms main h=com.android.server.notification.NotificationManagerService$WorkerHandler c=com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda12@8a47720 m=0
+10-16 00:01:19.446   533   533 W Looper  : Drained
+10-16 00:01:19.627  2085  2725 D EGL_emulation: app_time_stats: avg=2999.12ms min=280.50ms max=8318.28ms count=3
+10-16 00:01:19.701   533   555 W Looper  : Slow dispatch took 2400ms android.ui h=com.android.server.am.ActivityManagerService$UiHandler c=com.android.server.am.UidObserverController$$ExternalSyntheticLambda0@eb6c152 m=0
+10-16 00:01:19.740   533  1469 W ActivityManager: Slow operation: 123ms so far, now at attachApplicationLocked: immediately after bindApplication
+10-16 00:01:19.742   533  1469 W ActivityManager: Slow operation: 144ms so far, now at attachApplicationLocked: after updateLruProcessLocked
+10-16 00:01:19.797   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(5)
+10-16 00:01:19.895  2085  2099 I OpenGLRenderer: Davey! duration=6947ms; Flags=0, FrameTimelineVsyncId=14482, IntendedVsync=881854068010, Vsync=888054067762, InputEventId=0, HandleInputStart=888111650687, AnimationStart=888111686602, PerformTraversalsStart=888111713613, DrawStart=888431984234, FrameDeadline=881870734676, FrameInterval=888060868615, FrameStartTime=16666666, SyncQueued=888596865875, SyncStart=888602914127, IssueDrawCommandsStart=888608134494, SwapBuffers=888674266304, FrameCompleted=888808112434, DequeueBufferDuration=26482341, QueueBufferDuration=33799467, GpuCompleted=888736253208, SwapBuffersCompleted=888808112434, DisplayPresentTime=0, CommandSubmissionCompleted=888674266304, 
+10-16 00:01:20.264  3431  3431 D nativeloader: Configuring clns-shared-9 for other apk /system/priv-app/TelephonyProvider/TelephonyProvider.apk. target_sdk_version=34, uses_libraries=, library_path=/system/priv-app/TelephonyProvider/lib/x86_64:/system/lib64:/system_ext/lib64, permitted_path=/data:/mnt/expand:/data/user_de/0/com.android.providers.telephony:/system/priv-app/TelephonyProvider:/system/lib64:/system_ext/lib64
+10-16 00:01:20.358  3431  3431 D CarrierProvider: onCreate
+10-16 00:01:20.362   533  1469 W ActivityManager: Slow operation: 619ms so far, now at finishAttachApplicationInner: after mServices.attachApplicationLocked
+10-16 00:01:20.485   533  1469 W ActivityManager: Slow operation: 742ms so far, now at finishAttachApplicationInner: after dispatching broadcasts
+10-16 00:01:20.601   533   555 W system_server: Long monitor contention with owner binder:533_E (1469) at void com.android.server.am.ActivityManagerService.finishAttachApplicationInner(long, int, int)(ActivityManagerService.java:4940) waiters=0 in void com.android.server.am.BroadcastQueueModernImpl$1.onUidStateChanged(int, int, long, int) for 654ms
+10-16 00:01:20.607   533   555 W Looper  : Slow delivery took 1158ms android.ui h=com.android.server.am.ActivityManagerService$UiHandler c=com.android.server.am.UidObserverController$$ExternalSyntheticLambda0@eb6c152 m=0
+10-16 00:01:20.610   533   555 W Looper  : Slow dispatch took 687ms android.ui h=com.android.server.am.ActivityManagerService$UiHandler c=com.android.server.am.UidObserverController$$ExternalSyntheticLambda0@eb6c152 m=0
+10-16 00:01:20.743  3451  3451 D CompatibilityChangeReporter: Compat change id reported: 171979766; UID 1002; state: ENABLED
+10-16 00:01:20.809  3451  3451 D CompatibilityChangeReporter: Compat change id reported: 242716250; UID 1002; state: ENABLED
+10-16 00:01:21.121   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:21.277   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(5)
+10-16 00:01:21.179   533   554 W Looper  : Slow delivery took 1818ms android.fg h=android.os.Handler c=com.android.server.power.hint.HintManagerService$MyUidObserver$$ExternalSyntheticLambda0@d12a8d9 m=0
+10-16 00:01:21.538   533   558 I Choreographer: Skipped 116 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:21.635  2085  2085 I Choreographer: Skipped 147 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:21.995   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:22.208  3431  3431 D CompatibilityChangeReporter: Compat change id reported: 263076149; UID 1001; state: ENABLED
+10-16 00:01:22.309  2085  2725 D EGL_emulation: app_time_stats: avg=2610.91ms min=2610.91ms max=2610.91ms count=1
+10-16 00:01:22.366  2085  2099 I OpenGLRenderer: Davey! duration=3130ms; Flags=0, FrameTimelineVsyncId=14511, IntendedVsync=888287401086, Vsync=890737400988, InputEventId=0, HandleInputStart=890807774904, AnimationStart=890807798860, PerformTraversalsStart=890856427852, DrawStart=891035879264, FrameDeadline=888754067734, FrameInterval=890744291611, FrameStartTime=16666666, SyncQueued=891264133656, SyncStart=891267710179, IssueDrawCommandsStart=891268563483, SwapBuffers=891354350822, FrameCompleted=891421283897, DequeueBufferDuration=131440, QueueBufferDuration=14412296, GpuCompleted=891418602540, SwapBuffersCompleted=891421283897, DisplayPresentTime=0, CommandSubmissionCompleted=891354350822, 
+10-16 00:01:22.522  3431  3431 D DeferredSmsMmsRestoreService: startIfFilesExist: no files to restore
+10-16 00:01:22.717  3451  3451 D CompatibilityChangeReporter: Compat change id reported: 3400644; UID 1002; state: ENABLED
+10-16 00:01:22.774   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:22.730  3431  3431 D DeferredSmsMmsRestoreService: addAllSharedPrefToLocalLog
+10-16 00:01:23.201  2085  2085 I Choreographer: Skipped 85 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:24.424   533   533 W Looper  : Slow dispatch took 186ms main h=android.app.PropertyInvalidatedCache$AutoCorker$1 c=null m=0
+10-16 00:01:24.549   872   937 W Looper  : Slow dispatch took 1237ms SysUiBg h=android.os.Handler c=null m=0
+10-16 00:01:24.731  2085  2725 D EGL_emulation: app_time_stats: avg=2332.34ms min=2332.34ms max=2332.34ms count=1
+10-16 00:01:25.151  3451  3451 D nativeloader: Configuring clns-shared-6 for other apk /apex/com.android.btservices/app/Bluetooth@UE1A.230829.036.A1/Bluetooth.apk. target_sdk_version=34, uses_libraries=, library_path=/apex/com.android.btservices/app/Bluetooth@UE1A.230829.036.A1/lib/x86_64:/system/lib64:/system_ext/lib64, permitted_path=/data:/mnt/expand:/data/user_de/0/com.android.bluetooth:/apex/com.android.btservices/app/Bluetooth@UE1A.230829.036.A1:/system/lib64:/system_ext/lib64
+10-16 00:01:25.388  2085  2085 I Choreographer: Skipped 37 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:26.039  2085  2725 D EGL_emulation: app_time_stats: avg=1242.99ms min=1242.99ms max=1242.99ms count=1
+10-16 00:01:26.261  3451  3451 D nativeloader: InitApexLibraries:
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_adservices: libhpke_jni.so:libtflite_support_classifiers_native.so
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_appsearch: libicing.so
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_art: libartservice.so
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_btservices: libbluetooth_jni.so
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_conscrypt: libjavacrypto.so
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_extservices: libtflite_support_classifiers_native.so
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_os_statsd: libstats_jni.so
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_tethering: libandroid_net_connectivity_com_android_net_module_util_jni.so:libcronet.114.0.5735.84.so:libframework-connectivity-jni.so:libframework-connectivity-tiramisu-jni.so:libservice-connectivity.so
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_uwb: libuwb_uci_jni_rust.so
+10-16 00:01:26.261  3451  3451 D nativeloader:   com_android_virt: libvirtualizationservice_jni.so:libvirtualmachine_jni.so
+10-16 00:01:26.590   533  1243 D CompatibilityChangeReporter: Compat change id reported: 161145287; UID 1001; state: ENABLED
+10-16 00:01:26.632  3451  3451 V GraphicsEnvironment: Currently set values for:
+10-16 00:01:26.633  3451  3451 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+10-16 00:01:26.633  3451  3451 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+10-16 00:01:26.660  3451  3451 V GraphicsEnvironment: ANGLE GameManagerService for com.android.bluetooth: false
+10-16 00:01:26.671  2085  2085 I Choreographer: Skipped 66 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:26.679  3451  3451 V GraphicsEnvironment: com.android.bluetooth is not listed in per-application setting
+10-16 00:01:26.713  3451  3451 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+10-16 00:01:26.976   533   624 D ActivityManager: freezing 1118 com.android.settings
+10-16 00:01:27.074  2085  2725 D EGL_emulation: app_time_stats: avg=987.94ms min=987.94ms max=987.94ms count=1
+10-16 00:01:27.093   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:27.141  2085  3177 I OpenGLRenderer: Davey! duration=1512ms; Flags=0, FrameTimelineVsyncId=14594, IntendedVsync=894670734164, Vsync=895770734120, InputEventId=0, HandleInputStart=895800855588, AnimationStart=895800883751, PerformTraversalsStart=895956292591, DrawStart=896091805504, FrameDeadline=894687400830, FrameInterval=895779997476, FrameStartTime=16666666, SyncQueued=896135563434, SyncStart=896136200280, IssueDrawCommandsStart=896138945573, SwapBuffers=896159874242, FrameCompleted=896183821543, DequeueBufferDuration=122576, QueueBufferDuration=2451838, GpuCompleted=896182855958, SwapBuffersCompleted=896183821543, DisplayPresentTime=0, CommandSubmissionCompleted=896159874242, 
+10-16 00:01:27.338  2085  2093 W yer.mediaplayer: Suspending all threads took: 12.011ms
+10-16 00:01:27.367   533   624 D ActivityManager: freezing 2330 com.android.dynsystem:dynsystem
+10-16 00:01:28.007  2085  2093 I yer.mediaplayer: Background young concurrent copying GC freed 36518(1648KB) AllocSpace objects, 28(1428KB) LOS objects, 23% free, 10047KB/12MB, paused 21.838ms,12.721ms total 6.745s
+10-16 00:01:28.065  2125  2222 W FuseDaemon: Long monitor contention with owner AsyncTask #1 (2364) at boolean android.os.MessageQueue.enqueueMessage(android.os.Message, long)(MessageQueue.java:600) waiters=0 in android.os.Message android.os.MessageQueue.next() for 942ms
+10-16 00:01:28.133   533   624 D ActivityManager: freezing 2292 com.android.dynsystem
+10-16 00:01:28.357   533   624 D ActivityManager: freezing 1984 com.android.keychain
+10-16 00:01:28.482  3431  3431 D CarrierIdProvider: onCreate
+10-16 00:01:28.483  3431  3431 D CarrierIdDatabaseHelper: CarrierIdDatabaseHelper: 5
+10-16 00:01:28.487   533   624 D ActivityManager: freezing 1751 com.android.localtransport
+10-16 00:01:28.874   533   930 V SplashScreenExceptionList: SplashScreen checking exception for package com.tplayer.mediaplayer.test (target sdk:34) -> false
+10-16 00:01:28.943   872   908 W Looper  : Drained
+10-16 00:01:28.993   872   908 V WindowManagerShell: Transition requested: android.os.BinderProxy@4f0881b TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=13 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity } baseActivity=ComponentInfo{com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} topActivity=ComponentInfo{com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} origActivity=null realActivity=ComponentInfo{com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} numActivities=1 lastActiveTime=898069 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@3c45db8} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{37a2791 androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+10-16 00:01:29.034   872   920 D SplashScreenView: Build android.window.SplashScreenView{e3736f6 V.E...... ......ID 0,0-0,0}
+10-16 00:01:29.034   872   920 D SplashScreenView: Icon: view: null drawable: null size: 0
+10-16 00:01:29.034   872   920 D SplashScreenView: Branding: view: android.view.View{8858af7 G.ED..... ......I. 0,0-0,0 #10204ef android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+10-16 00:01:29.075   533   930 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} with LAUNCH_MULTIPLE from uid 10141 (BAL_ALLOW_VISIBLE_WINDOW) result code=0
+10-16 00:01:29.091   533   557 W system_server: Long monitor contention with owner binder:533_8 (930) at int com.android.server.wm.ActivityStarter.execute()(ActivityStarter.java:786) waiters=0 in void com.android.server.wm.RootWindowContainer$RankTaskLayersRunnable.run() for 520ms
+10-16 00:01:29.147   533   558 W system_server: Long monitor contention with owner binder:533_8 (930) at int com.android.server.wm.ActivityStarter.execute()(ActivityStarter.java:786) waiters=1 in void com.android.server.wm.WindowAnimator.lambda$new$1(long) for 565ms
+10-16 00:01:29.177   533  1474 W system_server: Long monitor contention with owner binder:533_8 (930) at int com.android.server.wm.ActivityStarter.execute()(ActivityStarter.java:786) waiters=3 in void com.android.server.wm.ActivityClientController.activityTopResumedStateLost() for 158ms
+10-16 00:01:29.280   872   908 W Looper  : Slow dispatch took 288ms wmshell.main h=android.os.Handler c=com.android.wm.shell.transition.Transitions$TransitionPlayerImpl$$ExternalSyntheticLambda1@33d9d64 m=0
+10-16 00:01:29.503  2085  2085 D LifecycleMonitor: Lifecycle status change: com.tplayer.mediaplayer.ui.PlayerActivity@69152b2 in: PAUSED
+10-16 00:01:29.503   394   394 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+10-16 00:01:29.548   533   557 W ActivityTaskManager: Activity pause timeout for ActivityRecord{af979b u0 com.tplayer.mediaplayer/.ui.PlayerActivity t12}
+10-16 00:01:29.606  2085  2085 V ActivityScenario: Update currentActivityStage to PAUSED, currentActivity=com.tplayer.mediaplayer.ui.PlayerActivity@69152b2
+10-16 00:01:29.658   533   557 D ActivityManager: quick sync unfreeze 2985 for 1
+10-16 00:01:29.688   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(4)
+10-16 00:01:29.735   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(4)
+10-16 00:01:29.746   533   554 W Looper  : Drained
+10-16 00:01:29.783   872   908 W Looper  : Slow delivery took 138ms wmshell.main h=android.os.Handler c=null m=19
+10-16 00:01:29.801   872   908 W Looper  : Drained
+10-16 00:01:29.917   533  2756 W system_server: Long monitor contention with owner android.display (557) at void com.android.server.wm.ActivityRecord$1.run()(ActivityRecord.java:997) waiters=1 in void com.android.server.wm.ActivityClientController.activityPaused(android.os.IBinder) for 302ms
+10-16 00:01:29.993   533   557 D ActivityManager: sync unfroze 2985 com.tplayer.mediaplayer.test for 1
+10-16 00:01:30.036   533   555 W Looper  : Drained
+10-16 00:01:30.043   533   555 W Looper  : Slow dispatch took 110ms android.ui h=com.android.server.am.ActivityManagerService$UiHandler c=com.android.server.am.UidObserverController$$ExternalSyntheticLambda0@eb6c152 m=0
+10-16 00:01:30.320   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:30.338  3431  3431 D CarrierIdProvider: update database from pb file
+10-16 00:01:30.558   533   544 I system_server: Background young concurrent copying GC freed 449438(20MB) AllocSpace objects, 61(1924KB) LOS objects, 50% free, 21MB/43MB, paused 66.635ms,452us total 21.386s
+10-16 00:01:30.781   872   919 I Choreographer: Skipped 102 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:30.809   533  1491 D CoreBackPreview: Window{4cf7205 u0 Splash Screen com.tplayer.mediaplayer.test}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@97edcbd, mPriority=0, mIsAnimationCallback=false}
+10-16 00:01:30.907   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:31.171   872   908 W ndroid.systemui: Long monitor contention with owner binder:872_8 (1690) at boolean android.os.MessageQueue.enqueueMessage(android.os.Message, long)(MessageQueue.java:600) waiters=0 in android.os.Message android.os.MessageQueue.next() for 515ms
+10-16 00:01:31.174   872   908 W Looper  : Slow delivery took 518ms wmshell.main h=android.os.Handler c=null m=1
+10-16 00:01:31.175   872   889 W ndroid.systemui: Long monitor contention with owner binder:872_8 (1690) at boolean android.os.MessageQueue.enqueueMessage(android.os.Message, long)(MessageQueue.java:600) waiters=1 in boolean android.os.MessageQueue.enqueueMessage(android.os.Message, long) for 404ms
+10-16 00:01:31.541  2985  2985 I Choreographer: Skipped 36 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:31.557   533   557 D OomAdjuster: Not killing cached processes
+10-16 00:01:31.716   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:31.719   533   933 D CoreBackPreview: Window{3485203 u0 com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@4f40b5f, mPriority=0, mIsAnimationCallback=false}
+10-16 00:01:31.725   872   919 I Choreographer: Skipped 54 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:32.135   533   533 W Looper  : Slow delivery took 556ms main h=com.android.server.accessibility.AbstractAccessibilityServiceConnection$1 c=null m=32
+10-16 00:01:32.220  2985  3001 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+10-16 00:01:32.432   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:32.449   533   557 W system_server: Long monitor contention with owner ActivityManager (565) at void com.android.server.am.ActiveServices.updateForegroundApps(com.android.server.am.ActiveServices$ServiceMap)(ActiveServices.java:1810) waiters=0 in void com.android.server.am.ProcessRecord.setRunningRemoteAnimation(boolean) for 356ms
+10-16 00:01:32.555   533   558 I Choreographer: Skipped 39 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:32.559   872   908 W Looper  : Drained
+10-16 00:01:32.602   533   557 W system_server: Long monitor contention with owner android.anim (558) at void com.android.server.wm.WindowSurfacePlacer$Traverser.run()(WindowSurfacePlacer.java:58) waiters=2 in void com.android.server.wm.ActivityRecord$2.run() for 152ms
+10-16 00:01:32.611   533  1491 W system_server: Long monitor contention with owner android.anim (558) at void com.android.server.wm.WindowSurfacePlacer$Traverser.run()(WindowSurfacePlacer.java:58) waiters=1 in boolean com.android.server.wm.WindowManagerService.isInTouchMode(int) for 243ms
+10-16 00:01:32.640   533  2052 W system_server: Long monitor contention with owner android.anim (558) at void com.android.server.wm.WindowSurfacePlacer$Traverser.run()(WindowSurfacePlacer.java:58) waiters=0 in void com.android.server.wm.TaskPersister$TaskWriteQueueItem.process() for 660ms
+10-16 00:01:32.738   872   908 W Looper  : Slow delivery took 54ms wmshell.main h=android.os.Handler c=null m=2
+10-16 00:01:32.745   533   554 V WindowManager: Sent Transition #13 createdAt=10-16 00:01:28.378 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=13 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity } baseActivity=ComponentInfo{com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} topActivity=ComponentInfo{com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} origActivity=null realActivity=ComponentInfo{com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} numActivities=1 lastActiveTime=898069 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{d4cf60a Task{9e27a49 #13 type=standard A=10142:com.tplayer.mediaplayer.test}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{277fe7b androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+10-16 00:01:32.763   533   554 V WindowManager:     startWCT=WindowContainerTransaction { changes = {} hops = [] errorCallbackToken=null taskFragmentOrganizer=null }
+10-16 00:01:32.963  2985  2998 I OpenGLRenderer: Davey! duration=1978ms; Flags=1, FrameTimelineVsyncId=14675, IntendedVsync=900037400616, Vsync=900637400592, InputEventId=0, HandleInputStart=900681010057, AnimationStart=900681067113, PerformTraversalsStart=900681089567, DrawStart=901740547500, FrameDeadline=900054067282, FrameInterval=900649746395, FrameStartTime=16666666, SyncQueued=901776247084, SyncStart=901777018514, IssueDrawCommandsStart=901785815705, SwapBuffers=901844756119, FrameCompleted=902016258531, DequeueBufferDuration=44478, QueueBufferDuration=6244710, GpuCompleted=902015661416, SwapBuffersCompleted=902016258531, DisplayPresentTime=0, CommandSubmissionCompleted=901844756119, 
+10-16 00:01:33.070   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(6)
+10-16 00:01:33.069   872   908 V WindowManagerShell: onTransitionReady android.os.BinderProxy@4f0881b: {id=13 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@c7949a6} m=OPEN f=NONE leash=Surface(name=Task=13)/@0xf8e69da sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{WCT{android.window.IWindowContainerToken$Stub$Proxy@791fe7} m=TO_BACK f=NONE leash=Surface(name=Task=12)/@0xc7fae0b sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0}]}
+10-16 00:01:33.085   872   908 V WindowManagerShell: Playing animation for (#13)android.os.BinderProxy@4f0881b@0
+10-16 00:01:33.091   872   908 V WindowManagerShell:  try handler com.android.wm.shell.transition.DefaultMixedHandler@7c90f4e
+10-16 00:01:33.091   872   908 V WindowManagerShell:  try handler com.android.wm.shell.keyguard.KeyguardTransitionHandler@799786f
+10-16 00:01:33.121   872   908 V WindowManagerShell:  try handler com.android.wm.shell.activityembedding.ActivityEmbeddingController@3e4497c
+10-16 00:01:33.121   872   908 V WindowManagerShell:  try handler com.android.wm.shell.recents.RecentsTransitionHandler@87f4205
+10-16 00:01:33.122   872   908 V ShellRecents: RecentsTransitionHandler.startAnimation: no controller found
+10-16 00:01:33.122   872   908 V WindowManagerShell:  try handler com.android.wm.shell.pip.PipTransition@92ad25a
+10-16 00:01:33.122   872   908 V WindowManagerShell:  try handler com.android.wm.shell.splitscreen.StageCoordinator@eef2c8b
+10-16 00:01:33.122   872   908 V WindowManagerShell:  try handler com.android.wm.shell.transition.RemoteTransitionHandler@9ea8168
+10-16 00:01:33.127   872   908 V WindowManagerShell: Transition doesn't have explicit remote, search filters for match for {id=13 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@c7949a6} m=OPEN f=NONE leash=Surface(name=Task=13)/@0xf8e69da sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{WCT{android.window.IWindowContainerToken$Stub$Proxy@791fe7} m=TO_BACK f=NONE leash=Surface(name=Task=12)/@0xc7fae0b sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0}]}
+10-16 00:01:33.129   872   908 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}},{atype=standard independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@137397b, appThread = android.app.IApplicationThread$Stub$Proxy@8292398, debugName = QuickstepLaunchHome }}
+10-16 00:01:33.130   872   908 V WindowManagerShell:  Delegate animation for #13 to null
+10-16 00:01:33.130   872   908 V WindowManagerShell:  try handler com.android.wm.shell.transition.DefaultTransitionHandler@ab6f981
+10-16 00:01:33.130   872   908 V WindowManagerShell: start default transition animation, info = {id=13 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@c7949a6} m=OPEN f=NONE leash=Surface(name=Task=13)/@0xf8e69da sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{WCT{android.window.IWindowContainerToken$Stub$Proxy@791fe7} m=TO_BACK f=NONE leash=Surface(name=Task=12)/@0xc7fae0b sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0}]}
+10-16 00:01:33.135   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:32.812   533   554 V WindowManager:     info={id=13 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{d4cf60a Task{9e27a49 #13 type=standard A=10142:com.tplayer.mediaplayer.test}}} m=OPEN f=NONE leash=Surface(name=Task=13)/@0x1d9f9ac sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{WCT{RemoteToken{3b96fe5 Task{7d6f738 #12 type=standard A=10141:com.tplayer.mediaplayer}}} m=TO_BACK f=NONE leash=Surface(name=Task=12)/@0x3e19d8b sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0}]}
+10-16 00:01:33.237   533   836 W system_server: Long monitor contention with owner android.bg (564) at boolean android.os.MessageQueue.enqueueMessage(android.os.Message, long)(MessageQueue.java:600) waiters=0 in android.os.Message android.os.MessageQueue.next() for 1.114s
+10-16 00:01:33.240   533   533 W Looper  : Drained
+10-16 00:01:33.277   533   557 W system_server: Long monitor contention with owner binder:533_1D (2756) at boolean com.android.server.wm.ActivityClientController.finishActivity(android.os.IBinder, int, android.content.Intent, int)(ActivityClientController.java:518) waiters=0 in void com.android.server.wm.RootWindowContainer$RankTaskLayersRunnable.run() for 259ms
+10-16 00:01:33.286   533   617 W system_server: Long monitor contention with owner android.bg (564) at boolean android.os.MessageQueue.enqueueMessage(android.os.Message, long)(MessageQueue.java:600) waiters=0 in android.os.Message android.os.MessageQueue.next() for 423ms
+10-16 00:01:33.331  2985  2985 I Choreographer: Skipped 57 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:33.446   533   554 W Looper  : Slow dispatch took 767ms android.fg h=android.os.Handler c=com.android.server.wm.Transition$$ExternalSyntheticLambda10@5ff74f1 m=0
+10-16 00:01:33.673   533   533 W Looper  : Slow dispatch took 149ms main h=com.android.server.power.Notifier$NotifierHandler c=null m=1
+10-16 00:01:34.029   872   908 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@3e05a32 animAttr=0x9 type=OPEN isEntrance=false
+10-16 00:01:34.126   533   533 W Looper  : Slow delivery took 531ms main h=com.android.server.power.Notifier$NotifierHandler c=null m=7
+10-16 00:01:34.175   533   836 W system_server: Long monitor contention with owner android.bg (564) at boolean android.os.MessageQueue.enqueueMessage(android.os.Message, long)(MessageQueue.java:600) waiters=0 in android.os.Message android.os.MessageQueue.next() for 856ms
+10-16 00:01:34.314   872   908 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@8c72900 animAttr=0x8 type=OPEN isEntrance=true
+10-16 00:01:34.325   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:34.443   533   554 W ziparchive: Unable to open '/data/app/~~rIXVnEnduH3_pDenk2-MlA==/com.tplayer.mediaplayer.test-bkXtD2iLjI2KA2SPb25WMw==/base.dm': No such file or directory
+10-16 00:01:34.538   533   533 W Looper  : Slow dispatch took 122ms main h=android.os.Handler c=com.android.internal.os.BinderCallsStats$1@fdddd71 m=0
+10-16 00:01:34.924   533   533 W Looper  : Slow dispatch took 341ms main h=com.android.server.accessibility.AbstractAccessibilityServiceConnection$1 c=null m=32
+10-16 00:01:35.034   872   918 W Looper  : Drained
+10-16 00:01:35.034   872   918 W Looper  : Slow dispatch took 89ms wmshell.anim h=android.os.Handler c=com.android.wm.shell.transition.DefaultTransitionHandler$$ExternalSyntheticLambda0@e35e77e m=0
+10-16 00:01:35.152   872   908 V WindowManagerShell:  animated by com.android.wm.shell.transition.DefaultTransitionHandler@ab6f981
+10-16 00:01:35.173   872   908 W Looper  : Slow dispatch took 2105ms wmshell.main h=android.os.Handler c=com.android.wm.shell.transition.Transitions$TransitionPlayerImpl$$ExternalSyntheticLambda0@6c4fd8a m=0
+10-16 00:01:35.176   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:35.183   872   908 V WindowManagerShell: Transition requested: android.os.BinderProxy@9dc2ffb TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=13 displayId=0 isRunning=false baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity } baseActivity=null topActivity=null origActivity=null realActivity=ComponentInfo{com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} numActivities=0 lastActiveTime=898731 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@811818} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=null launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=true isVisibleRequested=true isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+10-16 00:01:35.185   872   918 W Looper  : Slow delivery took 56ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@4f4d9d m=0
+10-16 00:01:35.185   872   918 W Looper  : Slow dispatch took 120ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@4f4d9d m=0
+10-16 00:01:35.270   872   918 W Looper  : Slow dispatch took 82ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@4f4d9d m=0
+10-16 00:01:35.305   872   918 W Looper  : Drained
+10-16 00:01:35.466   872   918 W Looper  : Slow delivery took 121ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@4f4d9d m=0
+10-16 00:01:35.494   872   918 W Looper  : Slow dispatch took 34ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@4f4d9d m=0
+10-16 00:01:35.514   872   908 W Looper  : Slow dispatch took 331ms wmshell.main h=android.os.Handler c=com.android.wm.shell.transition.Transitions$TransitionPlayerImpl$$ExternalSyntheticLambda1@6dec271 m=0
+10-16 00:01:35.576   872   918 W Looper  : Slow dispatch took 77ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@4f4d9d m=0
+10-16 00:01:35.785   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(4)
+10-16 00:01:35.878   533   557 W system_server: Long monitor contention with owner android.anim (558) at android.content.res.Configuration com.android.server.wm.ActivityTaskManagerService.getGlobalConfigurationForPid(int)(ActivityTaskManagerService.java:1133) waiters=1 in void com.android.server.wm.ActivityTaskSupervisor$ActivityTaskSupervisorHandler.handleMessage(android.os.Message) for 320ms
+10-16 00:01:35.925   872   908 W Looper  : Drained
+10-16 00:01:35.927   533  2052 E TaskPersister: File error accessing recents directory (directory doesn't exist?).
+10-16 00:01:36.002   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(3)
+10-16 00:01:36.371   872   908 V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#13)android.os.BinderProxy@4f0881b@0
+10-16 00:01:36.607   533   557 D OomAdjuster: Not killing cached processes
+10-16 00:01:36.431   872   918 W Looper  : Drained
+10-16 00:01:36.698   872   908 V WindowManagerShell: Track 0 became idle
+10-16 00:01:36.699   872   908 W Looper  : Slow dispatch took 381ms wmshell.main h=android.os.Handler c=com.android.wm.shell.transition.DefaultTransitionHandler$$ExternalSyntheticLambda7@a7b9dc4 m=0
+10-16 00:01:36.732   872   918 W Looper  : Slow dispatch took 846ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@4f4d9d m=0
+10-16 00:01:36.761   533   554 I ActivityTaskManager: Displayed com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity for user 0: +5s293ms
+10-16 00:01:36.762   533   554 W Looper  : Slow dispatch took 3316ms android.fg h=android.os.Handler c=com.android.server.wm.ActivityMetricsLogger$$ExternalSyntheticLambda0@3056f2d m=0
+10-16 00:01:36.789   533   554 W Looper  : Slow delivery took 3279ms android.fg h=android.os.Handler c=<recycled PooledLambda@b38ddeb> m=0
+10-16 00:01:36.877   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(5)
+10-16 00:01:36.895   872   908 V WindowManagerShell: onTransitionReady android.os.BinderProxy@9dc2ffb: {id=14 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@faa373} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x7d6856 sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{WCT{android.window.IWindowContainerToken$Stub$Proxy@676d230} m=CLOSE f=NONE leash=Surface(name=Task=13)/@0x3b3d0d7 sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{null m=TO_FRONT f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{2c5849f token=android.os.Binder@e09ee3e})/@0xa4c14ad sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0}]}
+10-16 00:01:36.906   872   908 V WindowManagerShell: Playing animation for (#14)android.os.BinderProxy@9dc2ffb@0
+10-16 00:01:36.907   872   908 V WindowManagerShell:  try handler com.android.wm.shell.transition.DefaultMixedHandler@7c90f4e
+10-16 00:01:36.911   872   908 V WindowManagerShell:  try handler com.android.wm.shell.keyguard.KeyguardTransitionHandler@799786f
+10-16 00:01:36.923   872   908 V WindowManagerShell:  try handler com.android.wm.shell.activityembedding.ActivityEmbeddingController@3e4497c
+10-16 00:01:36.923   872   908 V WindowManagerShell:  try handler com.android.wm.shell.recents.RecentsTransitionHandler@87f4205
+10-16 00:01:36.923   872   908 V ShellRecents: RecentsTransitionHandler.startAnimation: no controller found
+10-16 00:01:36.923   872   908 V WindowManagerShell:  try handler com.android.wm.shell.pip.PipTransition@92ad25a
+10-16 00:01:36.929   872   908 V WindowManagerShell:  try handler com.android.wm.shell.splitscreen.StageCoordinator@eef2c8b
+10-16 00:01:36.929   872   908 V WindowManagerShell:  try handler com.android.wm.shell.transition.RemoteTransitionHandler@9ea8168
+10-16 00:01:36.935   872   908 V WindowManagerShell: Transition doesn't have explicit remote, search filters for match for {id=14 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{android.window.IWindowContainerToken$Stub$Proxy@faa373} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x7d6856 sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{WCT{android.window.IWindowContainerToken$Stub$Proxy@676d230} m=CLOSE f=NONE leash=Surface(name=Task=13)/@0x3b3d0d7 sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{null m=TO_FRONT f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{2c5849f token=android.os.Binder@e09ee3e})/@0xa4c14ad sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0}]}
+10-16 00:01:36.937   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(3)
+10-16 00:01:37.059   872   908 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}},{atype=standard independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@137397b, appThread = android.app.IApplicationThread$Stub$Proxy@8292398, debugName = QuickstepLaunchHome }}
+10-16 00:01:37.066   872   908 D RemoteTransitionHandler: Found filterPair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}},{atype=standard independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@137397b, appThread = android.app.IApplicationThread$Stub$Proxy@8292398, debugName = QuickstepLaunchHome }}
+10-16 00:01:37.086   872   908 V WindowManagerShell:  Delegate animation for #14 to RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@137397b, appThread = android.app.IApplicationThread$Stub$Proxy@8292398, debugName = QuickstepLaunchHome }
+10-16 00:01:37.062   533   554 V WindowManager: Sent Transition #14 createdAt=10-16 00:01:33.001 via request=TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=13 displayId=0 isRunning=false baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity } baseActivity=null topActivity=null origActivity=null realActivity=ComponentInfo{com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity} numActivities=0 lastActiveTime=898731 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{d4cf60a Task{9e27a49 #13 type=standard A=10142:com.tplayer.mediaplayer.test}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=null launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=true isVisibleRequested=true isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+10-16 00:01:37.250   533   554 V WindowManager:     startWCT=WindowContainerTransaction { changes = {} hops = [] errorCallbackToken=null taskFragmentOrganizer=null }
+10-16 00:01:37.370   872   908 V WindowManagerShell:  animated by com.android.wm.shell.transition.RemoteTransitionHandler@9ea8168
+10-16 00:01:37.474   533   554 V WindowManager:     info={id=14 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{4f2dec6 Task{81bbd9d #1 type=home}}} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x6d52266 sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{WCT{RemoteToken{d4cf60a Task{9e27a49 #13 type=standard A=10142:com.tplayer.mediaplayer.test}}} m=CLOSE f=NONE leash=Surface(name=Task=13)/@0x1d9f9ac sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0},{null m=TO_FRONT f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{2c5849f token=android.os.Binder@e09ee3e})/@0x5f7c89c sb=Rect(0, 0 - 480, 854) eb=Rect(0, 0 - 480, 854) d=0}]}
+10-16 00:01:37.474   533   554 W Looper  : Slow dispatch took 671ms android.fg h=android.os.Handler c=com.android.server.wm.Transition$$ExternalSyntheticLambda10@a71c1f3 m=0
+10-16 00:01:37.489   872   908 W Looper  : Slow dispatch took 626ms wmshell.main h=android.os.Handler c=com.android.wm.shell.transition.Transitions$TransitionPlayerImpl$$ExternalSyntheticLambda0@8d34f63 m=0
+10-16 00:01:37.967  1149  1149 W FrameTracker: Missed App frame:UNKNOWN: 74, 15061, 144104635, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 00:01:37.969   872   908 V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#14)android.os.BinderProxy@9dc2ffb@0
+10-16 00:01:37.969  1149  1149 W FrameTracker: Missed SF frame:UNKNOWN: 74, 15061, 144104635, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 00:01:37.970  1149  1149 W FrameTracker: Missed App frame:UNKNOWN: 74, 15068, 0, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 00:01:37.970  1149  1149 W FrameTracker: Missed SF frame:UNKNOWN: 74, 15068, 0, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 00:01:37.971  1149  1149 W FrameTracker: Missing HWUI jank callback for vsyncId: 15068, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 00:01:37.971  1149  1149 W FrameTracker: Missed App frame:UNKNOWN: 74, 15090, 143361749, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 00:01:37.971  1149  1149 W FrameTracker: Missed SF frame:UNKNOWN: 74, 15090, 143361749, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 00:01:37.974  1149  1149 W FrameTracker: Missed App frame:UNKNOWN: 10, 15099, 68967347, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 00:01:37.974  1149  1149 W FrameTracker: Missed SF frame:UNKNOWN: 10, 15099, 68967347, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 00:01:37.986  1149  1785 V PerfettoTrigger: Not triggering com.android.telemetry.interaction-jank-monitor-9 - not enough time since last trigger
+10-16 00:01:38.286   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:38.421   533   557 W system_server: Long monitor contention with owner binder:533_C (1243) at void com.android.server.wm.WindowManagerService.onAnimationFinished()(WindowManagerService.java:8599) waiters=2 in void com.android.server.wm.ActivityTaskSupervisor$ActivityTaskSupervisorHandler.handleMessage(android.os.Message) for 118ms
+10-16 00:01:38.489   533  2756 W system_server: Long monitor contention with owner binder:533_C (1243) at void com.android.server.wm.WindowManagerService.onAnimationFinished()(WindowManagerService.java:8599) waiters=1 in int com.android.server.wm.WindowManagerService.relayoutWindow(com.android.server.wm.Session, android.view.IWindow, android.view.WindowManager$LayoutParams, int, int, int, int, int, int, android.window.ClientWindowFrames, android.util.MergedConfiguration, android.view.SurfaceControl, android.view.InsetsState, android.view.InsetsSourceControl$Array, android.os.Bundle) for 185ms
+10-16 00:01:38.507   872   908 V WindowManagerShell: Track 0 became idle
+10-16 00:01:38.507   872   908 V WindowManagerShell: All active transition animations finished
+10-16 00:01:38.511   872   908 W Looper  : Slow delivery took 79ms wmshell.main h=android.os.Handler c=com.android.wm.shell.transition.RemoteTransitionHandler$1$$ExternalSyntheticLambda0@e0a08ea m=0
+10-16 00:01:38.511   872   908 W Looper  : Slow dispatch took 539ms wmshell.main h=android.os.Handler c=com.android.wm.shell.transition.RemoteTransitionHandler$1$$ExternalSyntheticLambda0@e0a08ea m=0
+10-16 00:01:38.511   872   908 W Looper  : Drained
+10-16 00:01:38.575   533   554 V WindowManager: Finish Transition #13: created at 10-16 00:01:28.378 collect-started=0.199ms request-sent=582.704ms started=788.737ms ready=1324.863ms sent=4125.656ms finished=8068.31ms
+10-16 00:01:38.575   533   554 W Looper  : Slow dispatch took 1101ms android.fg h=android.os.Handler c=com.android.server.wm.Transition$$ExternalSyntheticLambda2@cf6d129 m=0
+10-16 00:01:38.718   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:38.733  2985  2985 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@c35bb20
+10-16 00:01:38.741   533  1474 D CoreBackPreview: Window{3485203 u0 com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity}: Setting back callback null
+10-16 00:01:38.915   872  1659 I OpenGLRenderer: Davey! duration=1242ms; Flags=0, FrameTimelineVsyncId=15076, IntendedVsync=906754078092, Vsync=906987411416, InputEventId=0, HandleInputStart=907010669978, AnimationStart=907011462820, PerformTraversalsStart=907038261446, DrawStart=907238600053, FrameDeadline=906770744758, FrameInterval=906999470043, FrameStartTime=16666666, SyncQueued=907239659439, SyncStart=907240017352, IssueDrawCommandsStart=907242104007, SwapBuffers=907246026295, FrameCompleted=907996723326, DequeueBufferDuration=52189, QueueBufferDuration=703752954, GpuCompleted=907915664408, SwapBuffersCompleted=907996723326, DisplayPresentTime=0, CommandSubmissionCompleted=907246026295, 
+10-16 00:01:38.917   533   554 V WindowManager: Finish Transition #14: created at 10-16 00:01:33.001 collect-started=0.134ms request-sent=1.409ms started=2503.923ms ready=2470.198ms sent=2833.251ms finished=5101.248ms
+10-16 00:01:38.955   533   554 W Looper  : Slow dispatch took 364ms android.fg h=android.os.Handler c=com.android.server.wm.Transition$$ExternalSyntheticLambda2@787bcae m=0
+10-16 00:01:39.171   872   919 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@afddf93
+10-16 00:01:39.252   533  1474 W InputManager-JNI: Input channel object '4cf7205 Splash Screen com.tplayer.mediaplayer.test (client)' was disposed without first being removed with the input manager!
+10-16 00:01:39.357   872   919 W FrameTracker: Missing SF jank callback for vsyncId: 15076, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+10-16 00:01:39.426   533  1474 W InputManager-JNI: Input channel object '3485203 com.tplayer.mediaplayer.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity (client)' was disposed without first being removed with the input manager!
+10-16 00:01:39.493   872   911 V PerfettoTrigger: Not triggering com.android.telemetry.interaction-jank-monitor-39 - not enough time since last trigger
+10-16 00:01:39.540   533   533 W Looper  : Drained
+10-16 00:01:39.691   533   933 W WindowManager: Failed looking up window session=Session{9fbb413 872:u0a10117} callers=com.android.server.wm.WindowManagerService.windowForClientLocked:6034 com.android.server.wm.Session.setOnBackInvokedCallbackInfo:944 android.view.IWindowSession$Stub.onTransact:1145 
+10-16 00:01:39.703   533   933 I WindowManager: setOnBackInvokedCallback(): No window state for package:com.android.systemui
+10-16 00:01:39.705   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:39.796   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:39.881  2985  2985 I Choreographer: Skipped 69 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:40.317   533   558 W system_server: Long monitor contention with owner binder:533_C (1243) at void com.android.server.wm.ActivityClientController.activityDestroyed(android.os.IBinder)(ActivityClientController.java:288) waiters=0 in void com.android.server.wm.WindowAnimator.lambda$new$1(long) for 352ms
+10-16 00:01:40.522   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:40.602   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:40.653   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(4)
+10-16 00:01:40.675   872   937 W Looper  : Drained
+10-16 00:01:40.942  3451  3457 I droid.bluetooth: Background concurrent copying GC freed 1965(189KB) AllocSpace objects, 0(0B) LOS objects, 49% free, 2005KB/4011KB, paused 282us,64us total 3.635s
+10-16 00:01:40.991   533   556 I DropBoxManagerService: add tag=system_server_strictmode isTagEnabled=true flags=0x2
+10-16 00:01:41.825  3431  3431 E CarrierIdProvider: read carrier list from ota pb failure: java.io.FileNotFoundException: /data/misc/carrierid/carrier_list.pb: open failed: ENOENT (No such file or directory)
+10-16 00:01:41.827  3431  3431 D CarrierIdProvider: latest version: 117440538 need update: false
+10-16 00:01:42.153  2085  2085 I MediaController: Release abfdbc0 [AndroidXMedia3/1.4.1] [emu64x, Android SDK built for x86_64, unknown, 34] [media3.common, media3.session, media3.exoplayer, media3.decoder, media3.ui, media3.datasource, media3.extractor]
+10-16 00:01:42.239   872   872 W ConstraintSet: id unknown center_vertical_guideline
+10-16 00:01:42.273   872   872 W ConstraintSet: id unknown action_button_guideline
+10-16 00:01:42.274   872   872 W ConstraintSet: id unknown icon
+10-16 00:01:42.275   872   872 W ConstraintSet: id unknown media_seamless
+10-16 00:01:42.301   872   872 W ConstraintSet: id unknown media_action_barrier_start
+10-16 00:01:42.302   872   872 W ConstraintSet: id unknown media_action_barrier_end
+10-16 00:01:42.303   872   872 W ConstraintSet: id unknown media_action_barrier_top
+10-16 00:01:42.325   872   872 W ConstraintSet: id unknown remove_text
+10-16 00:01:42.326   872   872 W ConstraintSet: id unknown settings
+10-16 00:01:42.327   872   872 W ConstraintSet: id unknown dismiss
+10-16 00:01:42.337   872   872 W ConstraintSet: id unknown cancel
+10-16 00:01:42.389  2085  2085 D LifecycleMonitor: Lifecycle status change: com.tplayer.mediaplayer.ui.PlayerActivity@69152b2 in: STOPPED
+10-16 00:01:42.403  3451  3451 I bt_stack_config: packages/modules/Bluetooth/system/main/stack_config.cc:199 get_pts_broadcast_audio_config_options: Config isn't ready, use default option
+10-16 00:01:42.543  3431  3431 D SatelliteProvider: onCreate
+10-16 00:01:42.641  3431  3437 I m.android.phone: Background concurrent copying GC freed 6842(305KB) AllocSpace objects, 6(184KB) LOS objects, 49% free, 2560KB/5121KB, paused 549us,248us total 3.999s
+10-16 00:01:42.686  2085  2085 V ActivityScenario: Update currentActivityStage to STOPPED, currentActivity=com.tplayer.mediaplayer.ui.PlayerActivity@69152b2
+10-16 00:01:42.889  3431  3431 D DeferredSmsMmsRestoreService: startIfFilesExist: no files to restore
+10-16 00:01:42.902  3431  3431 D DeferredSmsMmsRestoreService: addAllSharedPrefToLocalLog
+10-16 00:01:42.960   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:43.019  2085  2085 D LifecycleMonitor: Lifecycle status change: com.tplayer.mediaplayer.ui.PlayerActivity@69152b2 in: DESTROYED
+10-16 00:01:43.049  3451  3451 I droid.bluetooth: [1016/000142.999238:INFO:btif_config_cache.cc(67)] BtifConfigCache, capacity: 10000
+10-16 00:01:43.098  2085  2085 V ActivityScenario: Update currentActivityStage to DESTROYED, currentActivity=null
+10-16 00:01:43.222  2085  2085 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@8d9d484
+10-16 00:01:43.249   533  1243 D CoreBackPreview: Window{113d75b u0 com.tplayer.mediaplayer/com.tplayer.mediaplayer.ui.PlayerActivity}: Setting back callback null
+10-16 00:01:43.482   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:43.542   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(5)
+10-16 00:01:43.579  3431  3431 D DeferredSmsMmsRestoreService: startIfFilesExist: no files to restore
+10-16 00:01:43.579  3431  3431 D DeferredSmsMmsRestoreService: addAllSharedPrefToLocalLog
+10-16 00:01:43.653  3431  3431 I DomainSelectionResolver: DomainSelectionResolver created: device-config=false
+10-16 00:01:43.725   872   872 W ConstraintSet: id unknown center_vertical_guideline
+10-16 00:01:43.725   872   872 W ConstraintSet: id unknown action_button_guideline
+10-16 00:01:43.725   872   872 W ConstraintSet: id unknown icon
+10-16 00:01:43.726   872   872 W ConstraintSet: id unknown media_seamless
+10-16 00:01:43.726   872   872 W ConstraintSet: id unknown media_action_barrier_start
+10-16 00:01:43.726   872   872 W ConstraintSet: id unknown media_action_barrier_end
+10-16 00:01:43.727   872   872 W ConstraintSet: id unknown media_action_barrier_top
+10-16 00:01:43.758   872   872 W ConstraintSet: id unknown remove_text
+10-16 00:01:43.759   872   872 W ConstraintSet: id unknown settings
+10-16 00:01:43.759   872   872 W ConstraintSet: id unknown dismiss
+10-16 00:01:43.759   872   872 W ConstraintSet: id unknown cancel
+10-16 00:01:43.895   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(8)
+10-16 00:01:44.034   533   554 W Looper  : Drained
+10-16 00:01:44.428   872   872 W ConstraintSet: id unknown center_vertical_guideline
+10-16 00:01:44.430   872   872 W ConstraintSet: id unknown action_button_guideline
+10-16 00:01:44.431   872   872 W ConstraintSet: id unknown icon
+10-16 00:01:44.446   872   872 W ConstraintSet: id unknown media_seamless
+10-16 00:01:44.448   872   872 W ConstraintSet: id unknown media_action_barrier_start
+10-16 00:01:44.449   872   872 W ConstraintSet: id unknown media_action_barrier_end
+10-16 00:01:44.450   872   872 W ConstraintSet: id unknown media_action_barrier_top
+10-16 00:01:44.454   872   872 W ConstraintSet: id unknown remove_text
+10-16 00:01:44.455   872   872 W ConstraintSet: id unknown settings
+10-16 00:01:44.497   872   872 W ConstraintSet: id unknown dismiss
+10-16 00:01:44.499   872   872 W ConstraintSet: id unknown cancel
+10-16 00:01:44.680   533  2052 E TaskPersister: File error accessing recents directory (directory doesn't exist?).
+10-16 00:01:44.939   872   872 I Choreographer: Skipped 1822 frames!  The application may be doing too much work on its main thread.
+--------- beginning of kernel
+10-16 00:01:45.211     0     0 I servicemanager: Found android.hardware.radio.data.IRadioData/slot1 in device VINTF manifest.
+10-16 00:01:45.335  3451  3451 E ActivityThread: Failed to find provider info for bluetooth_legacy.provider
+10-16 00:01:45.341  3451  3451 D DataMigration: Legacy migration skiped: no migration app installed
+10-16 00:01:45.619   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(6)
+10-16 00:01:45.639   533  2756 W InputManager-JNI: Input channel object '113d75b com.tplayer.mediaplayer/com.tplayer.mediaplayer.ui.PlayerActivity (client)' was disposed without first being removed with the input manager!
+10-16 00:01:45.824     0     0 I servicemanager: Found android.hardware.radio.data.IRadioData/slot1 in device VINTF manifest.
+10-16 00:01:45.831     0     0 I servicemanager: Found android.hardware.radio.messaging.IRadioMessaging/slot1 in device VINTF manifest.
+10-16 00:01:45.842     0     0 I servicemanager: Found android.hardware.radio.modem.IRadioModem/slot1 in device VINTF manifest.
+10-16 00:01:45.849     0     0 I servicemanager: Found android.hardware.radio.network.IRadioNetwork/slot1 in device VINTF manifest.
+10-16 00:01:45.836  3451  3451 I BluetoothAvrcpControllerJni: classInitNative: succeeds
+10-16 00:01:45.857     0     0 I servicemanager: Found android.hardware.radio.sim.IRadioSim/slot1 in device VINTF manifest.
+10-16 00:01:45.886     0     0 I servicemanager: Found android.hardware.radio.voice.IRadioVoice/slot1 in device VINTF manifest.
+10-16 00:01:45.893     0     0 I servicemanager: Found android.hardware.radio.ims.IRadioIms/slot1 in device VINTF manifest.
+10-16 00:01:45.906  3451  3451 D CompatibilityChangeReporter: Compat change id reported: 263076149; UID 1002; state: ENABLED
+10-16 00:01:45.915     0     0 I servicemanager: Found android.hardware.radio.modem.IRadioModem/slot1 in device VINTF manifest.
+10-16 00:01:45.942   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(2)
+10-16 00:01:46.015  3451  3451 I BluetoothHidHostServiceJni: classInitNative: succeeds
+10-16 00:01:46.468   533   558 W system_server: Long monitor contention with owner binder:533_B (933) at void com.android.server.wm.ActivityClientController.activityDestroyed(android.os.IBinder)(ActivityClientController.java:288) waiters=0 in void com.android.server.wm.InputMonitor$UpdateInputWindows.run() for 334ms
+10-16 00:01:46.621     0     0 I servicemanager: Found android.hardware.radio.data.IRadioData/slot1 in device VINTF manifest.
+10-16 00:01:46.639     0     0 W healthd : battery l=100 v=5000 t=25.0 h=2 st=2 c=900000 fc=3000000 cc=10 chg=a
+10-16 00:01:46.806  3431  3481 W Binder  : Caught a RuntimeException from the binder stub implementation.
+10-16 00:01:46.806  3431  3481 W Binder  : java.lang.RuntimeException: RIL_REQUEST_GET_HARDWARE_CONFIG invalid hardware type:-1
+10-16 00:01:46.806  3431  3481 W Binder  : 	at com.android.internal.telephony.RILUtils.convertHalHardwareConfigList(RILUtils.java:2149)
+10-16 00:01:46.806  3431  3481 W Binder  : 	at com.android.internal.telephony.ModemResponse.getHardwareConfigResponse(ModemResponse.java:104)
+10-16 00:01:46.806  3431  3481 W Binder  : 	at android.hardware.radio.modem.IRadioModemResponse$Stub.onTransact(IRadioModemResponse.java:191)
+10-16 00:01:46.806  3431  3481 W Binder  : 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+10-16 00:01:46.806  3431  3481 W Binder  : 	at android.os.Binder.execTransact(Binder.java:1275)
+10-16 00:01:46.840   450   450 E IPCThreadState: Binder transaction failure: 162904/29189/-22
+10-16 00:01:46.852     0     0 I binder  : 450:450 cannot find target node
+10-16 00:01:46.852     0     0 I binder  : 450:450 transaction async to 0:0 failed 162904/29189/-22, size 116-0 line 3210
+10-16 00:01:46.954     0     0 I servicemanager: Found android.hardware.radio.messaging.IRadioMessaging/slot1 in device VINTF manifest.
+10-16 00:01:46.997     0     0 I servicemanager: Found android.hardware.radio.sim.IRadioSim/slot1 in device VINTF manifest.
+10-16 00:01:47.048     0     0 I servicemanager: Found android.hardware.radio.network.IRadioNetwork/slot1 in device VINTF manifest.
+10-16 00:01:47.027  2085  2085 I Choreographer: Skipped 373 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:47.094   157  3422 I keystore2: system/security/keystore2/src/watchdog.rs:319 - Watchdog thread idle -> terminating. Have a great day.
+10-16 00:01:47.099  3451  3451 I BluetoothPanServiceJni: classInitNative(L108): succeeds
+10-16 00:01:47.231  3451  3451 I AdapterServiceConfig: init: profile=A2dpService, enabled=true
+10-16 00:01:47.234  3451  3451 I AdapterServiceConfig: init: profile=A2dpSinkService, enabled=false
+10-16 00:01:47.242  3451  3451 I AdapterServiceConfig: init: profile=AvrcpTargetService, enabled=true
+10-16 00:01:47.243  3451  3451 I AdapterServiceConfig: init: profile=AvrcpControllerService, enabled=false
+10-16 00:01:47.251   387   495 D AudioFlinger: mixer(0x7954b7592930) throttle end: throttle time(1)
+10-16 00:01:47.317   533   933 W ActivityManager: Unbind failed: could not find connection for android.os.BinderProxy@98a163f
+10-16 00:01:47.318  3451  3451 I AdapterServiceConfig: init: profile=BassClientService, enabled=false
+10-16 00:01:47.318  3451  3451 I AdapterServiceConfig: init: profile=BatteryService, enabled=false
+10-16 00:01:47.318  3451  3451 I AdapterServiceConfig: init: profile=CsipSetCoordinatorService, enabled=false
+10-16 00:01:47.319  3451  3451 I AdapterServiceConfig: init: profile=HapClientService, enabled=false
+10-16 00:01:47.319  3451  3451 I AdapterServiceConfig: init: profile=HeadsetService, enabled=true
+10-16 00:01:47.319  3451  3451 I AdapterServiceConfig: init: profile=HeadsetClientService, enabled=false
+10-16 00:01:47.319  3451  3451 I AdapterServiceConfig: init: profile=HearingAidService, enabled=true
+10-16 00:01:47.319  3451  3451 I AdapterServiceConfig: init: profile=HidDeviceService, enabled=true
+10-16 00:01:47.319  3451  3451 I AdapterServiceConfig: init: profile=HidHostService, enabled=true
+10-16 00:01:47.487  3451  3451 I AdapterServiceConfig: init: profile=GattService, enabled=true
+10-16 00:01:47.487  3451  3451 I AdapterServiceConfig: init: profile=LeAudioService, enabled=false
+10-16 00:01:47.553     0     0 I servicemanager: Found android.hardware.radio.voice.IRadioVoice/slot1 in device VINTF manifest.
+10-16 00:01:47.613  3451  3451 I AdapterServiceConfig: init: profile=TbsService, enabled=false
+10-16 00:01:47.614  3451  3451 I AdapterServiceConfig: init: profile=BluetoothMapService, enabled=true
+10-16 00:01:47.614  3451  3451 I AdapterServiceConfig: init: profile=MapClientService, enabled=false
+10-16 00:01:47.614  3451  3451 I AdapterServiceConfig: init: profile=McpService, enabled=true
+10-16 00:01:47.614  3451  3451 I AdapterServiceConfig: init: profile=BluetoothOppService, enabled=true
+10-16 00:01:47.615  3451  3451 I AdapterServiceConfig: init: profile=PanService, enabled=true
+10-16 00:01:47.615  3451  3451 I AdapterServiceConfig: init: profile=BluetoothPbapService, enabled=true
+10-16 00:01:47.615  3451  3451 I AdapterServiceConfig: init: profile=PbapClientService, enabled=false
+10-16 00:01:47.615  3451  3451 I AdapterServiceConfig: init: profile=SapService, enabled=false
+10-16 00:01:47.648  3451  3451 I AdapterServiceConfig: init: profile=VolumeControlService, enabled=false
+10-16 00:01:47.656   533  2756 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 1002. pid: 3451
+10-16 00:01:47.722  3451  3451 I BluetoothMetricsLogger: setCounterMetricsAlarm()
+10-16 00:01:47.841     0     0 I servicemanager: Found android.hardware.radio.ims.IRadioIms/slot1 in device VINTF manifest.
+10-16 00:01:47.911     0     0 I servicemanager: Found android.hardware.radio.ims.IRadioIms/slot1 in device VINTF manifest.
+10-16 00:01:47.989     0     0 I servicemanager: Found android.hardware.radio.config.IRadioConfig/default in device VINTF manifest.
+10-16 00:01:48.121   872   938 D EGL_emulation: app_time_stats: avg=32842.69ms min=32842.69ms max=32842.69ms count=1
+10-16 00:01:48.355   872   872 W ndroid.systemui: Long monitor contention with owner AsyncTask #2 (2821) at androidx.slice.Slice com.android.systemui.keyguard.KeyguardSliceProvider.onBindSlice()(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:191) waiters=0 in void com.android.systemui.keyguard.KeyguardSliceProvider.onPrimaryMetadataOrStateChanged(android.media.MediaMetadata, int) for 246ms
+10-16 00:01:48.518   533   624 D ActivityManager: freezing 2985 com.tplayer.mediaplayer.test
+10-16 00:01:49.276   872   884 W ndroid.systemui: Suspending all threads took: 116.057ms
+10-16 00:01:49.468   872   872 W ndroid.systemui: Weak pointer dereference blocked for 189 milliseconds.
+10-16 00:01:49.675   533  2052 E TaskPersister: File error accessing recents directory (directory doesn't exist?).
+10-16 00:01:49.763  2085  2085 I Choreographer: Skipped 131 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:50.114  2085  2085 I MediaController: Release 157f0f3 [AndroidXMedia3/1.4.1] [emu64x, Android SDK built for x86_64, unknown, 34] [media3.common, media3.session, media3.exoplayer, media3.decoder, media3.ui, media3.datasource, media3.extractor]
+10-16 00:01:50.236   533   933 I MediaFocusControl: abandonAudioFocus() from uid/pid 10141/2085 clientId=android.media.AudioManager@1a017e8androidx.media3.exoplayer.AudioFocusManager$AudioFocusListener@de30e01
+10-16 00:01:50.383   387   495 D audioserver: FGS Logger Transaction failed
+10-16 00:01:50.386   387   495 D audioserver: -129
+10-16 00:01:50.483  3451  3451 D BluetoothAdapterService: onCreate()
+10-16 00:01:50.554   387  1966 D audioserver: FGS Logger Transaction failed
+10-16 00:01:50.554   387  1966 D audioserver: -129
+10-16 00:01:50.667   533  1491 D CompatibilityChangeReporter: Compat change id reported: 124107808; UID 1001; state: ENABLED
+10-16 00:01:50.819   872   884 I ndroid.systemui: Background young concurrent copying GC freed 187634(7879KB) AllocSpace objects, 15(308KB) LOS objects, 25% free, 17MB/23MB, paused 218us,119.426ms total 21.210s
+10-16 00:01:50.857   872   943 W Looper  : Drained
+10-16 00:01:51.025   533   565 D ActivityManager: sync unfroze 1343 com.android.cellbroadcastreceiver for 3
+10-16 00:01:51.038   533   565 D ActivityManager: sync unfroze 1265 com.android.cellbroadcastreceiver.module for 3
+10-16 00:01:51.067   872   937 W Looper  : Slow dispatch took 8757ms SysUiBg h=android.os.Handler c=com.android.systemui.media.controls.ui.MediaControlPanel$$ExternalSyntheticLambda10@a579492 m=0
+10-16 00:01:51.067   872   937 W Looper  : Slow delivery took 8959ms SysUiBg h=android.os.Handler c=com.android.systemui.media.controls.models.player.SeekBarViewModel$listening$1@17aee63 m=0
+10-16 00:01:51.140  1265  1265 D CellBroadcastReceiver: onReceive Intent { act=android.telephony.action.DEFAULT_SMS_SUBSCRIPTION_CHANGED flg=0x21000010 cmp=com.android.cellbroadcastreceiver.module/com.android.cellbroadcastreceiver.CellBroadcastReceiver (has extras) }
+10-16 00:01:51.156  1265  1265 D CellBroadcastReceiver: mockmodem is running? = false
+10-16 00:01:51.157  1265  1265 D CellBroadcastReceiver: Start Cell Broadcast configuration for intent=ACTION_ENABLE_CHANNELS
+10-16 00:01:51.249   533   565 W ActivityManager: Slow operation: 130ms so far, now at startProcess: done creating new process record
+10-16 00:01:51.249   533   565 W ActivityManager: Slow operation: 130ms so far, now at startProcess: stepping in to startProcess
+10-16 00:01:51.279   533   554 W Looper  : Slow dispatch took 586ms android.fg h=android.os.Handler c=android.app.LoadedApk$ReceiverDispatcher$Args$$ExternalSyntheticLambda0@cb66317 m=0
+10-16 00:01:51.280   533   554 W Looper  : Slow delivery took 380ms android.fg h=android.os.Handler c=com.android.server.power.hint.HintManagerService$MyUidObserver$$ExternalSyntheticLambda0@6a36304 m=0
+10-16 00:01:51.325  3431  3491 D TelephonyProvider: dbh.onOpen: ok, queried table=siminfo
+10-16 00:01:51.327  3431  3491 D TelephonyProvider: dbh.onOpen: ok, queried table=carriers
+10-16 00:01:51.367  3431  3491 D CompatibilityChangeReporter: Compat change id reported: 247079863; UID 1001; state: ENABLED
+10-16 00:01:51.370   533   565 W ActivityManager: Slow operation: 121ms so far, now at startProcess: building args
+10-16 00:01:51.437   533   565 D CompatibilityChangeReporter: Compat change id reported: 135634846; UID 10109; state: DISABLED
+10-16 00:01:51.448   533   565 D CompatibilityChangeReporter: Compat change id reported: 177438394; UID 10109; state: DISABLED
+10-16 00:01:51.469   533   565 D CompatibilityChangeReporter: Compat change id reported: 135772972; UID 10109; state: DISABLED
+10-16 00:01:51.481   533   565 D CompatibilityChangeReporter: Compat change id reported: 135754954; UID 10109; state: DISABLED
+10-16 00:01:51.538   533   565 W ActivityManager: Slow operation: 419ms so far, now at startProcess: done starting proc!
+10-16 00:01:51.540   533   566 W ActivityManager: Slow operation: 291ms so far, now at startProcess: asking zygote to start proc
+10-16 00:01:51.542   533   566 D CompatibilityChangeReporter: Compat change id reported: 143937733; UID 10109; state: DISABLED
+10-16 00:01:51.602   533   565 D OomAdjuster: Not killing cached processes
+10-16 00:01:51.631   329   329 D Zygote  : Forked child process 3496
+10-16 00:01:51.645   533   554 W Looper  : Drained
+10-16 00:01:51.647   533   566 W ActivityManager: Slow operation: 397ms so far, now at startProcess: returned from zygote!
+10-16 00:01:51.786   533   566 W ActivityManager: Slow operation: 537ms so far, now at startProcess: done updating battery stats
+10-16 00:01:51.787   533   566 W ActivityManager: Slow operation: 538ms so far, now at startProcess: building log message
+10-16 00:01:51.787   533   566 I ActivityManager: Start proc 3496:com.android.messaging/u0a109 for broadcast {com.android.messaging/com.android.messaging.receiver.DefaultSmsSubscriptionChangeReceiver}
+10-16 00:01:51.787   533   566 W ActivityManager: Slow operation: 538ms so far, now at startProcess: starting to update pids map
+10-16 00:01:51.803   533   566 W ActivityManager: Slow operation: 554ms so far, now at startProcess: done updating pids map
+10-16 00:01:51.885   872   872 I Choreographer: Skipped 351 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:51.993   872   872 W ConstraintSet: id unknown center_vertical_guideline
+10-16 00:01:52.006  3496  3496 I droid.messaging: Using CollectorTypeCC GC.
+10-16 00:01:52.010   872   872 W ConstraintSet: id unknown action_button_guideline
+10-16 00:01:52.010   872   872 W ConstraintSet: id unknown icon
+10-16 00:01:52.012   872   872 W ConstraintSet: id unknown media_seamless
+10-16 00:01:52.016   872   872 W ConstraintSet: id unknown media_action_barrier_start
+10-16 00:01:52.017   872   872 W ConstraintSet: id unknown media_action_barrier_end
+10-16 00:01:52.017   872   872 W ConstraintSet: id unknown media_action_barrier_top
+10-16 00:01:52.019   872   872 W ConstraintSet: id unknown remove_text
+10-16 00:01:52.019   872   872 W ConstraintSet: id unknown settings
+10-16 00:01:52.019   872   872 W ConstraintSet: id unknown dismiss
+10-16 00:01:52.019   872   872 W ConstraintSet: id unknown cancel
+10-16 00:01:52.058  3431  3431 D CompatibilityChangeReporter: Compat change id reported: 183155436; UID 1001; state: ENABLED
+10-16 00:01:52.063  1265  3497 D CellBroadcastConfigService: Enable CellBroadcast on sub 1
+10-16 00:01:52.094  3496  3496 W droid.messaging: Unexpected CPU variant for x86: x86_64.
+10-16 00:01:52.094  3496  3496 W droid.messaging: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+10-16 00:01:52.138  3496  3496 E droid.messaging: Not starting debugger since process cannot load the jdwp agent.
+10-16 00:01:52.148  1265  3497 E CellBroadcastConfigService: fails to setCellBroadcastRanges
+10-16 00:01:52.338   533  1469 D MediaMetricsManagerService: failed to get player_metrics_app_blocklist from DeviceConfig
+10-16 00:01:52.339   533  1469 V MediaMetricsManagerService: Logging level blocked: Failed to get PLAYER_METRICS_APP_BLOCKLIST.
+10-16 00:01:52.347   533  1469 D MediaMetricsManagerService: failed to get player_metrics_app_blocklist from DeviceConfig
+10-16 00:01:52.347   533  1469 V MediaMetricsManagerService: Logging level blocked: Failed to get PLAYER_METRICS_APP_BLOCKLIST.
+10-16 00:01:52.357  2085  2085 I Choreographer: Skipped 145 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:52.400  3451  3451 D AdapterState: make() - Creating AdapterState
+10-16 00:01:52.570   533   933 D CompatibilityChangeReporter: Compat change id reported: 168419799; UID 10109; state: DISABLED
+10-16 00:01:52.577   533   933 D CompatibilityChangeReporter: Compat change id reported: 273564678; UID 10109; state: DISABLED
+10-16 00:01:52.579  3451  3509 I AdapterState: OFF : entered 
+10-16 00:01:52.602   533   533 W Looper  : Slow dispatch took 111ms main h=com.android.server.notification.NotificationManagerService$WorkerHandler c=com.android.server.notification.NotificationManagerService$NotificationListeners$$ExternalSyntheticLambda5@d9456cc m=0
+10-16 00:01:52.619   533   933 W ActivityManager: Slow operation: 66ms so far, now at attachApplicationLocked: immediately after bindApplication
+10-16 00:01:52.629   533   933 W ActivityManager: Slow operation: 77ms so far, now at attachApplicationLocked: after updateLruProcessLocked
+10-16 00:01:52.685   533   617 D CompatibilityChangeReporter: Compat change id reported: 265195908; UID 10109; state: ENABLED
+10-16 00:01:52.689  3451  3509 D AdapterProperties: Setting state to OFF
+10-16 00:01:52.762  3451  3451 D BluetoothKeystoreService: new BluetoothKeystoreService isCommonCriteriaMode: false
+10-16 00:01:52.777   533   933 W ActivityManager: Slow operation: 143ms so far, now at finishAttachApplicationInner: after dispatching broadcasts
+10-16 00:01:52.795   533   565 W system_server: Long monitor contention with owner binder:533_B (933) at void com.android.server.am.ActivityManagerService.finishAttachApplicationInner(long, int, int)(ActivityManagerService.java:4940) waiters=0 in boolean com.android.server.am.BroadcastQueueModernImpl.lambda$new$0(android.os.Message) for 153ms
+10-16 00:01:52.805   533   555 W Looper  : Slow dispatch took 140ms android.ui h=com.android.server.am.ActivityManagerService$UiHandler c=com.android.server.am.UidObserverController$$ExternalSyntheticLambda0@eb6c152 m=0
+10-16 00:01:52.831  3431  3431 D CellBroadcastConfigTracker-0: init
+10-16 00:01:52.865  3431  3511 D CellBroadcastConfigTracker-0: IdleState message:5
+10-16 00:01:52.866  3431  3511 D CellBroadcastConfigTracker-0: DefaultState message:5
+10-16 00:01:52.879  2085  2675 I TestRunner: finished: audioContinuesAfterActivityClosesAndPauseClearsScreenAwake(com.tplayer.mediaplayer.PlaybackDeviceTest)
+10-16 00:01:52.888  3496  3496 D CompatibilityChangeReporter: Compat change id reported: 171979766; UID 10109; state: DISABLED
+10-16 00:01:52.889  3496  3496 D CompatibilityChangeReporter: Compat change id reported: 242716250; UID 10109; state: DISABLED
+10-16 00:01:52.916  2085  2675 I TestRunner: run finished: 5 tests, 2 failed, 0 ignored
+10-16 00:01:52.948  3496  3496 D CompatibilityChangeReporter: Compat change id reported: 3400644; UID 10109; state: DISABLED
+10-16 00:01:52.957  3496  3496 D ApplicationLoaders: Returning zygote-cached class loader: /system/framework/android.test.base.jar
+10-16 00:01:52.957  3496  3496 D ApplicationLoaders: Returning zygote-cached class loader: /system/framework/android.hidl.manager-V1.0-java.jar
+10-16 00:01:52.957  3496  3496 D ApplicationLoaders: Returning zygote-cached class loader: /system/framework/android.hidl.base-V1.0-java.jar
+10-16 00:01:52.994  3451  3451 D BluetoothKeystoreService: start
+10-16 00:01:52.995  3451  3451 I droid.bluetooth: [1016/000152.995357:INFO:com_android_bluetooth_btservice_BluetoothKeystore.cpp(97)] classInitNative: succeeds
+10-16 00:01:53.017  3451  3451 D BluetoothKeystoreService: setBluetoothKeystoreService(): set to: com.android.bluetooth.btservice.bluetoothkeystore.BluetoothKeystoreService@ca183d8
+10-16 00:01:53.024  3496  3496 D nativeloader: Configuring clns-6 for other apk /system/framework/org.apache.http.legacy.jar. target_sdk_version=24, uses_libraries=ALL, library_path=/product/app/messaging/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.android.messaging
+10-16 00:01:53.073  3451  3451 D BluetoothKeystoreService: loadConfigData
+10-16 00:01:53.126  3496  3496 D nativeloader: InitLlndkLibrariesProduct: libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libRS.so:libandroid_net.so:libbinder_ndk.so:libc.so:libcgrouprc.so:libclang_rt.asan-x86_64-android.so:libcom.android.tethering.connectivity_native.so:libdl.so:libft2.so:liblog.so:libm.so:libmediandk.so:libnativewindow.so:libneuralnetworks.so:libselinux.so:libsync.so:libvndksupport.so:libvulkan.so
+10-16 00:01:53.137  3496  3496 D nativeloader: Configuring product-clns-7 for unbundled product apk /product/app/messaging/messaging.apk. target_sdk_version=24, uses_libraries=, library_path=/product/app/messaging/lib/x86_64:/product/lib64:/system/product/lib64, permitted_path=/data:/mnt/expand:/data/user/0/com.android.messaging:/product/lib64:/system/product/lib64
+10-16 00:01:53.163  3496  3496 D nativeloader: InitVndkspLibrariesProduct: android.hardware.common-V2-ndk.so:android.hardware.common.fmq-V1-ndk.so:android.hardware.graphics.allocator-V2-ndk.so:android.hardware.graphics.common-V4-ndk.so:android.hardware.graphics.common@1.0.so:android.hardware.graphics.common@1.1.so:android.hardware.graphics.common@1.2.so:android.hardware.graphics.composer3-V1-ndk.so:android.hardware.graphics.mapper@2.0.so:android.hardware.graphics.mapper@2.1.so:android.hardware.graphics.mapper@3.0.so:android.hardware.graphics.mapper@4.0.so:android.hardware.renderscript@1.0.so:android.hidl.memory.token@1.0.so:android.hidl.memory@1.0-impl.so:android.hidl.memory@1.0.so:android.hidl.safe_union@1.0.so:libRSCpuRef.so:libRSDriver.so:libRS_internal.so:libbase.so:libbcinfo.so:libblas.so:libc++.so:libcompiler_rt.so:libcutils.so:libdmabufheap.so:libgralloctypes.so:libhardware.so:libhidlbase.so:libhidlmemory.so:libion.so:libjsoncpp.so:liblzma.so:libprocessgroup.so:libunwindstack.so:libutils.so:libutilscallstack.so:libz.so
+10-16 00:01:53.170  3451  3451 D BluetoothKeystoreService: getCompareResult: 0
+10-16 00:01:53.268   334  3427 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 2362048
+10-16 00:01:53.291  3431  3431 D CellBroadcastServiceManager: CellBroadcastServiceManager created for phone 0
+10-16 00:01:53.317  3431  3431 D CellBroadcastServiceManager: getCellBroadcastServicePackageName: com.android.cellbroadcastservice
+10-16 00:01:53.327  3496  3496 V GraphicsEnvironment: Currently set values for:
+10-16 00:01:53.332  3496  3496 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+10-16 00:01:53.332  3496  3496 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+10-16 00:01:53.340  3496  3496 V GraphicsEnvironment: ANGLE GameManagerService for com.android.messaging: false
+10-16 00:01:53.340  3496  3496 V GraphicsEnvironment: com.android.messaging is not listed in per-application setting
+10-16 00:01:53.341  3496  3496 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+10-16 00:01:53.460  3451  3451 D CompatibilityChangeReporter: Compat change id reported: 183155436; UID 1002; state: ENABLED
+10-16 00:01:53.622   533  2756 W WindowMagnificationMgr: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+10-16 00:01:53.623   533  2756 D AccessibilityManagerService: restoreCurrentUserForTestAutomationIfNeededLocked(): ignoring because device doesn't support visible background users
+10-16 00:01:53.681  3496  3496 W MessagingApp: PhoneUtils.getForLMR1(): invalid subId = -1
+10-16 00:01:53.749  3431  3431 D CellBroadcastServiceManager: serviceWasBound=true
+10-16 00:01:53.790     0     0 I binder  : 533:1491 ioctl 400c620e 7bb4f34ed930 returned -11
+10-16 00:01:53.790     0     0 I binder  : 533:1491 ioctl 400c620e 7bb4f34ed930 returned -11
+10-16 00:01:53.772   533  1491 I ActivityManager: Force stopping com.tplayer.mediaplayer appid=10141 user=0: finished inst
+10-16 00:01:53.778   533  1491 E ActivityManager: Unable to freeze binder for 2085: -11
+10-16 00:01:53.829  3451  3451 I bt_btif : packages/modules/Bluetooth/system/btif/src/bluetooth.cc:386 init: init: start restricted = 0 ; common criteria mode = 0, config compare result = 0
+10-16 00:01:53.831  3451  3451 I bt      : bt_common::init_flags: Flags loaded: asha_packet_drop_frequency_threshold=60asha_phy_update_retry_limit=5always_send_services_if_gatt_disc_done=truealways_use_private_gatt_for_debugging=falseasynchronously_start_l2cap_coc=truebtaa_hci=truebta_dm_clear_conn_id_on_client_close=truebtm_dm_flush_discovery_queue_on_search_cancel=falseclassic_discovery_only=falseclear_hidd_interrupt_cid_on_disconnect=truedelay_hidh_cleanup_until_hidh_ready_start=truedevice_iot_config_logging=falsedynamic_avrcp_version_enhancement=truefinite_att_timeout=truegatt_robust_caching_client=truegatt_robust_caching_server=falsegd_core=falsegd_hal_snoop_logger_socket=truegd_hal_snoop_logger_filtering=truegd_l2cap=falsegd_link_policy=falsegd_remote_name_request=falsegd_rust=falsehci_adapter=0hfp_dynamic_version=trueirk_rotation=falseleaudio_targeted_announcement_reconnection_mode=truepass_phy_update_callback=truepbap_pse_dynamic_version_upgrade=falseperiodic_advertising_adi=trueprivate_gatt=truequeue_l2cap_coc_while_encrypting=trueread_encryption_key_size=trueredact_log=truerust_event_loop=truesco_codec_select_lc3=falsesco_codec_timeout_clear=falsesdp_serialization=truesdp_skip_rnr_if_known=truebluetooth_quality_report_callback=trueset_min_encryption=truesubrating=truetrigger_advertising_callbacks_on_first_resume_after_pause=trueuse_unified_connection_manager=falsesdp_return_classic_services_when_le_discovery_fails=truedefault_log_level=4logging_explicit_tag_settings={}
+10-16 00:01:53.862  3451  3451 I bt_osi_allocation_tracker: packages/modules/Bluetooth/system/osi/src/allocation_tracker.cc:60 allocation_tracker_init: canary initialized
+10-16 00:01:53.870  3451  3518 I droid.bluetooth: [1016/000153.870548:INFO:message_loop_thread.cc(184)] Run: message loop starting for thread bt_stack_manager_thread
+10-16 00:01:53.883  2027  2027 I app_process: System.exit called, status: 0
+10-16 00:01:53.895  2027  2027 I AndroidRuntime: VM exiting with result code 0.
+10-16 00:01:53.926   446   502 I ResourceManagerMetrics: pushConcurrentUsageReport: Concurrent Codec Usage Report for the Process[pid(2085): uid(10141)] is Peak { VideoDec[ HW: 1 ] } Peak Pixels: 57600
+10-16 00:01:53.937   533   555 D DisplayManagerService: Drop pending events for gone uid 10141
+10-16 00:01:53.944   533  1491 I ActivityManager: Killing 2085:com.tplayer.mediaplayer/u0a141 (adj 0): stop com.tplayer.mediaplayer due to finished inst
+10-16 00:01:53.961   533   555 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@2898f6d
+10-16 00:01:53.961   533   555 D CoreBackPreview: Window{f535c1 u0 Application Not Responding: com.tplayer.mediaplayer}: Setting back callback null
+10-16 00:01:54.039   533   533 W system_server: Long monitor contention with owner binder:533_11 (1491) at void com.android.server.am.ProcessRecord.killLocked(java.lang.String, java.lang.String, int, int, boolean, boolean)(ProcessRecord.java:1222) waiters=0 in int com.android.server.am.ActivityManagerService.getUidState(int) for 222ms
+10-16 00:01:54.055   533   533 W Looper  : Slow dispatch took 252ms main h=com.android.providers.settings.SettingsProvider$SettingsRegistry$MyHandler c=null m=1
+10-16 00:01:54.065   533   533 W Looper  : Slow delivery took 359ms main h=com.android.providers.settings.SettingsProvider$SettingsRegistry$MyHandler c=null m=2
+10-16 00:01:54.075   533   533 D BatterySaverPolicy: accessibility changed to false, updating policy.
+10-16 00:01:54.084   533  1243 W system_server: Long monitor contention with owner binder:533_11 (1491) at void com.android.server.am.ActivityManagerService.finishInstrumentation(android.app.IApplicationThread, int, android.os.Bundle)(ActivityManagerService.java:15919) waiters=0 in android.content.Intent com.android.server.am.ActivityManagerService.registerReceiverWithFeature(android.app.IApplicationThread, java.lang.String, java.lang.String, java.lang.String, android.content.IIntentReceiver, android.content.IntentFilter, java.lang.String, int, int) for 251ms
+10-16 00:01:54.088   533   933 W system_server: Long monitor contention with owner binder:533_11 (1491) at void com.android.server.am.ActivityManagerService.finishInstrumentation(android.app.IApplicationThread, int, android.os.Bundle)(ActivityManagerService.java:15919) waiters=1 in android.content.Intent com.android.server.am.ActivityManagerService.registerReceiverWithFeature(android.app.IApplicationThread, java.lang.String, java.lang.String, java.lang.String, android.content.IIntentReceiver, android.content.IntentFilter, java.lang.String, int, int) for 199ms
+10-16 00:01:54.133   533   555 W InputManager-JNI: Input channel object 'f535c1 Application Not Responding: com.tplayer.mediaplayer (client)' was disposed without first being removed with the input manager!
+10-16 00:01:54.326  3431  3431 D CellBroadcastServiceManager: CellBroadcastServiceManager created for phone 0
+10-16 00:01:54.392  3431  3431 D CellBroadcastServiceManager: getCellBroadcastServicePackageName: com.android.cellbroadcastservice
+10-16 00:01:54.437  3451  3518 I bt_stack_manager: packages/modules/Bluetooth/system/btif/src/stack_manager.cc:277 event_init_stack: is initializing the stack
+10-16 00:01:54.450   533   854 W system_server: Long monitor contention with owner binder:533_11 (1491) at void com.android.server.am.ProcessRecord.killLocked(java.lang.String, java.lang.String, int, int, boolean, boolean)(ProcessRecord.java:1222) waiters=1 in boolean com.android.server.am.ActivityManagerService.isUidActive(int, java.lang.String) for 263ms
+10-16 00:01:54.469  3496  3496 D CompatibilityChangeReporter: Compat change id reported: 194532703; UID 10109; state: DISABLED
+10-16 00:01:54.470  3496  3496 D CompatibilityChangeReporter: Compat change id reported: 253665015; UID 10109; state: DISABLED
+10-16 00:01:54.487  3431  3431 D CellBroadcastServiceManager: serviceWasBound=true
+10-16 00:01:54.547   533   555 W Looper  : Slow dispatch took 587ms android.ui h=com.android.server.am.ActivityManagerService$UiHandler c=com.android.server.am.ErrorDialogController$$ExternalSyntheticLambda5@4c5d63 m=0
+10-16 00:01:54.559  3451  3521 I droid.bluetooth: [1016/000154.527351:INFO:message_loop_thread.cc(184)] Run: message loop starting for thread bt_main_thread
+10-16 00:01:54.603   533   555 W Looper  : Slow delivery took 637ms android.ui h=com.android.server.am.ActivityManagerService$UiHandler c=null m=32
+10-16 00:01:54.604   533   555 I Choreographer: Skipped 37 frames!  The application may be doing too much work on its main thread.
+10-16 00:01:54.633   533   533 W Looper  : Slow dispatch took 531ms main h=android.os.Handler c=android.window.WindowOnBackInvokedDispatcher$$ExternalSyntheticLambda0@28a1d60 m=0
+10-16 00:01:54.635   533   533 W Looper  : Drained
+10-16 00:01:54.642   533  1243 D CompatibilityChangeReporter: Compat change id reported: 253665015; UID 10109; state: DISABLED
+10-16 00:01:54.657  3451  3518 I device_iot_config: packages/modules/Bluetooth/system/device/src/device_iot_config_int.cc:68 device_iot_config_module_init: 
+10-16 00:01:54.659  3451  3518 E droid.bluetooth: [1016/000154.658765:ERROR:config.cc(106)] config_new: unable to open file '/data/misc/bluedroid/bt_remote_dev_info.conf': No such file or directory
+10-16 00:01:54.659  3451  3518 W device_iot_config: packages/modules/Bluetooth/system/device/src/device_iot_config_int.cc:83 device_iot_config_module_init: Unable to load config file: /data/misc/bluedroid/bt_remote_dev_info.conf; using backup.
+10-16 00:01:54.661  3451  3518 E droid.bluetooth: [1016/000154.661499:ERROR:config.cc(106)] config_new: unable to open file '/data/misc/bluedroid/bt_remote_dev_info.bak': No such file or directory
+10-16 00:01:54.675  3451  3518 E device_iot_config: packages/modules/Bluetooth/system/device/src/device_iot_config_int.cc:89 device_iot_config_module_init: Unable to load bak file; creating empty config.
+10-16 00:01:54.686  1044  1044 D GsmCellBroadcastHandler: subId[-1] is not valid
+10-16 00:01:54.696  3451  3518 I device_iot_config: packages/modules/Bluetooth/system/device/src/device_iot_config_int.cc:130 device_iot_config_module_init: Devices loaded 0
+10-16 00:01:54.704   533   555 W Looper  : Drained
+10-16 00:01:54.809   533   557 V WindowManager: Unknown focus tokens, dropping reportFocusChanged
+10-16 00:01:55.008   872   938 D EGL_emulation: app_time_stats: avg=6724.99ms min=6724.99ms max=6724.99ms count=1
+10-16 00:01:55.021   533   533 W Looper  : Slow dispatch took 264ms main h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@c8f9e90 m=0
+10-16 00:01:55.023   533   533 W Looper  : Slow delivery took 324ms main h=com.android.server.power.Notifier$NotifierHandler c=null m=7
+10-16 00:01:55.078   533  1243 D CompatibilityChangeReporter: Compat change id reported: 194532703; UID 10109; state: DISABLED
+10-16 00:01:55.175   533  1501 D EGL_emulation: app_time_stats: avg=220387.81ms min=220387.81ms max=220387.81ms count=1
+10-16 00:01:55.181   533   555 W Looper  : Slow dispatch took 164ms android.ui h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@721e83d m=0
+10-16 00:01:55.186   533   533 W Looper  : Drained
+10-16 00:01:55.217  3451  3525 I bt_osi_thread: packages/modules/Bluetooth/system/osi/src/thread.cc:210 run_thread: run_thread: thread id 3525, thread name alarm_default_ca started
+10-16 00:01:55.376   533   555 W Looper  : Slow dispatch took 194ms android.ui h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@721e83d m=0
+10-16 00:01:55.379   533   555 W Looper  : Slow delivery took 200ms android.ui h=android.view.ViewRootImpl$ViewRootHandler c=android.graphics.HardwareRendererObserver$$ExternalSyntheticLambda0@1b42bcb m=0
+10-16 00:01:55.401  3451  3526 I bt_osi_thread: packages/modules/Bluetooth/system/osi/src/thread.cc:210 run_thread: run_thread: thread id 3526, thread name alarm_dispatcher started
+10-16 00:01:55.407  3451  3518 I bt_core_module: packages/modules/Bluetooth/system/btcore/src/module.cc:86 module_start_up: module_start_up Starting module "gd_shim_module"
+10-16 00:01:55.465   533   555 W Looper  : Drained
+10-16 00:01:55.503  3451  3518 I bt_gd_shim: packages/modules/Bluetooth/system/main/shim/stack.cc:81 StartEverything: StartEverything Starting Gd stack
+10-16 00:01:55.552  3451  3518 I bt_gd_shim: packages/modules/Bluetooth/system/main/shim/stack.cc:160 Start: Start Starting Gd stack
+10-16 00:01:55.559  3451  3518 I BtGdWakelockNative: packages/modules/Bluetooth/system/gd/os/android/wakelock_native.cc:79 Initialize: Initializing native wake locks
+10-16 00:01:55.634  3451  3528 I BtGdModule: packages/modules/Bluetooth/system/gd/module.cc:85 Start: Constructing next module
+10-16 00:01:55.640  3451  3528 I BtGdModule: packages/modules/Bluetooth/system/gd/module.cc:89 Start: Starting dependencies of BluetoothCounterMetrics
+10-16 00:01:55.641  3451  3528 I BtGdModule: packages/modules/Bluetooth/system/gd/module.cc:93 Start: Finished starting dependencies and calling Start() of BluetoothCounterMetrics
+10-16 00:01:55.642  3451  3528 I BluetoothCounterMetrics: packages/modules/Bluetooth/system/gd/metrics/counter_metrics.cc:40 Start: Counter metrics initialized
+10-16 00:01:55.643  3451  3528 I BtGdModule: packages/modules/Bluetooth/system/gd/module.cc:99 Start: Started BluetoothCounterMetrics
+10-16 00:01:55.660  3451  3528 I BtGdModule: packages/modules/Bluetooth/system/gd/module.cc:85 Start: Constructing next module
+10-16 00:01:55.661  3451  3528 I BtGdModule: packages/modules/Bluetooth/system/gd/module.cc:89 Start: Starting dependencies of HciHalHidl
+10-16 00:01:55.661  3451  3528 I BtGdModule: packages/modules/Bluetooth/system/gd/module.cc:85 Start: Constructing next module
+10-16 00:01:55.662  3451  3528 I bluetooth: packages/modules/Bluetooth/system/gd/hal/snoop_logger.cc:1432 GetBtSnoopMode: btsnoop_mode_empty: 1
+10-16 00:01:55.663  3451  3528 I bluetooth: packages/modules/Bluetooth/system/gd/hal/snoop_logger.cc:520 SnoopLogger: Snoop Logs disabled
+10-16 00:01:55.728   872   908 W Looper  : Slow delivery took 45ms wmshell.main h=android.os.Handler c=com.android.wm.shell.bubbles.BubbleController$BubblesImpl$$ExternalSyntheticLambda4@edaac14 m=0
+10-16 00:01:55.733  3451  3528 I bluetooth: packages/modules/Bluetooth/system/gd/hal/snoop_logger.cc:334 delete_btsnoop_files: Deleting logs if they exist
+10-16 00:01:55.735  3451  3528 I bluetooth: packages/modules/Bluetooth/system/gd/hal/snoop_logger.cc:340 delete_btsnoop_files: Main log file does not exist at "/data/misc/bluetooth/logs/btsnoop_hci.log.filtered"
+10-16 00:01:55.748  3451  3528 I bluetooth: packages/modules/Bluetooth/system/gd/hal/snoop_logger.cc:348 delete_btsnoop_files: Last log file does not exist at "/data/misc/bluetooth/logs/btsnoop_hci.log.filtered"
+10-16 00:01:55.756  3451  3528 I bluetooth: packages/modules/Bluetooth/system/gd/hal/snoop_logger.cc:334 delete_btsnoop_files: Deleting logs if they exist
+10-16 00:01:55.757  3451  3528 I bluetooth: packages/modules/Bluetooth/system/gd/hal/snoop_logger.cc:340 delete_btsnoop_files: Main log file does not exist at "/data/misc/bluetooth/logs/btsnoop_hci.log"
+10-16 00:01:55.758  3451  3528 I bluetooth: packages/modules/Bluetooth/system/gd/hal/snoop_logger.cc:348 delete_btsnoop_files: Last log file does not exist at "/data/misc/bluetooth/logs/btsnoop_hci.log"
+10-16 00:01:55.759  3451  3528 I BtGdModule: packages/modules/Bluetooth/system/gd/module.cc:89 Start: Starting dependencies of SnoopLogger
+10-16 00:01:55.762  3451  3528 I BtGdModule: packages/modules/Bluetooth/system/gd/module.cc:93 Start: Finished starting dependencies and calling Start() of SnoopLogger
+
+Traceback (most recent call last):
+  File "/workspace/scratch/0a6b45a52ea3/.build-tools/device-check.py", line 44, in <module>
+    test('com.tplayer.mediaplayer.NavigationTest,com.tplayer.mediaplayer.PlaybackDeviceTest')
+  File "/workspace/scratch/0a6b45a52ea3/.build-tools/device-check.py", line 43, in test
+    assert 'OK (' in result.stdout and 'FAILURES!!!' not in result.stdout
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

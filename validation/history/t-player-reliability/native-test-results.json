@@ -1,0 +1,44 @@
+[
+  {
+    "attempt": "First",
+    "class": "com.tplayer.mediaplayer.NavigationTest",
+    "test": "settingsAndHelpAreReachableWithoutMediaPermission",
+    "result": -2
+  },
+  {
+    "attempt": "First",
+    "class": "com.tplayer.mediaplayer.PlaybackDeviceTest",
+    "test": "realAndroidKeystoreRoundTripsAndRejectsWrongPurpose",
+    "result": 0
+  },
+  {
+    "attempt": "First",
+    "class": "com.tplayer.mediaplayer.PlaybackDeviceTest",
+    "test": "videoEntersPipAndPlaybackSurvivesTheTransition",
+    "result": -2
+  },
+  {
+    "attempt": "First",
+    "class": "com.tplayer.mediaplayer.PlaybackDeviceTest",
+    "test": "localFileMoveVerifiesItsBytesBeforeRemovingSource",
+    "result": 0
+  },
+  {
+    "attempt": "First",
+    "class": "com.tplayer.mediaplayer.PlaybackDeviceTest",
+    "test": "audioContinuesAfterActivityClosesAndPauseClearsScreenAwake",
+    "result": 0
+  },
+  {
+    "attempt": "Retry",
+    "class": "com.tplayer.mediaplayer.PrepareRecoveryTest",
+    "test": "persistAQueueForTheExternalProcessDeathCheck",
+    "result": 0
+  },
+  {
+    "attempt": "Retry",
+    "class": "com.tplayer.mediaplayer.ColdRestoreTest",
+    "test": "aNewProcessRestoresTheEncryptedQueueAndPosition",
+    "result": 0
+  }
+]

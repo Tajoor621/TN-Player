@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tplayer.mediaplayer.PlaybackPolicyTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-16T08:32:47" hostname="aba61dea3ff1" time="0.014">
+  <properties/>
+  <testcase name="filenamesCannotEscapeChosenDirectory" classname="com.tplayer.mediaplayer.PlaybackPolicyTest" time="0.012"/>
+  <testcase name="completedMediaRestartsButUnfinishedMediaResumes" classname="com.tplayer.mediaplayer.PlaybackPolicyTest" time="0.001"/>
+  <testcase name="rejectsMalformedAndUnsupportedStreams" classname="com.tplayer.mediaplayer.PlaybackPolicyTest" time="0.001"/>
+  <testcase name="loopHasMinimumDurationAndCannotRunBackwards" classname="com.tplayer.mediaplayer.PlaybackPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

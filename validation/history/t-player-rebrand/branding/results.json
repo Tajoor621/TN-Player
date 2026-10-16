@@ -1,0 +1,77 @@
+{
+  "brand": "TN-Player",
+  "applicationId": "com.tplayer.mediaplayer",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minSdk": 21,
+  "targetSdk": 34,
+  "apk": {
+    "filename": "TN-Player-1.0.0-debug.apk",
+    "bytes": 11860209,
+    "sha256": "4c40c9bf5424f85de92b30bc59e84642732491ceb17ce5a442f355a54789b13e",
+    "certificate_sha256": "1df6964f4d705deab8ea4f38a056ab2bf33eae56603e1a1f18ab45d62078a7a9",
+    "different_certificate_from_previous_apk": true
+  },
+  "unit_tests": {
+    "tests": 20,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "classes": [
+    {
+      "name": "DatabaseTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "MigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "NavigationSmokeTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "PlaybackPolicyTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "SecureCheckpointTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "SettingsPersistenceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "VerifiedTransferTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "lint": {
+    "errors": 0,
+    "warnings": 41
+  },
+  "native_tests_rerun_for_rebrand": false
+}

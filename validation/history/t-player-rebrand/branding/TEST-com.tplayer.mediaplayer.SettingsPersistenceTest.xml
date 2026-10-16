@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tplayer.mediaplayer.SettingsPersistenceTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-16T08:32:47" hostname="aba61dea3ff1" time="0.13">
+  <properties/>
+  <testcase name="preferencesSurviveNewRepositoryInstance" classname="com.tplayer.mediaplayer.SettingsPersistenceTest" time="0.13"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

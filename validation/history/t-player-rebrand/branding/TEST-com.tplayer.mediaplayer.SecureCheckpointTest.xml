@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tplayer.mediaplayer.SecureCheckpointTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-16T08:32:47" hostname="aba61dea3ff1" time="0.223">
+  <properties/>
+  <testcase name="encryptionIsRandomizedAuthenticatedAndBoundToItsPurpose" classname="com.tplayer.mediaplayer.SecureCheckpointTest" time="0.071"/>
+  <testcase name="malformedCheckpointCannotRestoreAnArbitrarySchemeOrInvalidIndex" classname="com.tplayer.mediaplayer.SecureCheckpointTest" time="0.063"/>
+  <testcase name="aFreshStoreRestoresQueueIndexPositionAndExplicitStreamTypeWithoutPlaintext" classname="com.tplayer.mediaplayer.SecureCheckpointTest" time="0.089"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

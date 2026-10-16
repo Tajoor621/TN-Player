@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tplayer.mediaplayer.NavigationSmokeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-16T06:42:28" hostname="92be1f459089" time="2.651">
+  <properties/>
+  <testcase name="cancellingPlaylistChooserStillLetsFilesOpenASubfolder" classname="com.tplayer.mediaplayer.NavigationSmokeTest" time="2.349"/>
+  <testcase name="launchesAndReachesSettingsWithoutOpeningMedia" classname="com.tplayer.mediaplayer.NavigationSmokeTest" time="0.302"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

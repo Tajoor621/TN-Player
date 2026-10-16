@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tplayer.mediaplayer.DatabaseTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-16T06:42:27" hostname="92be1f459089" time="0.468">
+  <properties/>
+  <testcase name="playlistDeletionCascadesWithoutRemovingFavorites" classname="com.tplayer.mediaplayer.DatabaseTest" time="0.066"/>
+  <testcase name="historyRetentionIsActuallyBounded" classname="com.tplayer.mediaplayer.DatabaseTest" time="0.303"/>
+  <testcase name="historyUpdatesRatherThanDuplicating" classname="com.tplayer.mediaplayer.DatabaseTest" time="0.049"/>
+  <testcase name="signedUrlsAreEncryptedAcrossEveryCollectionAndStillResolve" classname="com.tplayer.mediaplayer.DatabaseTest" time="0.05"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
