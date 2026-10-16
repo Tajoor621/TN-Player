@@ -54,3 +54,10 @@ jobs:
           script: |
             bash ./gradlew connectedDebugAndroidTest
             bash ./scripts/process-recovery-check.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-device-test-reports
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/

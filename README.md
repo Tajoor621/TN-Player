@@ -33,7 +33,7 @@ The GitHub Actions workflow builds debug/release, runs unit tests/lint, and incl
 
 ## Branding and GitHub Pages
 
-The original TN icon is integrated into Android and the root Pages page. The Pages workflow builds and tests the current Android source, then publishes a matching debug APK and checksum. GitHub Pages must use **GitHub Actions** as its source in repository Settings → Pages. Workflow results are available in the Actions tab.
+The original TN icon is integrated into Android and the root Pages page. The Pages workflow builds and tests the current Android source, then publishes a matching debug APK and checksum. Publishing supports this repository's configured **main / root** Pages source. The workflow commits the rebuilt APK, checksum and build manifest to that source, requests a Pages build, and verifies the public APK against its SHA-256 before reporting success. Workflow results are available in the Actions tab.
 
 Debug APKs may use different signing keys between runs. Android may reject an in-place update; preserve needed data before uninstalling an existing build. Do not commit private development or release keys.
 
