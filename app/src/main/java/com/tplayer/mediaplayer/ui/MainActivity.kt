@@ -432,7 +432,19 @@ class MainActivity : AppCompatActivity() {
         val scroll = ScrollView(this); val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(8), dp(16), dp(8), 0) }
         scroll.addView(box); content.addView(scroll)
         box.addView(TextView(this).apply { text = "Make it yours"; textSize = 28f; setPadding(0, 0, 0, dp(16)) })
-        fun toggle(label: String, value: Boolean, change: (Boolean) -> Unit) { box.addView(MaterialSwitch(this).apply { text = label; minHeight = dp(56); isChecked = value; setOnCheckedChangeListener { _, enabled -> change(enabled) } }) }
+        fun toggle(label: String, value: Boolean, change: (Boolean) -> Unit) {
+            box.addView(MaterialSwitch(this).apply {
+                text = label
+                // This screen labels the switch beside its thumb. Some MaterialComponents
+                // themes enable thumb text without supplying on/off strings.
+                textOn = ""
+                textOff = ""
+                showText = false
+                minHeight = dp(56)
+                isChecked = value
+                setOnCheckedChangeListener { _, enabled -> change(enabled) }
+            })
+        }
         toggle("Resume unfinished media", settings.resume) { settings.resume = it }
         toggle("Auto picture-in-picture for videos", settings.autoPip) { settings.autoPip = it }
         toggle("Show hidden files in chosen folders", settings.hidden) { settings.hidden = it }

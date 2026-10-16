@@ -30,6 +30,10 @@ class NavigationSmokeTest {
             val root = activity.findViewById<View>(android.R.id.content)
             val nav = descendants(root).filterIsInstance<BottomNavigationView>().single()
             nav.selectedItemId = 5
+            // Exercise measurement, where the device's SwitchCompat crash occurred.
+            root.measure(View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY))
+            root.layout(0, 0, 400, 800)
             assertTrue(descendants(root).filterIsInstance<TextView>().any { it.text.toString() == "Make it yours" })
             nav.selectedItemId = 3
             assertTrue(descendants(root).filterIsInstance<TextView>().any { it.text.toString() == "Choose folder" })
