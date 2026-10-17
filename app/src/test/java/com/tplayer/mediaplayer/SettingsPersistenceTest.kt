@@ -20,6 +20,8 @@ class SettingsPersistenceTest {
             resume = false; autoPip = false; hidden = true
             seekMs = 30000; theme = AppCompatDelegate.MODE_NIGHT_YES
             tree = "content://provider/tree/example"
+            backgroundPlayback = false; mirror = true; verticalFlip = true; playerOrientation = 2
+            playerShortcuts = setOf(PlayerShortcut.MUTE, PlayerShortcut.SCREENSHOT)
             libraryDisplay = LibraryDisplay(mode = MediaViewMode.FILES, grid = true, sort = MediaSort.SIZE, descending = true, minimumSeconds = 30, path = true)
         }
         val reloaded = Settings(context)
@@ -28,6 +30,9 @@ class SettingsPersistenceTest {
         val restored = BackupFormat.decode(BackupFormat.encode(backup))
         context.getSharedPreferences("tplayer", Context.MODE_PRIVATE).edit().clear().commit()
         reloaded.restoreValues(restored.preferences)
+        assertTrue(reloaded.mirror); assertTrue(reloaded.verticalFlip); assertFalse(reloaded.backgroundPlayback)
+        assertEquals(2, reloaded.playerOrientation)
+        assertEquals(setOf(PlayerShortcut.MUTE, PlayerShortcut.SCREENSHOT), reloaded.playerShortcuts)
         assertTrue(reloaded.libraryDisplay.grid)
         assertEquals(MediaSort.SIZE, reloaded.libraryDisplay.sort)
         assertFalse(reloaded.resume)

@@ -40,6 +40,7 @@ class BrowserState : ViewModel() {
     val searches = mutableMapOf<Screen, String>()
     val mediaFolders = mutableMapOf<Boolean, IndexedFolder?>()
     var settingsDetails = false
+    val selection = FileSelection()
 }
 class MainActivity : AppCompatActivity() {
     private val settings by lazy { Settings(this) }
@@ -86,6 +87,12 @@ class MainActivity : AppCompatActivity() {
     private var job: Job? = null
     private val browser by viewModels<BrowserState>()
     private val transfers by viewModels<FileTransferModel>()
+    private val deletions by viewModels<FileDeleteModel>()
+    private var selectionCounter: TextView? = null
+    private var selectionActions: android.view.View? = null
+    private var selectAllHandler: (() -> Unit)? = null
+    private val deleteConsent = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { deletions.result(it.resultCode == RESULT_OK) }
+    private val legacyWrite = registerForActivityResult(ActivityResultContracts.RequestPermission()) { deletions.result(it) }
     private var folder: DocumentFile?
         get() = browser.folder
         set(value) { browser.folder = value }
@@ -174,6 +181,32 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        val deleteBanner = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = android.view.View.GONE; setPadding(dp(16), 0, dp(16), dp(8)) }
+        val deleteLabel = TextView(this).apply { readable() }
+        val cancelDelete = button("Cancel deletion") { deletions.cancel() }
+        deleteBanner.addView(deleteLabel); deleteBanner.addView(cancelDelete); root.addView(deleteBanner)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                deletions.state.collect { state ->
+                    deleteBanner.visibility = if (state.running) android.view.View.VISIBLE else android.view.View.GONE
+                    deleteLabel.text = "Deleting ${state.done} / ${state.total}" + if (state.sender != null || state.permission) " · Waiting for Android approval" else ""
+                    cancelDelete.isEnabled = state.sender == null && !state.permission
+                    if (state.running && !state.dispatched) {
+                        if (state.permission) { deletions.dispatched(); legacyWrite.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) }
+                        else state.sender?.let { sender ->
+                            deletions.dispatched()
+                            try { deleteConsent.launch(androidx.activity.result.IntentSenderRequest.Builder(sender).build()) }
+                            catch (_: Exception) { deletions.launchFailed() }
+                        }
+                    }
+                    state.notice?.let { notice ->
+                        browser.selection.remove(state.removed); deletions.acknowledge()
+                        if (::content.isInitialized) renderScreen()
+                        info("File deletion", notice)
+                    }
+                }
+            }
+        }
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), 0) }
         root.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
         val nav = BottomNavigationView(this).apply {
@@ -191,6 +224,7 @@ class MainActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when {
+                    browser.selection.active -> { browser.selection.clear(); adapter.refreshSelection(); updateSelection() }
                     screen in setOf(Screen.VIDEOS, Screen.MUSIC) && browser.mediaFolders[screen == Screen.VIDEOS] != null -> {
                         val video = screen == Screen.VIDEOS
                         browser.mediaFolders[video] = if (settings.libraryDisplay.mode == MediaViewMode.ALL_FOLDERS) browser.mediaFolders[video]?.parent() else null
@@ -238,7 +272,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private fun setup(title: String): LinearLayout {
-        job?.cancel(); content.removeAllViews(); searchHandler = null
+        job?.cancel(); content.removeAllViews(); searchHandler = null; selectAllHandler = null
+        val selectionScope = "$screen:${if (screen == Screen.FILES) folder?.uri else browser.mediaFolders[screen == Screen.VIDEOS]}"
+        browser.selection.scope(selectionScope)
+        selectionCounter = null; selectionActions = null
         val heading = TextView(this).apply { text = title; textSize = 28f; readable(); setTypeface(typeface, android.graphics.Typeface.BOLD); setPadding(dp(8), dp(16), 0, dp(12)); accessibilityHeadingCompat() }
         content.addView(heading)
         val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -248,6 +285,26 @@ class MainActivity : AppCompatActivity() {
         content.addView(status)
         val search = EditText(this).apply { hint = "Search this list"; contentDescription = "Search this list"; setSingleLine(); minHeight = dp(48); setText(browser.searches[screen].orEmpty()) }
         content.addView(search)
+        val selectableScreen = screen in setOf(Screen.VIDEOS, Screen.MUSIC, Screen.FILES)
+        if (selectableScreen) {
+            val selectionBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            val selectionRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            selectionCounter = TextView(this).apply { readable(); textSize = 14f; setPadding(dp(8), 0, dp(8), 0) }
+            selectionRow.addView(selectionCounter, LinearLayout.LayoutParams(0, -2, 1f))
+            selectionRow.addView(button("Delete") { confirmDelete(browser.selection.items) }.apply { contentDescription = "Delete selected" })
+            selectionRow.addView(button("Done") { browser.selection.clear(); adapter.refreshSelection(); updateSelection() })
+            selectionBox.addView(selectionRow)
+            val bulk = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            bulk.addView(button("Select all") { selectAllHandler?.invoke() ?: run {
+                try { browser.selection.all(adapter.selectable()); adapter.refreshSelection(); updateSelection() }
+                catch (e: IllegalArgumentException) { info("Selection", e.message.orEmpty()) }
+            } })
+            bulk.addView(button("Share selected") { shareSelection() })
+            selectionBox.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(bulk) })
+            selectionActions = selectionBox
+            content.addView(selectionActions)
+            actions.addView(button("Select files") { browser.selection.enter(); adapter.refreshSelection(); updateSelection() })
+        }
         adapter = MediaAdapter({ item ->
             if (item.indexedFolder != null) {
                 browser.mediaFolders[screen == Screen.VIDEOS] = item.indexedFolder
@@ -258,19 +315,19 @@ class MainActivity : AppCompatActivity() {
         }, { item ->
             if (item.indexedFolder != null) info(item.title, item.detail)
             else if (screen == Screen.FILES) fileOptions(item) else mediaOptions(item)
-        }, grid = screen in setOf(Screen.VIDEOS, Screen.MUSIC) && settings.libraryDisplay.grid)
+        }, grid = screen in setOf(Screen.VIDEOS, Screen.MUSIC) && settings.libraryDisplay.grid, selection = if (selectableScreen) browser.selection else null, selected = { updateSelection() })
         val list = RecyclerView(this).apply {
             layoutManager = if (screen in setOf(Screen.VIDEOS, Screen.MUSIC) && settings.libraryDisplay.grid)
                 GridLayoutManager(this@MainActivity, maxOf(2, resources.configuration.screenWidthDp / 180)) else LinearLayoutManager(this@MainActivity)
             adapter = this@MainActivity.adapter
         }
         content.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
-        adapter.filter(browser.searches[screen].orEmpty())
+        adapter.filter(browser.searches[screen].orEmpty()); updateSelection()
         search.doAfterTextChanged { value ->
             val query = value?.toString().orEmpty()
             browser.searches[screen] = query
             val handler = searchHandler
-            if (handler != null) handler(query) else adapter.filter(query)
+            if (handler != null) handler(query) else { adapter.filter(query); updateSelection() }
         }
         return actions
     }
@@ -340,7 +397,7 @@ class MainActivity : AppCompatActivity() {
                     val history = MediaDatabase.get(this@MainActivity).raw().history().filter { it.uri.startsWith("content:") || it.uri.startsWith("file:") }
                     val page = MediaCatalog(this@MainActivity).page(video, display, current, query, settings.hidden, history, offset)
                     offset = page.nextOffset; loaded.addAll(page.entries.map { it.item(display) })
-                    adapter.submit(loaded.toList()); more.isEnabled = page.hasMore
+                    adapter.submit(loaded.toList()); updateSelection(); more.isEnabled = page.hasMore
                     status.text = if (loaded.isEmpty()) "No matching accessible ${if (video) "video" else "audio"} media. Try Refresh, adjust filters or choose a folder in Files."
                         else "${loaded.size} of ${page.total} · ${display.sort.label} ${if (display.descending) "↓" else "↑"}" +
                             (current?.let { "\n${it.displayPath}" } ?: "") + if (hasPartial && !hasFull) " · Selected videos only" else ""
@@ -348,8 +405,21 @@ class MainActivity : AppCompatActivity() {
                 catch (_: Exception) { status.text = "Library unavailable. Open a file or grant access again." }
             }
         }
+        selectAllHandler = { launchUi {
+            if (current == null && display.mode != MediaViewMode.FILES) { info("Select files", "Open a media folder or choose Files view first."); return@launchUi }
+            val version = browser.selection.version; val snapshotQuery = query
+            val picked = mutableListOf<LibraryItem>(); var next = 0
+            val history = MediaDatabase.get(this@MainActivity).raw().history()
+            do {
+                val page = MediaCatalog(this@MainActivity).page(video, display.copy(mode = MediaViewMode.FILES), current, snapshotQuery, settings.hidden, history, next)
+                picked += page.entries.filter { !it.directory }.map { it.item(display) }
+                require(picked.size <= FileSelection.LIMIT) { "More than 1,000 matching files. Narrow the search or choose a smaller folder." }
+                next = page.nextOffset
+            } while (page.hasMore)
+            if (browser.selection.version == version) { browser.selection.all(picked); adapter.refreshSelection(); updateSelection() }
+        } }
         more.setOnClickListener { load(false) }
-        searchHandler = { value -> query = value; load(true) }
+        searchHandler = { value -> browser.selection.clear(); updateSelection(); query = value; load(true) }
         load(true)
     }
     private fun selectTab(value: Int) {
@@ -372,17 +442,18 @@ class MainActivity : AppCompatActivity() {
         if (target == null) { status.text = "Choose a folder to browse files, including SD/USB storage exposed by Android."; return }
         job = launchUi {
             try {
+                val recent = MediaDatabase.get(this@MainActivity).raw().history().associateBy { it.uri }
                 val snapshot = withContext(Dispatchers.IO) {
                     val entries = target.listFiles().map { doc ->
                         ensureActive()
                         val name = doc.name ?: "Untitled"; val directory = doc.isDirectory
-                        doc to LibraryItem(doc.uri.toString(), name, if (directory) "Folder" else "${doc.length() / 1024} KB", doc.type.orEmpty())
+                        doc to LibraryItem(doc.uri.toString(), name, if (directory) "Folder" else "${doc.length() / 1024} KB" + (recent[doc.uri.toString()]?.let { " · Resume ${mediaTime(PlaybackPolicy.resumePosition(it.position, it.duration))}" } ?: ""), doc.type.orEmpty())
                     }.filter { settings.hidden || !it.second.title.startsWith('.') }
                         .sortedWith(compareBy<Pair<DocumentFile, LibraryItem>> { it.second.detail != "Folder" }.thenBy { it.second.title.lowercase() })
                     Triple(entries, target.name ?: "Folder", target.canWrite())
                 }
                 documents = snapshot.first.associate { it.first.uri.toString() to it.first }
-                adapter.submit(snapshot.first.map { it.second })
+                adapter.submit(snapshot.first.map { it.second }); updateSelection()
                 status.text = "${snapshot.second} · ${snapshot.first.size} items · ${if (snapshot.third) "Read/write" else "Read only"}"
             } catch (e: Exception) { if (e is CancellationException) throw e; status.text = "Folder unavailable. Choose it again to restore access." }
         }
@@ -416,9 +487,38 @@ class MainActivity : AppCompatActivity() {
                 "Share" -> try {
                     startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType(item.mimeType.ifBlank { "application/octet-stream" }).putExtra(Intent.EXTRA_STREAM, doc.uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "Share media"))
                 } catch (_: ActivityNotFoundException) { info("Share", "No compatible app is installed.") }
-                "Properties" -> info(item.title, "${item.detail}\n${doc.uri}")
+                "Properties" -> details(item)
             }
         }.show()
+    }
+    private fun updateSelection() {
+        if (!::adapter.isInitialized) return
+        selectionActions?.visibility = if (browser.selection.active) android.view.View.VISIBLE else android.view.View.GONE
+        selectionCounter?.text = "${browser.selection.size} / ${maxOf(browser.selection.size, adapter.selectable().size)} selected"
+    }
+    private fun confirmDelete(items: List<LibraryItem>) {
+        if (items.isEmpty()) { info("Select files", "Select one or more files first."); return }
+        if (deletions.state.value.running) { info("File deletion", "Wait for the current deletion to finish."); return }
+        MaterialAlertDialogBuilder(this).setTitle("Delete ${items.size} ${if (items.size == 1) "file" else "files"}?")
+            .setMessage(items.take(5).joinToString("\n") { it.title } + (if (items.size > 5) "\n…and ${items.size - 5} more" else "") +
+                "\n\nThis removes the original files permanently. TN-Player has no recycle bin. Android may ask for additional approval. Folders are not included.")
+            .setNegativeButton("Cancel", null).setPositiveButton("Delete") { _, _ ->
+                try { deletions.start(items) } catch (e: Exception) { info("File deletion", e.message.orEmpty()) }
+            }.show()
+    }
+    private fun details(item: LibraryItem) { launchUi {
+        val history = MediaDatabase.get(this@MainActivity).raw().historyFor(item.uri)
+        info("File information", MediaDetails(this@MainActivity).describe(item, history))
+    } }
+    private fun shareSelection() {
+        val files = browser.selection.items
+        if (files.isEmpty()) { info("Share files", "Select one or more files first."); return }
+        if (files.any { Uri.parse(it.uri).scheme != "content" }) { info("Share files", "Choose these files through Android's folder picker to share content URIs securely."); return }
+        val uris = ArrayList(files.map { Uri.parse(it.uri) })
+        val share = Intent(if (uris.size == 1) Intent.ACTION_SEND else Intent.ACTION_SEND_MULTIPLE).setType("*/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        if (uris.size == 1) share.putExtra(Intent.EXTRA_STREAM, uris.first()) else share.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+        share.clipData = ClipData.newRawUri("Selected files", uris.first()).apply { uris.drop(1).forEach { addItem(ClipData.Item(it)) } }
+        try { startActivity(Intent.createChooser(share, "Share selected files")) } catch (_: ActivityNotFoundException) { info("Share files", "No compatible app is installed.") }
     }
     private fun showStreams() {
         val actions = setup("Network streams")
@@ -450,15 +550,18 @@ class MainActivity : AppCompatActivity() {
         launchUi {
             val favorite = dao.isFavorite(item.uri)
             val options = mutableListOf(if (favorite) "Remove favorite" else "Add favorite", "Add to playlist", "Properties")
+            if (screen in setOf(Screen.VIDEOS, Screen.MUSIC)) options += listOf("Select file", "Delete file")
             if (screen == Screen.STREAMS) options += listOf("Edit stream", "Download HTTPS file", "Remove saved stream")
             if (screen == Screen.PLAYLIST && activePlaylist != null) options += "Remove from playlist"
             MaterialAlertDialogBuilder(this@MainActivity).setTitle(item.title).setItems(options.toTypedArray()) { _, index ->
                 launchUi {
                     when (options[index]) {
+                        "Select file" -> { browser.selection.toggle(item); adapter.refreshSelection(); updateSelection() }
+                        "Delete file" -> confirmDelete(listOf(item))
                         "Add favorite" -> dao.addFavorite(Favorite(item.uri, item.title, item.mimeType))
                         "Remove favorite" -> dao.removeFavorite(item.uri)
                         "Add to playlist" -> choosePlaylist(item)
-                        "Properties" -> info(item.title, "${item.detail}\n${StreamFormat.displayAddress(item.uri)}")
+                        "Properties" -> details(item)
                         "Edit stream" -> streamDialog(item)
                         "Remove saved stream" -> { dao.removeStream(item.uri); showStreams() }
                         "Download HTTPS file" -> download(item)

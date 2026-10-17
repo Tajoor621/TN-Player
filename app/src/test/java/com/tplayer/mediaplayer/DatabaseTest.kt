@@ -28,9 +28,10 @@ class DatabaseTest {
     @Test fun historyUpdatesRatherThanDuplicating() = runBlocking {
         val dao = db.media()
         dao.record(History("content://media/audio/1", "Song", 100, 1000))
-        dao.record(History("content://media/audio/1", "Song", 500, 1000))
+        dao.record(History("content://media/audio/1", "Song", 500, 0))
         assertEquals(1, dao.history().size)
         assertEquals(500L, dao.historyFor("content://media/audio/1")!!.position)
+        assertEquals(1000L, dao.historyFor("content://media/audio/1")!!.duration)
     }
     @Test fun signedUrlsAreEncryptedAcrossEveryCollectionAndStillResolve() = runBlocking {
         val dao = db.media(); val uri = "https://example.com/live?access_token=very-private-token"

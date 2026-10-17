@@ -77,6 +77,31 @@ class Settings(context: Context) {
             .putBoolean("fieldDate", value.date).putBoolean("fieldPlayed", value.played)
             .putBoolean("fieldFrameRate", value.frameRate).putBoolean("fieldType", value.type)
             .putInt("minimumSeconds", value.minimumSeconds.coerceIn(0, 3600)).apply() }
+    var backgroundPlayback: Boolean
+        get() = prefs.getBoolean("backgroundPlayback", true)
+        set(value) { prefs.edit().putBoolean("backgroundPlayback", value).apply() }
+    var videoDisplay: Boolean
+        get() = prefs.getBoolean("videoDisplay", true)
+        set(value) { prefs.edit().putBoolean("videoDisplay", value).apply() }
+    var showPlayerShortcuts: Boolean
+        get() = prefs.getBoolean("showPlayerShortcuts", true)
+        set(value) { prefs.edit().putBoolean("showPlayerShortcuts", value).apply() }
+    var mirror: Boolean
+        get() = prefs.getBoolean("mirror", false)
+        set(value) { prefs.edit().putBoolean("mirror", value).apply() }
+    var verticalFlip: Boolean
+        get() = prefs.getBoolean("verticalFlip", false)
+        set(value) { prefs.edit().putBoolean("verticalFlip", value).apply() }
+    var playerNight: Boolean
+        get() = prefs.getBoolean("playerNight", false)
+        set(value) { prefs.edit().putBoolean("playerNight", value).apply() }
+    var playerOrientation: Int
+        get() = prefs.getInt("playerOrientation", 0).coerceIn(0, 2)
+        set(value) { prefs.edit().putInt("playerOrientation", value.coerceIn(0, 2)).apply() }
+    var playerShortcuts: Set<PlayerShortcut>
+        get() = prefs.getString("playerShortcuts", null)?.split(',')?.mapNotNull { key -> PlayerShortcut.values().firstOrNull { it.name == key } }?.toSet()
+            ?: setOf(PlayerShortcut.ROTATION, PlayerShortcut.SPEED, PlayerShortcut.BACKGROUND, PlayerShortcut.EQUALIZER, PlayerShortcut.AB)
+        set(value) { prefs.edit().putString("playerShortcuts", PlayerShortcut.values().filter { it in value }.joinToString(",") { it.name }).apply() }
     fun backupValues(): Map<String, Any> = mapOf(
         "theme" to theme, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
         "seekMs" to seekMs, "gestures" to gestures, "amoled" to amoled,
@@ -89,13 +114,17 @@ class Settings(context: Context) {
         "fieldResolution" to libraryDisplay.resolution, "fieldPath" to libraryDisplay.path,
         "fieldDate" to libraryDisplay.date, "fieldPlayed" to libraryDisplay.played,
         "fieldFrameRate" to libraryDisplay.frameRate, "fieldType" to libraryDisplay.type,
-        "minimumSeconds" to libraryDisplay.minimumSeconds)
+        "minimumSeconds" to libraryDisplay.minimumSeconds,
+        "backgroundPlayback" to backgroundPlayback, "videoDisplay" to videoDisplay, "showPlayerShortcuts" to showPlayerShortcuts,
+        "mirror" to mirror, "verticalFlip" to verticalFlip, "playerNight" to playerNight, "playerOrientation" to playerOrientation,
+        "playerShortcuts" to playerShortcuts.joinToString(",") { it.name })
     fun restoreValues(values: Map<String, Any>) {
         val editor = prefs.edit()
         for ((key, value) in values) when (value) {
             is Boolean -> editor.putBoolean(key, value)
             is Long -> editor.putLong(key, value)
             is Int -> editor.putInt(key, value)
+            is String -> if (key == "playerShortcuts") editor.putString(key, value)
         }
         check(editor.commit()) { "Collections restored, but preferences could not be saved." }
     }

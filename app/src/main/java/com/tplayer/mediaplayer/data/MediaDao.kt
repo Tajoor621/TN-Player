@@ -23,7 +23,14 @@ class MediaDao(private val db: MediaDatabase, private val codec: SecretCodec) {
     private suspend fun <T> write(action: suspend () -> T): T = withContext(Dispatchers.IO) { db.withTransaction { val result = action(); raw.collectSecrets(); result } }
     suspend fun history() = read { raw.history().map { it.copy(uri = reveal(it.uri)) } }
     suspend fun historyFor(uri: String) = read { raw.historyFor(id(uri))?.let { it.copy(uri = reveal(it.uri)) } }
-    suspend fun record(value: History) = write { raw.record(value.copy(uri = protect(value.uri), title = title(value.title))); raw.trimHistory() }
+    suspend fun record(value: History) = write {
+        val key = protect(value.uri)
+        val previous = raw.historyFor(key)
+        raw.record(value.copy(uri = key, title = title(value.title),
+            duration = value.duration.takeIf { it > 0 } ?: previous?.duration ?: 0,
+            mimeType = value.mimeType.ifBlank { previous?.mimeType.orEmpty() }))
+        raw.trimHistory()
+    }
     suspend fun clearHistory() = write { raw.clearHistory() }
     suspend fun favorites() = read { raw.favorites().map { it.copy(uri = reveal(it.uri)) } }
     suspend fun isFavorite(uri: String) = read { raw.isFavorite(id(uri)) }

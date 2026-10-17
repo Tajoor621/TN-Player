@@ -13,6 +13,8 @@ import android.util.Rational
 import android.view.*
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.lifecycle.ViewModel
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -28,11 +30,25 @@ import com.tplayer.mediaplayer.playback.MediaPlaybackService
 import com.tplayer.mediaplayer.playback.PlaybackPolicy
 import kotlinx.coroutines.*
 
+class PlayerUiState : ViewModel() { var screenshot: android.graphics.Bitmap? = null }
 class PlayerActivity : AppCompatActivity() {
     private lateinit var video: PlayerView
     private lateinit var gestures: PlayerGestures
     private lateinit var top: LinearLayout
     private lateinit var title: TextView
+    private lateinit var shortcuts: HorizontalScrollView
+    private lateinit var bottom: LinearLayout
+    private lateinit var unlock: android.view.View
+    private var chromeVisibility = android.view.View.VISIBLE
+    private var fullscreen = false
+    private val ui by viewModels<PlayerUiState>()
+    private val saveScreenshot = registerForActivityResult(ActivityResultContracts.CreateDocument("image/png")) { uri ->
+        val bitmap = ui.screenshot; ui.screenshot = null
+        if (uri != null && bitmap != null) launchUi {
+            withContext(Dispatchers.IO) { checkNotNull(contentResolver.openOutputStream(uri, "wt")).use { check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)) } }
+            Toast.makeText(this@PlayerActivity, "Screenshot saved", Toast.LENGTH_SHORT).show()
+        }
+    }
     private var future: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
     private var pendingIntent: Intent? = null
@@ -79,6 +95,8 @@ class PlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         pendingIntent = if (savedInstanceState?.getBoolean("consumed") == true) null else intent
         locked = savedInstanceState?.getBoolean("locked") ?: false
+        fullscreen = savedInstanceState?.getBoolean("fullscreen") ?: false
+        applyOrientation()
         resumeRequested = savedInstanceState?.getBoolean("resumeRequested") ?: false
         val frame = FrameLayout(this)
         video = (layoutInflater.inflate(R.layout.player_surface, frame, false) as PlayerView).apply {
@@ -97,28 +115,20 @@ class PlayerActivity : AppCompatActivity() {
         }
         frame.addView(gestureOverlay, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
         gestures = PlayerGestures(this, video, gestureOverlay, { controller },
-            { settings.gestures && !locked && !inPip() }, { settings.seekMs })
-        top = LinearLayout(this).apply {
-            gravity = Gravity.CENTER_VERTICAL; setPadding(dp(4), dp(4), dp(4), dp(4))
-            setBackgroundColor(0xCC081D21.toInt())
-        }
-        top.addView(button("Back") { finish() })
-        title = TextView(this).apply { text = "TN-Player"; textSize = 16f; setTextColor(-1); maxLines = 2 }
-        top.addView(title, LinearLayout.LayoutParams(0, -2, 1f))
-        top.addView(button("PiP") { enterPip() })
-        top.addView(button("More") { menu() })
-        frame.addView(top, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
+            { settings.gestures && !locked && !inPip() }, { settings.seekMs }, { settings.mirror to settings.verticalFlip })
+        buildChrome(frame)
         setContentView(frame)
+        applyFullscreen()
         video.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
-            if (!inPip()) top.visibility = if (locked) View.GONE else visibility
+            chromeVisibility = visibility; updateChrome()
         })
         video.setOnLongClickListener {
-            if (locked) { locked = false; video.useController = true; video.showController(); top.visibility = View.VISIBLE; Toast.makeText(this, "Controls unlocked", Toast.LENGTH_SHORT).show() }
+            if (locked) setLocked(false)
             true
         }
     }
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean("consumed", pendingIntent == null); outState.putBoolean("locked", locked); outState.putBoolean("resumeRequested", resumeRequested)
+        outState.putBoolean("fullscreen", fullscreen); outState.putBoolean("consumed", pendingIntent == null); outState.putBoolean("locked", locked); outState.putBoolean("resumeRequested", resumeRequested)
         super.onSaveInstanceState(outState)
     }
     private fun startPlayback(player: Player) {
@@ -145,13 +155,14 @@ class PlayerActivity : AppCompatActivity() {
                 val player = connecting.get(); controller = player; video.player = player
                 player.addListener(listener); consumeIntent()
                 pendingSubtitle?.let { attachSubtitle(it); pendingSubtitle = null }
-                title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"; updateAwake(); updatePip()
-                if (locked) { video.useController = false; top.visibility = View.GONE }
+                title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"; applyDisplay(); updateAwake(); updatePip()
+                updateChrome()
             } catch (e: Exception) { info("Player unavailable", e.cause?.message ?: e.message ?: "Cannot connect to playback service.") }
         }, ContextCompat.getMainExecutor(this))
     }
     override fun onStop() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (!settings.backgroundPlayback && !isChangingConfigurations && !inPip()) controller?.pause()
         video.player = null
         controller?.removeListener(listener); controller = null
         future?.let { MediaController.releaseFuture(it) }; future = null
@@ -223,10 +234,179 @@ class PlayerActivity : AppCompatActivity() {
         } catch (_: Exception) { }
         return uri.lastPathSegment ?: "Media"
     }
+    private fun chromeButton(label: String, action: () -> Unit) = button(label, action).apply {
+        minWidth = 0; minimumWidth = 0; textSize = 12f; setAllCaps(false); letterSpacing = 0f
+        insetTop = 0; insetBottom = 0; setPadding(dp(3), 0, dp(3), 0)
+        setTextColor(android.graphics.Color.WHITE); backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+        elevation = 0f; stateListAnimator = null
+        layoutParams = LinearLayout.LayoutParams(dp(56), dp(48))
+    }
+    private fun buildChrome(frame: FrameLayout) {
+        top = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(0xD9000000.toInt()) }
+        val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        row.addView(chromeButton("Back") { finish() })
+        title = TextView(this).apply { text = "TN-Player"; textSize = 15f; setTextColor(-1); maxLines = 2 }
+        row.addView(title, LinearLayout.LayoutParams(0, -2, 1f))
+        row.addView(chromeButton("PiP") { enterPip() }); row.addView(chromeButton("More") { menu() })
+        top.addView(row)
+        shortcuts = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
+        top.addView(shortcuts); renderShortcuts()
+        frame.addView(top, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
+        bottom = LinearLayout(this).apply { gravity = Gravity.CENTER; setBackgroundColor(0xD9000000.toInt()) }
+        listOf<Pair<String, () -> Unit>>("Rotate" to { orientationMenu() }, "Lock" to { setLocked(true) }, "Mute" to { controller?.let { it.volume = if (it.volume > 0) 0f else 1f } }, "Full screen" to { toggleFullscreen() }).forEach { (label, action) ->
+            bottom.addView(chromeButton(label, action).apply { layoutParams = LinearLayout.LayoutParams(0, dp(48), 1f) })
+        }
+        frame.addView(bottom, FrameLayout.LayoutParams(-1, dp(48), Gravity.BOTTOM))
+        unlock = chromeButton("Unlock") { setLocked(false) }.apply { visibility = View.GONE; contentDescription = "Unlock player controls" }
+        frame.addView(unlock, FrameLayout.LayoutParams(dp(88), dp(48), Gravity.BOTTOM or Gravity.END))
+        video.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_controller)?.setPadding(0, dp(56), 0, dp(52))
+        applyDisplay()
+    }
+    private fun renderShortcuts() {
+        if (!::shortcuts.isInitialized) return
+        shortcuts.removeAllViews()
+        val row = LinearLayout(this)
+        PlayerShortcut.values().filter { it in settings.playerShortcuts }.forEach { shortcut ->
+            row.addView(chromeButton(shortcut.label) { this@PlayerActivity.shortcut(shortcut) }.apply { maxLines = 2; layoutParams = LinearLayout.LayoutParams(dp(94), dp(56)) })
+        }
+        shortcuts.addView(row); shortcuts.visibility = if (settings.showPlayerShortcuts) View.VISIBLE else View.GONE
+    }
+    private fun updateChrome() {
+        val hide = inPip() || locked
+        top.visibility = if (hide) View.GONE else chromeVisibility
+        bottom.visibility = if (hide) View.GONE else chromeVisibility
+        unlock.visibility = if (locked && !inPip()) View.VISIBLE else View.GONE
+        video.useController = !hide
+    }
+    private fun setLocked(value: Boolean) {
+        locked = value; video.useController = !value
+        if (!value) { chromeVisibility = View.VISIBLE; video.showController() }
+        updateChrome()
+    }
+    private fun applyOrientation() {
+        requestedOrientation = when (settings.playerOrientation) { 1 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT; 2 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE; else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
+    }
+    private fun orientationMenu() {
+        MaterialAlertDialogBuilder(this).setTitle("Screen rotation").setSingleChoiceItems(arrayOf("Follow device setting", "Portrait", "Landscape"), settings.playerOrientation) { dialog, index ->
+            settings.playerOrientation = index; applyOrientation(); dialog.dismiss()
+        }.show()
+    }
+    private fun toggleFullscreen() {
+        fullscreen = !fullscreen; applyFullscreen()
+    }
+    private fun applyFullscreen() {
+        val insets = androidx.core.view.WindowCompat.getInsetsController(window, video)
+        insets.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (fullscreen) insets.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars()) else insets.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+    }
+    private fun applyDisplay() {
+        if (!::video.isInitialized) return
+        video.videoSurfaceView?.visibility = if (settings.videoDisplay) View.VISIBLE else View.INVISIBLE
+        video.videoSurfaceView?.alpha = if (settings.playerNight) .65f else 1f
+        if (::gestures.isInitialized) gestures.refreshTransform()
+        controller?.let { player ->
+            if (player.isCommandAvailable(Player.COMMAND_SET_TRACK_SELECTION_PARAMETERS)) player.trackSelectionParameters = player.trackSelectionParameters.buildUpon().setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, !settings.videoDisplay).build()
+        }
+    }
     private fun menu() {
         val player = controller ?: return
+        playerTools(listOf(
+            PlayerTool("Audio Track", R.drawable.hub_music) { trackDialog(C.TRACK_TYPE_AUDIO) },
+            PlayerTool("Subtitle", R.drawable.hub_files) { subtitleMenu() },
+            PlayerTool("Playing Queue", R.drawable.hub_playlist) { queueMenu() },
+            PlayerTool("Aspect Ratio", R.drawable.hub_popup) { control(1) },
+            PlayerTool("Display Settings", R.drawable.hub_settings) { displayMenu() },
+            PlayerTool("Information", R.drawable.hub_help) { currentInformation() },
+            PlayerTool("Share", R.drawable.hub_transfer) { shareCurrent() },
+            PlayerTool("Tutorial", R.drawable.hub_help) { info("Player guide", "Rotate chooses portrait, landscape or your device setting. Full screen hides system bars; swipe from an edge to reveal them. Lock hides controls; use Unlock or long-press the video to restore them. Two-finger swipes adjust seek/volume/brightness; pinch zooms. Tools includes track selection, queue, per-file details and custom shortcuts. Resume and last-played history are saved locally.") },
+            PlayerTool("More", R.drawable.hub_settings) { advancedMenu() }
+        ), settings.videoDisplay, settings.showPlayerShortcuts,
+            { settings.videoDisplay = it; applyDisplay(); updatePip() }, { settings.showPlayerShortcuts = it; renderShortcuts() }, { customizeShortcuts() })
+    }
+    private fun trackDialog(type: Int) {
+        val player = controller ?: return
+        if (player.currentTracks.groups.none { it.type == type }) { info("Tracks", "No embedded track of this type is available. External SRT/VTT subtitles can be loaded from Subtitle."); return }
+        TrackSelectionDialogBuilder(this, if (type == C.TRACK_TYPE_AUDIO) "Audio Track" else "Subtitle", player, type).setShowDisableOption(type == C.TRACK_TYPE_TEXT).build().show()
+    }
+    private fun subtitleMenu() {
+        MaterialAlertDialogBuilder(this).setTitle("Subtitle").setItems(arrayOf("Embedded tracks", "Load external SRT/VTT", "Subtitle style")) { _, index -> when (index) { 0 -> trackDialog(C.TRACK_TYPE_TEXT); 1 -> control(2); 2 -> control(14) } }.show()
+    }
+    private fun queueMenu() {
+        val player = controller ?: return
+        val items = (0 until player.mediaItemCount).map { player.getMediaItemAt(it) }
+        if (items.isEmpty()) { info("Playing Queue", "No media is queued."); return }
+        MaterialAlertDialogBuilder(this).setTitle("Playing Queue · ${items.size}")
+            .setSingleChoiceItems(items.map { it.mediaMetadata.title?.toString() ?: "Media" }.toTypedArray(), player.currentMediaItemIndex) { dialog, index ->
+                if (index != player.currentMediaItemIndex) launchUi {
+                    val saved = dao.historyFor(items[index].mediaId)
+                    player.seekTo(index, if (settings.resume && saved != null) PlaybackPolicy.resumePosition(saved.position, saved.duration) else 0)
+                    startPlayback(player)
+                }
+                dialog.dismiss()
+            }.setNegativeButton("Close", null).show()
+    }
+    private fun displayMenu() {
+        MaterialAlertDialogBuilder(this).setTitle("Display Settings").setItems(arrayOf("Screen rotation", "Aspect ratio", "Night display", "Mirror mode", "Vertical flip", "Reset zoom")) { _, index ->
+            when (index) { 0 -> orientationMenu(); 1 -> control(1); 2 -> shortcut(PlayerShortcut.NIGHT); 3 -> shortcut(PlayerShortcut.MIRROR); 4 -> shortcut(PlayerShortcut.FLIP); 5 -> control(16) }
+        }.show()
+    }
+    private fun currentInformation() { controller?.let { player ->
+        val item = player.currentMediaItem ?: return
+        launchUi { info("File information", MediaDetails(this@PlayerActivity).describe(LibraryItem(item.mediaId, title.text.toString(), mimeType = player.mediaMetadata.extras?.getString("mime").orEmpty()), dao.historyFor(item.mediaId))) }
+    } }
+    private fun shareCurrent() {
+        val item = controller?.currentMediaItem ?: return
+        val uri = Uri.parse(item.mediaId)
+        val share = if (uri.scheme == "content") Intent(Intent.ACTION_SEND).setType(item.mediaMetadata.extras?.getString("mime")?.ifBlank { "*/*" } ?: "*/*").putExtra(Intent.EXTRA_STREAM, uri).apply {
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); clipData = ClipData.newRawUri("Media", uri)
+        } else if (uri.scheme in setOf("https", "rtsp")) Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, uri.toString())
+        else { info("Share", "Open this file through Android's picker to share a content URI securely."); return }
+        try { startActivity(Intent.createChooser(share, "Share media")) } catch (_: ActivityNotFoundException) { info("Share", "No compatible app is installed.") }
+    }
+    private fun customizeShortcuts() {
+        val checked = settings.playerShortcuts.toMutableSet()
+        val scroll = ScrollView(this)
+        val grid = GridLayout(this).apply { columnCount = 2; setPadding(dp(12), 0, dp(12), dp(8)) }
+        PlayerShortcut.values().forEachIndexed { index, shortcut ->
+            grid.addView(CheckBox(this).apply { text = shortcut.label; minHeight = dp(56); isChecked = shortcut in checked; setOnCheckedChangeListener { _, value -> if (value) checked.add(shortcut) else checked.remove(shortcut) } },
+                GridLayout.LayoutParams(GridLayout.spec(index / 2), GridLayout.spec(index % 2, 1f)).apply { width = 0; height = -2 })
+        }
+        scroll.addView(grid)
+        MaterialAlertDialogBuilder(this).setTitle("Customise items").setView(scroll).setNegativeButton("Cancel", null).setPositiveButton("Apply") { _, _ -> settings.playerShortcuts = checked; renderShortcuts() }.show()
+    }
+    private fun shortcut(action: PlayerShortcut) {
+        val player = controller ?: return
+        when (action) {
+            PlayerShortcut.ROTATION -> orientationMenu()
+            PlayerShortcut.SPEED -> control(0)
+            PlayerShortcut.BACKGROUND -> { settings.backgroundPlayback = !settings.backgroundPlayback; Toast.makeText(this, "Background play ${if (settings.backgroundPlayback) "on" else "off"}", Toast.LENGTH_SHORT).show() }
+            PlayerShortcut.MUTE -> player.volume = if (player.volume > 0) 0f else 1f
+            PlayerShortcut.EQUALIZER, PlayerShortcut.EFFECTS -> control(15)
+            PlayerShortcut.SLEEP -> control(10)
+            PlayerShortcut.LOOP -> control(9)
+            PlayerShortcut.SHUFFLE -> player.shuffleModeEnabled = !player.shuffleModeEnabled
+            PlayerShortcut.AB -> control(7)
+            PlayerShortcut.NIGHT -> { settings.playerNight = !settings.playerNight; applyDisplay() }
+            PlayerShortcut.SCREENSHOT -> captureFrame()
+            PlayerShortcut.MIRROR -> { settings.mirror = !settings.mirror; applyDisplay() }
+            PlayerShortcut.FLIP -> { settings.verticalFlip = !settings.verticalFlip; applyDisplay() }
+        }
+    }
+    private fun captureFrame() {
+        val surface = video.videoSurfaceView as? android.view.TextureView
+        if (surface == null || !surface.isAvailable || controller?.videoSize?.width?.let { it > 0 } != true || !settings.videoDisplay) { info("Screenshot", "Play a visible video first."); return }
+        try {
+            val scale = minOf(1f, 1920f / maxOf(surface.width, surface.height).coerceAtLeast(1))
+            ui.screenshot = surface.getBitmap((surface.width * scale).toInt().coerceAtLeast(1), (surface.height * scale).toInt().coerceAtLeast(1)) ?: error("The source did not expose a frame.")
+            saveScreenshot.launch("TN-Player-frame-${System.currentTimeMillis()}.png")
+        } catch (_: Exception) { ui.screenshot = null; info("Screenshot", "This source cannot provide a frame. Protected video may prevent capture.") }
+    }
+    private fun advancedMenu() {
         val choices = arrayOf("Playback speed", "Aspect ratio", "External subtitle", "Subtitle size", "Add/remove favorite", "Add bookmark", "Bookmarks", "Set A–B repeat", "Clear A–B repeat", "Loop / shuffle", "Sleep timer", "Rotate screen", "Lock controls", "Stop playback", "Subtitle style", "Audio enhancements", "Reset zoom")
-        MaterialAlertDialogBuilder(this).setTitle("Playback controls").setItems(choices) { _, index ->
+        MaterialAlertDialogBuilder(this).setTitle("Playback controls").setItems(choices) { _, index -> control(index) }.show()
+    }
+    private fun control(index: Int) {
+        val player = controller ?: return
             when (index) {
                 0 -> { val values = floatArrayOf(.25f, .5f, .75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f)
                     MaterialAlertDialogBuilder(this).setTitle("Playback speed").setItems(values.map { "${it}×" }.toTypedArray()) { _, i -> player.setPlaybackSpeed(values[i]) }.show() }
@@ -245,7 +425,7 @@ class PlayerActivity : AppCompatActivity() {
                     else MaterialAlertDialogBuilder(this@PlayerActivity).setTitle("Bookmarks").setItems(values.map { "${it.position / 60000}:${((it.position / 1000) % 60).toString().padStart(2, '0')}" }.toTypedArray()) { _, i -> player.seekTo(values[i].position) }.show()
                 }
                 7 -> {
-                    if (!player.isCurrentMediaItemSeekable) { info("A–B repeat", "This stream does not allow seeking."); return@setItems }
+                    if (!player.isCurrentMediaItemSeekable) { info("A–B repeat", "This stream does not allow seeking."); return }
                     val a = loopA
                     if (a == null) { loopA = player.currentPosition; Toast.makeText(this, "A set. Seek forward and select Set A–B repeat again.", Toast.LENGTH_LONG).show() }
                     else if (PlaybackPolicy.validLoop(a, player.currentPosition)) {
@@ -259,14 +439,13 @@ class PlayerActivity : AppCompatActivity() {
                 10 -> MaterialAlertDialogBuilder(this).setTitle("Sleep timer").setItems(arrayOf("Off", "15 minutes", "30 minutes", "60 minutes")) { _, i ->
                     sendCommand(player, "SLEEP_TIMER", Bundle().apply { putLong("minutes", longArrayOf(0, 15, 30, 60)[i]) }, "Sleep timer updated")
                 }.show()
-                11 -> requestedOrientation = if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                12 -> { locked = true; top.visibility = View.GONE; video.useController = false; Toast.makeText(this, "Long press video to unlock controls", Toast.LENGTH_LONG).show() }
+                11 -> orientationMenu()
+                12 -> setLocked(true)
                 13 -> { player.stop(); player.clearMediaItems(); finish() }
                 14 -> subtitleStyleMenu()
                 15 -> audioEnhancements(player)
                 16 -> gestures.resetZoom()
             }
-        }.show()
     }
     private fun applySubtitleStyle() {
         video.subtitleView?.apply {
@@ -380,8 +559,8 @@ class PlayerActivity : AppCompatActivity() {
     @androidx.annotation.RequiresApi(26)
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        top.visibility = if (isInPictureInPictureMode || locked) View.GONE else View.VISIBLE
         video.useController = !isInPictureInPictureMode && !locked
+        updateChrome()
     }
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         val player = controller ?: return super.onKeyDown(keyCode, event)
@@ -390,6 +569,7 @@ class PlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_DPAD_LEFT -> player.seekTo((player.currentPosition - settings.seekMs).coerceAtLeast(0))
             KeyEvent.KEYCODE_DPAD_RIGHT -> player.seekTo(player.currentPosition + settings.seekMs)
             KeyEvent.KEYCODE_M -> player.volume = if (player.volume > 0) 0f else 1f
+            KeyEvent.KEYCODE_F -> toggleFullscreen()
             else -> return super.onKeyDown(keyCode, event)
         }
         return true

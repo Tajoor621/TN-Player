@@ -15,7 +15,7 @@ import kotlin.math.*
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlayerGestures(private val activity: Activity, private val view: PlayerView,
     private val overlay: TextView, private val player: () -> Player?, private val enabled: () -> Boolean,
-    private val seekMs: () -> Long) {
+    private val seekMs: () -> Long, private val flips: () -> Pair<Boolean, Boolean> = { false to false }) {
     private val audio = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val accessibility = activity.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
     private var tracking = false; private var mode = ""
@@ -59,7 +59,7 @@ class PlayerGestures(private val activity: Activity, private val view: PlayerVie
                     "zoom", "pan" -> {
                         zoom = (startZoom * ratio).coerceIn(1f, 3f)
                         view.videoSurfaceView?.apply {
-                            scaleX = zoom; scaleY = zoom
+                            scaleX = zoom * if (flips().first) -1f else 1f; scaleY = zoom * if (flips().second) -1f else 1f
                             translationX = (panX + dx).coerceIn(-(zoom - 1) * width / 2, (zoom - 1) * width / 2)
                             translationY = (panY + dy).coerceIn(-(zoom - 1) * height / 2, (zoom - 1) * height / 2)
                         }
@@ -92,5 +92,6 @@ class PlayerGestures(private val activity: Activity, private val view: PlayerVie
             true
         }
     }
-    fun resetZoom() { zoom = 1f; view.videoSurfaceView?.apply { scaleX = 1f; scaleY = 1f; translationX = 0f; translationY = 0f }; say("Zoom 1×") }
+    fun refreshTransform() { view.videoSurfaceView?.apply { scaleX = zoom * if (flips().first) -1f else 1f; scaleY = zoom * if (flips().second) -1f else 1f } }
+    fun resetZoom() { zoom = 1f; view.videoSurfaceView?.apply { scaleX = if (flips().first) -1f else 1f; scaleY = if (flips().second) -1f else 1f; translationX = 0f; translationY = 0f }; say("Zoom 1×") }
 }

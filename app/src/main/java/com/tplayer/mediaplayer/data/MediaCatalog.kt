@@ -37,7 +37,7 @@ data class CatalogEntry(
     val uri: String, val title: String, val folder: IndexedFolder, val mime: String = "", val bytes: Long = 0,
     val duration: Long = 0, val date: Long = 0, val width: Int = 0, val height: Int = 0,
     val frameRate: Float = 0f, val lastPlayed: Long = 0, val state: Int = 0, val artwork: String? = null,
-    val count: Int = 0
+    val count: Int = 0, val resumeAt: Long = 0
 ) {
     val directory get() = count > 0
     fun item(display: LibraryDisplay): LibraryItem {
@@ -48,7 +48,8 @@ data class CatalogEntry(
             if (display.resolution && width > 0 && height > 0) fields += "${width}×$height"
             if (display.frameRate) fields += if (frameRate > 0) "%.1f capture fps".format(frameRate) else "Capture fps unknown"
             if (display.type) fields += mime.ifBlank { "Unknown type" }
-            if (display.played) fields += arrayOf("Unplayed", "In progress", "Played")[state]
+            if (lastPlayed > 0) fields += if (resumeAt > 0) "Resume ${mediaTime(resumeAt)}" else "Played · start from beginning"
+            else if (display.played) fields += "Unplayed"
         }
         if (display.size) fields += "%.1f MB".format(bytes / 1_000_000.0)
         if (display.date && date > 0) fields += java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT).format(java.util.Date(date))
@@ -77,6 +78,7 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
     fun add(entry: CatalogEntry) {
         if (!hidden && (entry.title.startsWith('.') || entry.folder.path.split('/').any { it.startsWith('.') })) return
         if (entry.duration < display.minimumSeconds * 1000L) return
+        if (display.mode == MediaViewMode.FILES && current != null && entry.folder != current) return
         val key: IndexedFolder? = when {
             display.mode == MediaViewMode.FILES -> null
             display.mode == MediaViewMode.FOLDERS -> if (current == null) entry.folder else null
@@ -150,7 +152,8 @@ class MediaCatalog(private val context: Context) {
                 collector.add(CatalogEntry(uri, string("_display_name").ifBlank { "Untitled" }, key, string("mime_type"),
                     number("_size").coerceAtLeast(0), duration, number("date_modified") * 1000L,
                     number("width").toInt(), number("height").toInt(), rate, prior?.updatedAt ?: 0, state,
-                    if (!video && number("album_id") > 0) "content://media/$volume/audio/albumart/${number("album_id")}" else null))
+                    if (!video && number("album_id") > 0) "content://media/$volume/audio/albumart/${number("album_id")}" else null,
+                    resumeAt = prior?.let { com.tplayer.mediaplayer.playback.PlaybackPolicy.resumePosition(it.position, it.duration) } ?: 0))
             }
         }
         collector.finish()
