@@ -5,10 +5,10 @@ import android.content.Context
 import android.os.Environment
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.withText
+import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.tplayer.mediaplayer.data.DownloadRepository
 import com.tplayer.mediaplayer.ui.MainActivity
@@ -41,7 +41,8 @@ class DownloadsDeviceTest {
             val entry = runBlocking { DownloadRepository(context).entries().single { it.id == id } }
             assertTrue(entry.completed); assertEquals(file.length(), entry.total)
             ActivityScenario.launch(MainActivity::class.java).use {
-                openActionBarOverflowOrOptionsMenu(context)
+                onView(withContentDescription("More options")).perform(click())
+                waitFor("Library")
                 onView(withText("Library")).perform(click())
                 waitFor("Your library")
                 onView(withText("Downloads")).inRoot(isDialog()).perform(click())

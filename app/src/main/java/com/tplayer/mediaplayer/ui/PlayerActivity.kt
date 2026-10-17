@@ -352,7 +352,7 @@ class PlayerActivity : AppCompatActivity() {
     }
     private fun currentInformation() { controller?.let { player ->
         val item = player.currentMediaItem ?: return
-        launchUi { info("File information", MediaDetails(this@PlayerActivity).describe(LibraryItem(item.mediaId, title.text.toString(), mimeType = player.mediaMetadata.extras?.getString("mime").orEmpty()), dao.historyFor(item.mediaId))) }
+        launchUi { info("File information", MediaDetails(this@PlayerActivity).describe(LibraryItem(item.mediaId, title.text.toString(), mimeType = player.mediaMetadata.extras?.getString("mime").orEmpty()), com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@PlayerActivity).historyFor(item.mediaId))) }
     } }
     private fun shareCurrent() {
         val item = controller?.currentMediaItem ?: return

@@ -529,7 +529,7 @@ class MainActivity : AppCompatActivity() {
             }.show()
     }
     private fun details(item: LibraryItem) { launchUi {
-        val history = MediaDatabase.get(this@MainActivity).raw().historyFor(item.uri)
+        val history = com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@MainActivity).historyFor(item.uri)
         info("File information", MediaDetails(this@MainActivity).describe(item, history))
     } }
     private fun shareSelection() {
@@ -627,7 +627,14 @@ class MainActivity : AppCompatActivity() {
     private fun showHistory() {
         screen = Screen.HISTORY; activePlaylist = null
         val actions = setup("Recently played"); status.text = "Tap a file to resume playback"
-        actions.addView(button("Clear history") { launchUi { com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@MainActivity).clearHistory(); adapter.submit(emptyList()) } })
+        val historyAdapter = adapter
+        actions.addView(button("Clear history") {
+            job?.cancel()
+            launchUi {
+                com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@MainActivity).clearHistory()
+                if (screen == Screen.HISTORY && adapter === historyAdapter) historyAdapter.submit(emptyList())
+            }
+        })
         job = launchUi { com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@MainActivity).flushHistory(); adapter.submit(dao.history().map { LibraryItem(it.uri, it.title, "Resume at ${it.position / 1000}s", it.mimeType) }) }
     }
     private fun showDownloads() {
@@ -672,7 +679,7 @@ class MainActivity : AppCompatActivity() {
                     .setMessage("${entry.title}\n\nAndroid will remove the download record and its downloaded or partial file. This cannot be undone here.")
                     .setNegativeButton("Keep", null).setPositiveButton("Remove") { _, _ -> launchUi {
                         if (!downloads.remove(entry.id)) info("Downloads", "This download was already removed or could not be removed.")
-                        showDownloads()
+                        if (screen == Screen.DOWNLOADS) showDownloads()
                     } }.show()
             }
         }.setNegativeButton("Close", null).show()
