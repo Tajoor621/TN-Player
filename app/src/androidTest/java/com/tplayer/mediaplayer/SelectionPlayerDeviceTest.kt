@@ -134,7 +134,18 @@ class SelectionPlayerDeviceTest {
             active.onActivity { activity -> DevicePlayback.descendants(activity.findViewById(android.R.id.content)).filterIsInstance<TextView>().first { it.text.toString() == "More" }.performClick() }
             waitForDialog("Display Settings")
             capture("player-tools")
-            onView(withText("Display Settings")).perform(click())
+            onView(withText("Display Settings")).inRoot(isDialog()).perform(object : androidx.test.espresso.ViewAction {
+                override fun getConstraints() = androidx.test.espresso.matcher.ViewMatchers.isDisplayed()
+                override fun getDescription() = "Wait for tools sheet to finish expanding"
+                override fun perform(ui: androidx.test.espresso.UiController, view: View) {
+                    var sheet = view
+                    while (sheet.id != com.google.android.material.R.id.design_bottom_sheet) sheet = sheet.parent as View
+                    val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(sheet)
+                    val deadline = android.os.SystemClock.uptimeMillis() + 5000
+                    while (behavior.state != com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED && android.os.SystemClock.uptimeMillis() < deadline) ui.loopMainThreadForAtLeast(16)
+                    assertEquals(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED, behavior.state)
+                }
+            }, click())
             waitForDialog("Mirror mode")
             onView(withText("Mirror mode")).inRoot(isDialog()).perform(click())
             active.onActivity { activity -> assertTrue(DevicePlayback.descendants(activity.findViewById(android.R.id.content)).filterIsInstance<PlayerView>().first().videoSurfaceView!!.scaleX < 0) }

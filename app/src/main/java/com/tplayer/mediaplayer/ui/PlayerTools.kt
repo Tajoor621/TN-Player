@@ -40,9 +40,11 @@ fun Context.playerTools(tools: List<PlayerTool>, videoDisplay: Boolean, shortcut
     box.addView(button("Customise items") { activate(customize) })
     box.addView(button("Close tools") { dialog.dismiss() })
     dialog.setContentView(scroll)
-    dialog.setOnShowListener {
-        val sheet = dialog.findViewById<android.widget.FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)
-        sheet?.let { it.layoutParams = it.layoutParams.apply { height = (resources.displayMetrics.heightPixels * .82f).toInt() }; BottomSheetBehavior.from(it).state = BottomSheetBehavior.STATE_EXPANDED }
+    // Establish the expanded geometry before the first layout, avoiding an initial
+    // collapsed-to-expanded movement under a user's first tap.
+    dialog.findViewById<android.widget.FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)?.let { sheet ->
+        sheet.layoutParams = sheet.layoutParams.apply { height = (resources.displayMetrics.heightPixels * .82f).toInt() }
+        BottomSheetBehavior.from(sheet).apply { skipCollapsed = true; state = BottomSheetBehavior.STATE_EXPANDED }
     }
     dialog.show()
 }
