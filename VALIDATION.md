@@ -1,37 +1,42 @@
-# TN-Player folder browser and layout upgrade — 17 October 2026
+# TN-Player file controls and player upgrade — 17 October 2026
 
-## Verified source
+## Verified source and checks
 
-App source/build commit: `703cbcc313b21ec61984bd8fb70d2daa3e922b5d`.
+App source/build commit: `8abcd28b95983d7eebad2ece18701e65b16f3070`.
 
-- [Branch validation](https://github.com/Tajoor621/TN-Player/actions/runs/38990520186): unit regressions, lint, debug/release assembly and Android 14 device tests succeeded. A lint-discovered Comparator.reversed API-24 dependency was replaced with API-21-compatible comparators.
-- [Main Android validation](https://github.com/Tajoor621/TN-Player/actions/runs/38990844980): build and emulator jobs succeeded for the final app source, including the compact shortcut labels and visible first-run permission action.
-- Unit coverage now includes same-named folders on different volumes, direct/descendant counts, hierarchy boundary checks, global numeric sorting across pages, hidden/minimum-duration filters, empty results, unknown frame-rate handling and layout preferences through backup/restore.
-- The Android 14 suite includes a real MediaStore fixture: two indexed folders, accurate counts, opening the selected folder, preserving aggregate media URI identity, Cancel versus Done in the view dialog, grid persistence after recreation and the Me hub. Existing playback, PiP, navigation, Keystore and file-transfer tests remain included.
-- The ordinary instrumentation suite reported 12 cases (10 executed, two process-recovery cases intentionally skipped there). The external script separately ran preparation, force-stop and cold restoration; both explicit recovery cases reported OK (1 test).
-- [Pages build and public verification](https://github.com/Tajoor621/TN-Player/actions/runs/38990844995) waits for matching Android validation before publishing. Verification downloads the full public APK and matches the source commit, SHA-256 and byte count.
+- [Feature branch checks](https://github.com/Tajoor621/TN-Player/actions/runs/38995652352): unit regressions, lint, debug/release assembly and Android 14 emulator checks passed. The native suite reported 13 cases: 11 executed and two recovery cases intentionally skipped in that ordinary run. The external process-recovery script separately runs those cases before/after a force-stop.
+- Selection regressions cover scope changes, individual/all selection, deduplication, folder exclusion and bounded all-or-nothing selection. Persistence regressions cover retained duration, display settings, orientation and shortcut backup/restore.
+- Native deletion tests use isolated test files and test-owned MediaStore content. No user library files are deleted by the validation workflow.
+- Native rotation tests also assert visible time and skip controls on the compact landscape layout; the tools test waits for the sheet to be expanded before tapping.
 
-## UI evidence
-
-[Native emulator screenshot gallery](validation/reference-ui/README.md) contains the final folder list, view dialog and Me hub. These are real 320 dp Android emulator captures, not mockups. Temporary media fixtures are removed after testing and are not shipped as the user's library.
-
-The supplied TN logo is unchanged. The original JPEG remains in branding/TN-Player-logo-original.jpeg; Android and Pages use the square adaptation.
+- [Main Android checks](https://github.com/Tajoor621/TN-Player/actions/runs/38995962418): build and emulator jobs passed for this exact app source. The external preparation and cold-restore checks each reported OK (1 test).
+- [APK publication and public verification](https://github.com/Tajoor621/TN-Player/actions/runs/38995962384): builds the matching debug APK, waits for Android validation, then publishes and verifies the public download.
 
 ## Published testing APK
 
-- [Download](https://tajoor621.github.io/TN-Player/downloads/TN-Player-1.0.0-debug.apk)
-- Version: 1.0.0 / code 1; package com.tplayer.mediaplayer
-- Bytes: 12,214,559
-- SHA-256: `8575c01943c2faee1924951492ae51f4cb9e1d01fa62140fc31b910b0b162917`
+- [Download TN-Player](https://tajoor621.github.io/TN-Player/downloads/TN-Player-1.0.0-debug.apk?build=8abcd28)
+- Version 1.0.0 / code 1; package `com.tplayer.mediaplayer`
+- Bytes: 12,264,493
+- SHA-256: `f2663d2b0568682f09e6d76444851404aa39d668014d10764cb4ad62333bef00`
+- Build/source revision: `8abcd28b95983d7eebad2ece18701e65b16f3070`. Later generated-APK and documentation commits do not identify a different app binary.
 
-## Scope and limits
+## UI evidence
 
-Folder counts cover accessible indexed videos/audio for the active tab, after hidden and minimum-duration filters. Selected-video access on Android 14 exposes only the granted selection. Empty/unindexed/.nomedia and protected directories may be absent; Files → Choose folder handles document-provider folders. Metadata sorting scans on IO and keeps folder summaries and a page prefix; large-library throughput has not been benchmarked.
+[Seven native emulator screenshots](validation/reference-ui/README.md) show selection, portrait/landscape playback, tools, folders, view settings and the Me hub. The controls remain visible on the compact landscape emulator. The tools panel starts expanded and scrolls to its lower options.
 
-Capture fps is Android's indexed capture frame rate, not a guaranteed encoded frame rate. Missing values remain unknown. Playback status/last-played sorting uses the retained 200-item local history. Folder size/duration are sums; date and last-played are the newest member values.
+## Changes verified
 
-The Me hub intentionally labels Private Folder, Local Network and Recycle Bin unavailable. Cloud Drive uses an installed Android document provider; it is not a built-in OAuth/sync client. File Transfer refers to the existing local file copy/move workflow. Full product gaps remain listed in FEATURE_STATUS.md.
+- Individual selection, selected count, Select all across matching pages, deselection and selected-file sharing. Folder changes clear selection; batch selection excludes folders and is bounded to 1,000 files.
+- Explicit permanent-delete confirmation. Tests cancel the dialog and verify both fixtures survive, then delete only the selected fixture. Indexed Android 11+ media additionally requires the Android approval screen; cancelling the request leaves the file intact.
+- Per-file information includes size, location, type, modified date, available duration/resolution/bitrate/tracks and last-played/resume details. History retains a known duration during transient updates.
+- Player tools include audio/subtitle tracks, playing queue, aspect ratio, display settings, information, share, help and advanced actions. Shortcuts can be customized, and video display can be disabled while audio continues.
+- Portrait/landscape/device orientation, fullscreen, lock/unlock, mute, mirror, vertical flip, night display and bounded PNG frame export. Tools scroll on short displays. Settings are included in backup/restore.
+- Resume tests seed a per-file history point, open it, pause at a new point, play another file, rotate the video without resetting it, and return to the original file at its saved position. Existing background playback, PiP and force-stop restoration checks remain included.
 
-Validation covers the Android 14 emulator and Robolectric tests; API 21 compatibility was lint-checked, not certified on Android 5 hardware. Physical Samsung/SD/USB/provider, large-font/accessibility, performance, battery and codec validation remain necessary. Debug signing can differ from earlier testing APKs; preserve needed data before uninstalling an existing build. No private signing key is committed.
+## Limits
 
-Generated APK and documentation commits do not identify a different app binary. Prior upgrade evidence is preserved under validation/history/.
+Testing covers an Android 14 emulator and JVM/Robolectric tests. Android 5 compatibility is lint-checked, not certified on physical API 21 devices. Provider/SD/USB behavior, large fonts, physical devices, codec coverage and performance still need device testing. No claim of universal codec/protocol support or a fully finished master feature list is made; see FEATURE_STATUS.md.
+
+Deletion is permanent and has no recycle bin or rollback. A killed process never silently replays a deletion. History uses the existing 200-item retention policy; a near-complete item starts from the beginning. Frame export requires an accessible decoded frame and does not burn UI/display transformations into the image. The supplied TN logo remains unchanged.
+
+Prior folder-browser evidence is preserved in [validation/history/folder-browser-2026-10-17.md](validation/history/folder-browser-2026-10-17.md). Debug signing can differ from older test builds; preserve needed data before uninstalling an existing build. No private signing key is committed.
