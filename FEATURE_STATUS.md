@@ -12,7 +12,7 @@
 | Splash | Uses normal Android startup window | Add AndroidX SplashScreen with measured startup; do not use a redundant launcher Activity |
 | Activities | Main and Player implement working screens | Split by navigation feature when screens grow; avoid two engines or empty shell Activities |
 | External intents | VIEW audio/video; SEND and bounded SEND_MULTIPLE queues | Richer file MIME associations, validated app links only for owned domain |
-| Videos / music | MediaStore keyset pages of 200, background search, permission/revocation UI, selected-video access | Lifecycle-scoped debounced change observation implemented; benchmark 50,000-file libraries |
+| Videos / music | MediaStore volume-aware folder counts/tree, global metadata sorts, list/grid, 200-row display pages, fields/filter preferences, permission/revocation UI and selected-video access | Lifecycle-scoped debounced change observation implemented; benchmark 50,000-file libraries |
 | Playback service | Single MediaSessionService, focus/noisy handling, notification and trusted controllers | Encrypted queue/position restoration and explicit resume implemented; validate OEM restrictions; no automatic restart after force-stop |
 | Foreground audio / lock-screen / headset | Delegated to Media3 service/session/audio focus | Test Bluetooth/car/OEM lock-screen paths; optional headset reconnect setting requires explicit behavior design |
 | Seek, speed, loop, shuffle | Standard transport; 0.25–4×; repeat modes; playlists | Frame-accurate stepping requires decoder-specific implementation |
@@ -35,7 +35,7 @@
 | Themes | Light/dark/system and AMOLED with blue/cyan accent palette | Add accent presets and scheduled theme; physical-device contrast QA |
 | Gestures / controls | Standard controls, lock, keyboard and configurable-on/off two-finger swipes, double-tap seek and pinch/pan; disabled under touch exploration | Add custom mapping presets; verify unlock using touch and TalkBack |
 | TV and D-pad | Some standard focusable controls; no TV launcher claim | TV banner, Leanback UI, D-pad focus graph and emulator/physical TV certification |
-| Settings / privacy / help | Resume, PiP, hidden files, themes, seek interval, notifications, feature help | Add settings migration and test full large-font landscape layouts |
+| Settings / privacy / help | Reference-style Me hub with working shortcuts, view/layout draft dialog, detailed settings, PiP options, themes, notifications and help | Add settings migration and test full large-font landscape layouts |
 | Database / credentials | Room collections with encrypted network URL payloads and opaque identifiers; Keystore-backed encrypted playback checkpoints; embedded credentials rejected | Add entities only with implemented clients; encrypt credentials with Keystore-backed storage and handle key invalidation |
 | App lock / vault | Not implemented | BiometricPrompt plus rate-limited credential fallback; encrypt every file with authenticated encryption and Keystore-wrapped keys; use FLAG_SECURE in vault screens |
 | Secure deletion | No guarantee made | Flash wear leveling, snapshots and providers prevent reliable overwrite; delete crypto keys for encrypted vault data and document limits |

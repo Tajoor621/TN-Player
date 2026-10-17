@@ -48,6 +48,15 @@ Debug APKs may use different signing keys between runs. Android may reject an in
 - **Home screen:** add the TN-Player playback widget using your launcher's widget picker. The title opens the app; buttons control the service and can resume a saved queue. Long-press the launcher icon for Resume, Files or New stream. PiP has custom transport actions.
 - **Theme:** Your supplied black TN and blue/cyan play identity, light/dark/system and an AMOLED option. Package, version and Room schema remain unchanged.
 
+## Folder browser and reference-style controls
+
+- Videos and Music start in **Folders** mode, with media counts and full storage paths. Tap a folder to open its media; **Up** or Back returns to the previous level. Same-named folders on different storage volumes stay separate.
+- **View & layout** opens a draft panel: **All folders** browses the indexed directory tree, **Files** shows a flat media list, and **Folders** lists immediate media-containing directories. Choose **List / Grid**, a sort and ascending/descending order, then **Done**. Cancel leaves stored preferences unchanged.
+- Sort by title, modified date, last played, playback status, length, size, resolution, path, indexed capture frame rate or type. Fields and Advanced expand to show metadata toggles, hidden indexed entries and a minimum-duration filter. Missing capture-rate values are unknown; this is not a measured encoded frame rate. Playback status uses the retained 200-item local history.
+- Folder counts include accessible indexed videos or audio for the active tab, after hidden/minimum-duration filters. **All folders** counts descendants; **Folders** counts direct media. Empty/unindexed/.nomedia and protected directories may not appear. Use **Files → Choose folder** for document-provider storage, SD/USB or an installed cloud provider.
+- Indexed scanning runs on IO with cancellation. It retains folder summaries and a bounded page prefix for global sorting, displays 200 rows per page, and debounces search/change refresh. Large-library throughput is not yet benchmarked.
+- **Settings** now opens a **Me** hub with shortcut tiles, App Theme, full Settings, Custom Pop-up Play and View & layout. Full playback/preferences/backup controls remain under Settings. Cloud Drive uses Android's installed document providers; File Transfer means local file copy/move. Private Folder, Local Network and Recycle Bin are visibly unavailable, rather than fake functional tools. No MX Player assets or branding are included.
+
 ## First use
 
 - **Videos / Music:** grant the corresponding media-library access. If access was permanently denied, use **Settings → App permissions** to change it. Or tap **Open file** to play an individual file through Android's picker without granting library access.
@@ -67,7 +76,7 @@ Debug APKs may use different signing keys between runs. Android may reject an in
 - `PlayerActivity`: MediaController/PlayerView client, external VIEW/SEND handling, subtitle picker and PiP.
 - `MediaPlaybackService`: a single MediaSessionService owns ExoPlayer, audio focus, media notification, background playback, encrypted queue/position restoration, resume history, A–B loop and sleep timer. No duplicate playback engines or services.
 - `MediaDatabase`: Room history, favorites, streams, playlists, playlist items and bookmarks. Foreign-key cascade prevents orphan playlist items.
-- `LibraryRepository`: MediaStore keyset pagination and background search off the main thread; permission-aware including Android 14 selected-video access.
+- `MediaCatalog`: volume-aware media folders, global metadata sorting, 200-row display pages and cancellable scanning off the main thread; permission-aware including Android 14 selected-video access.
 - `DocumentOperations`: SAF operations and cancellable IO. Individual transfers stage the destination, verify its bytes with SHA-256 read-back, and then rename it. A move removes the original only after verification. A visible progress/cancel banner survives rotation; an encrypted journal supports unfinished-transfer cleanup.
 - `CleanupWorker`: removes disposable app cache exports older than seven days; it never scans or deletes user media.
 

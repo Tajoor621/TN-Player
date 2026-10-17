@@ -59,12 +59,37 @@ class Settings(context: Context) {
     var virtualizer: Int
         get() = prefs.getInt("virtualizer", 0).coerceIn(0, 1000)
         set(value) { prefs.edit().putInt("virtualizer", value.coerceIn(0, 1000)).apply() }
+    var libraryDisplay: LibraryDisplay
+        get() = LibraryDisplay(
+            mode = MediaViewMode.values()[prefs.getInt("libraryMode", 2).coerceIn(0, 2)],
+            grid = prefs.getBoolean("libraryGrid", false),
+            sort = MediaSort.values()[prefs.getInt("librarySort", 0).coerceIn(0, 9)],
+            descending = prefs.getBoolean("libraryDescending", false),
+            duration = prefs.getBoolean("fieldDuration", true), size = prefs.getBoolean("fieldSize", true),
+            resolution = prefs.getBoolean("fieldResolution", false), path = prefs.getBoolean("fieldPath", false),
+            date = prefs.getBoolean("fieldDate", false), played = prefs.getBoolean("fieldPlayed", false),
+            frameRate = prefs.getBoolean("fieldFrameRate", false), type = prefs.getBoolean("fieldType", false),
+            minimumSeconds = prefs.getInt("minimumSeconds", 0).coerceIn(0, 3600))
+        set(value) { prefs.edit().putInt("libraryMode", value.mode.ordinal).putBoolean("libraryGrid", value.grid)
+            .putInt("librarySort", value.sort.ordinal).putBoolean("libraryDescending", value.descending)
+            .putBoolean("fieldDuration", value.duration).putBoolean("fieldSize", value.size)
+            .putBoolean("fieldResolution", value.resolution).putBoolean("fieldPath", value.path)
+            .putBoolean("fieldDate", value.date).putBoolean("fieldPlayed", value.played)
+            .putBoolean("fieldFrameRate", value.frameRate).putBoolean("fieldType", value.type)
+            .putInt("minimumSeconds", value.minimumSeconds.coerceIn(0, 3600)).apply() }
     fun backupValues(): Map<String, Any> = mapOf(
         "theme" to theme, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
         "seekMs" to seekMs, "gestures" to gestures, "amoled" to amoled,
         "subtitleSize" to subtitleSize, "subtitleFont" to subtitleFont, "subtitleColor" to subtitleColor,
         "subtitleBackground" to subtitleBackground, "subtitlePosition" to subtitlePosition,
-        "aspectRatio" to aspectRatio)
+        "aspectRatio" to aspectRatio,
+        "libraryMode" to libraryDisplay.mode.ordinal, "libraryGrid" to libraryDisplay.grid,
+        "librarySort" to libraryDisplay.sort.ordinal, "libraryDescending" to libraryDisplay.descending,
+        "fieldDuration" to libraryDisplay.duration, "fieldSize" to libraryDisplay.size,
+        "fieldResolution" to libraryDisplay.resolution, "fieldPath" to libraryDisplay.path,
+        "fieldDate" to libraryDisplay.date, "fieldPlayed" to libraryDisplay.played,
+        "fieldFrameRate" to libraryDisplay.frameRate, "fieldType" to libraryDisplay.type,
+        "minimumSeconds" to libraryDisplay.minimumSeconds)
     fun restoreValues(values: Map<String, Any>) {
         val editor = prefs.edit()
         for ((key, value) in values) when (value) {
