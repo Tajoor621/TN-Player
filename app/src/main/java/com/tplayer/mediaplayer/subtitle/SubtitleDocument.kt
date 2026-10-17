@@ -8,6 +8,18 @@ import java.util.Locale
 /** Bounded, local text subtitle import. Original files are never rewritten. */
 data class SubtitleCue(val start: Long, val end: Long, val text: String)
 data class SubtitleDocument(val cues: List<SubtitleCue>) {
+    private val maximumEnds = cues.runningFold(0L) { end, cue -> maxOf(end, cue.end) }.drop(1)
+    fun activeAt(position: Long, delayMs: Long): List<SubtitleCue> {
+        val time = position - delayMs
+        var low = 0; var high = cues.size
+        while (low < high) { val mid = (low + high) ushr 1; if (cues[mid].start <= time) low = mid + 1 else high = mid }
+        val active = mutableListOf<SubtitleCue>(); var index = low - 1
+        while (index >= 0 && maximumEnds[index] > time) {
+            val cue = cues[index]; if (cue.start <= time && cue.end > time) { active += cue; if (active.size == 8) break }
+            index--
+        }
+        return active.asReversed()
+    }
     fun adjacent(position: Long, direction: Int, delayMs: Long): Long? {
         val starts = cues.filter { it.end + delayMs > 0 }.map { (it.start + delayMs).coerceAtLeast(0) }.distinct()
         return if (direction > 0) starts.firstOrNull { it > position + 100 }

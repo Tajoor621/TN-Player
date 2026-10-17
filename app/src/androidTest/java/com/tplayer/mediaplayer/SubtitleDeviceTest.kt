@@ -49,7 +49,12 @@ class SubtitleDeviceTest {
             DevicePlayback.main { controller.pause(); controller.seekTo(2000) }
             scenario.onActivity { it.attachSubtitle(Uri.fromFile(source)) }
             DevicePlayback.await("Subtitle not imported") { var ready = false; scenario.onActivity { ready = ViewModelProvider(it)[PlayerUiState::class.java].captions?.document?.cues?.size == 2 }; ready }
-            DevicePlayback.await("Imported caption did not render") { DevicePlayback.main { controller.currentCues.cues.any { it.text?.toString() == "First caption" } } }
+            fun shownCaption(): String {
+                var text = ""
+                scenario.onActivity { activity -> val view = activity.findViewById<View>(android.R.id.content).findViewWithTag<TextView>("external-subtitles"); if (view.isShown) text = view.text.toString() }
+                return text
+            }
+            DevicePlayback.await("Imported caption did not render") { shownCaption() == "First caption" }
             assertTrue(DevicePlayback.main { !controller.isPlaying && controller.currentPosition in 1800..2200 })
             fun openSubtitle() {
                 scenario.onActivity { activity ->
@@ -65,9 +70,9 @@ class SubtitleDeviceTest {
             onView(withText("Apply")).inRoot(isDialog()).perform(click())
             DevicePlayback.await("Delay not applied") { var ready = false; scenario.onActivity { ready = ViewModelProvider(it)[PlayerUiState::class.java].captions?.delayMs == 1000L }; ready }
             DevicePlayback.main { controller.seekTo(20500) }
-            DevicePlayback.await("Old subtitle remained before shifted cue") { DevicePlayback.main { controller.currentCues.cues.isEmpty() } }
+            DevicePlayback.await("Old subtitle remained before shifted cue") { shownCaption().isEmpty() }
             DevicePlayback.main { controller.seekTo(21500) }
-            DevicePlayback.await("Shifted subtitle did not render") { DevicePlayback.main { controller.currentCues.cues.any { it.text?.toString() == "Second caption" } } }
+            DevicePlayback.await("Shifted subtitle did not render") { shownCaption() == "Second caption" }
             scenario.recreate()
             scenario.onActivity { assertEquals(1000L, ViewModelProvider(it)[PlayerUiState::class.java].captions?.delayMs) }
             assertTrue(DevicePlayback.main { !controller.isPlaying && controller.currentPosition in 21300..21700 })

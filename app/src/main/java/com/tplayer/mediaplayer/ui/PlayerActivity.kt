@@ -37,12 +37,17 @@ class PlayerUiState : ViewModel() {
     var screenshot: android.graphics.Bitmap? = null
     var captions: ExternalCaptions? = null
     var subtitleGestures = false
+    var subtitleExport: String? = null
     var pendingSubtitle: Uri? = null
     var pendingSubtitleMediaId: String? = null
 }
 class PlayerActivity : AppCompatActivity() {
     private lateinit var video: PlayerView
     private lateinit var gestures: PlayerGestures
+    private lateinit var externalCaption: TextView
+    private var lastCaptionHtml = ""
+    private var lastCaptionStyle: List<Any>? = null
+    private val captionTicker = object : Runnable { override fun run() { renderCaptions(); video.postDelayed(this, 50) } }
     private lateinit var top: LinearLayout
     private lateinit var title: TextView
     private lateinit var shortcuts: HorizontalScrollView
@@ -56,6 +61,13 @@ class PlayerActivity : AppCompatActivity() {
         if (uri != null && bitmap != null) launchUi {
             withContext(Dispatchers.IO) { checkNotNull(contentResolver.openOutputStream(uri, "wt")).use { check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)) } }
             Toast.makeText(this@PlayerActivity, "Screenshot saved", Toast.LENGTH_SHORT).show()
+        }
+    }
+    private val saveCaptions = registerForActivityResult(ActivityResultContracts.CreateDocument("application/x-subrip")) { uri ->
+        val text = ui.subtitleExport; ui.subtitleExport = null
+        if (uri != null && text != null) launchUi {
+            withContext(Dispatchers.IO) { checkNotNull(contentResolver.openOutputStream(uri, "wt")).bufferedWriter(Charsets.UTF_8).use { it.write(text) } }
+            Toast.makeText(this@PlayerActivity, "Adjusted subtitles saved", Toast.LENGTH_SHORT).show()
         }
     }
     private var future: ListenableFuture<MediaController>? = null
@@ -76,7 +88,7 @@ class PlayerActivity : AppCompatActivity() {
         override fun onEvents(player: Player, events: Player.Events) {
             title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"
             if (resumeRequested && player.mediaItemCount > 0) { resumeRequested = false; startPlayback(player) }
-            updateAwake(); updatePip()
+            renderCaptions(); updateAwake(); updatePip()
         }
         override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
             loopA = null
@@ -123,6 +135,11 @@ class PlayerActivity : AppCompatActivity() {
             setBackgroundColor(android.graphics.Color.BLACK)
         }
         frame.addView(video, FrameLayout.LayoutParams(-1, -1))
+        externalCaption = TextView(this).apply {
+            tag = "external-subtitles"; maxLines = 8; ellipsize = android.text.TextUtils.TruncateAt.END; gravity = Gravity.CENTER; visibility = View.GONE
+            setPadding(dp(16), 0, dp(16), 0); setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), android.graphics.Color.BLACK)
+        }
+        frame.addView(externalCaption, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
         video.resizeMode = intArrayOf(AspectRatioFrameLayout.RESIZE_MODE_FIT, AspectRatioFrameLayout.RESIZE_MODE_FILL, AspectRatioFrameLayout.RESIZE_MODE_ZOOM)[settings.aspectRatio]
         applySubtitleStyle()
         val gestureOverlay = TextView(this).apply {
@@ -166,6 +183,7 @@ class PlayerActivity : AppCompatActivity() {
     }
     override fun onStart() {
         super.onStart()
+        video.removeCallbacks(captionTicker); video.post(captionTicker)
         val token = SessionToken(this, ComponentName(this, MediaPlaybackService::class.java))
         val connecting = MediaController.Builder(this, token).buildAsync()
         future = connecting
@@ -181,7 +199,7 @@ class PlayerActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
     override fun onStop() {
-        inputJob?.cancel(); subtitleJob?.cancel()
+        inputJob?.cancel(); subtitleJob?.cancel(); video.removeCallbacks(captionTicker)
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (!settings.backgroundPlayback && !isChangingConfigurations && !inPip()) controller?.pause()
         video.player = null
@@ -359,12 +377,20 @@ class PlayerActivity : AppCompatActivity() {
         TrackSelectionDialogBuilder(this, if (type == C.TRACK_TYPE_AUDIO) "Audio Track" else "Subtitle", player, type).setShowDisableOption(type == C.TRACK_TYPE_TEXT).build().show()
     }
     private fun subtitleMenu() {
-        val options = arrayOf("Embedded tracks", "Load external subtitle", "Subtitle style", "Subtitle timing", "Previous caption", "Next caption", if (ui.subtitleGestures) "Subtitle gestures: on" else "Subtitle gestures: off", "Remove external subtitle", "Supported subtitle formats")
+        val options = arrayOf("Embedded tracks", "Load external subtitle", "Subtitle style", "Subtitle timing", "Previous caption", "Next caption", if (ui.subtitleGestures) "Subtitle gestures: on" else "Subtitle gestures: off", "Remove external subtitle", "Supported subtitle formats", "Export adjusted subtitles")
         MaterialAlertDialogBuilder(this).setTitle("Subtitle").setItems(options) { _, index -> when (index) {
             0 -> trackDialog(C.TRACK_TYPE_TEXT); 1 -> control(2); 2 -> control(14)
             3 -> subtitleTiming(); 4 -> jumpCaption(-1); 5 -> jumpCaption(1)
             6 -> { ui.subtitleGestures = !ui.subtitleGestures; info("Subtitle gestures", if (ui.subtitleGestures) "Use two fingers: swipe horizontally to the previous/next external caption, vertically to move captions, or pinch to change text size. Normal video zoom returns when subtitle gestures are off. Embedded or styled captions may define their own position." else "Video seek, brightness, volume, zoom and pan gestures restored.") }
-            7 -> { subtitleJob?.cancel(); ui.pendingSubtitle = null; ui.captions = null; ui.subtitleGestures = false; controller?.let { p -> p.currentMediaItem?.let { item -> launchUi { replaceCaptions(p, item, emptyList()) } } } }
+            7 -> { subtitleJob?.cancel(); ui.pendingSubtitle = null; ui.captions = null; ui.subtitleGestures = false; renderCaptions(); controller?.let { p -> p.currentMediaItem?.let { item -> launchUi { replaceCaptions(p, item, emptyList()) } } } }
+            9 -> {
+                val captions = ui.captions?.takeIf { it.mediaId == controller?.currentMediaItem?.mediaId }
+                if (captions == null) info("Export subtitles", "Load a timed external text subtitle first.")
+                else launchUi {
+                    ui.subtitleExport = withContext(Dispatchers.Default) { captions.document.srt(captions.delayMs) }
+                    saveCaptions.launch("TN-Player-adjusted-subtitles.srt")
+                }
+            }
             8 -> info("Subtitle formats", "Timed import: SRT, WebVTT, MPL2 (.mpl), PJS, MicroDVD (.sub with frame-rate header), SubViewer 2.0 (.sub), TMPlayer (.txt). Native rendering: ASS/SSA and TTML/DFXP. Text must use UTF-8 or BOM-marked UTF-16, up to 2 MB. Delay and cue navigation apply to timed imports; advanced WebVTT and legacy styling is not retained.")
         } }.show()
     }
@@ -518,6 +544,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applySubtitleStyle() {
+        renderCaptions()
         video.subtitleView?.apply {
             setApplyEmbeddedStyles(settings.embeddedSubtitleStyles)
             setFractionalTextSize(floatArrayOf(.035f, .0533f, .075f)[settings.subtitleSize])
@@ -598,7 +625,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (controller !== player || player.currentMediaItem?.mediaId != item.mediaId) return@launchUi
                 val mime = if (imported.third in setOf("ass", "ssa")) MimeTypes.TEXT_SSA else MimeTypes.APPLICATION_TTML
                 val config = MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(file)).setMimeType(mime).setLanguage("und").setLabel(imported.first).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
-                replaceCaptions(player, item, listOf(config)); ui.captions = null; ui.pendingSubtitle = null
+                replaceCaptions(player, item, listOf(config)); ui.captions = null; ui.pendingSubtitle = null; renderCaptions()
             } else {
                 val document = withContext(Dispatchers.Default) { SubtitleImport.parse(imported.second, imported.first) }
                 if (controller === player && player.currentMediaItem?.mediaId == item.mediaId) applyCaptions(player, item, ExternalCaptions(item.mediaId, imported.first, document))
@@ -626,11 +653,33 @@ class PlayerActivity : AppCompatActivity() {
         subtitleJob = launchUi { applyCaptions(player, item, captions) }
     }
     private suspend fun applyCaptions(player: MediaController, item: MediaItem, captions: ExternalCaptions) {
-        val file = withContext(Dispatchers.IO) { captionFile(captions.document.srt(captions.delayMs)) }
         if (controller !== player || player.currentMediaItem?.mediaId != captions.mediaId) return
-        val config = MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(file)).setMimeType(MimeTypes.APPLICATION_SUBRIP)
-            .setLanguage("und").setLabel(captions.name).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
-        replaceCaptions(player, item, listOf(config)); ui.captions = captions; ui.pendingSubtitle = null
+        // Timed imports use the same position as the controller, including while paused/seeking.
+        // Avoid replacing native media sources for each delay edit and avoid duplicate embedded captions.
+        if (ui.captions?.mediaId != captions.mediaId) replaceCaptions(player, item, emptyList())
+        if (controller !== player || player.currentMediaItem?.mediaId != captions.mediaId) return
+        ui.captions = captions; ui.pendingSubtitle = null; renderCaptions()
+    }
+    private fun renderCaptions() {
+        if (!::externalCaption.isInitialized) return
+        val player = controller
+        val captions = ui.captions?.takeIf { it.mediaId == player?.currentMediaItem?.mediaId }
+        video.subtitleView?.visibility = if (captions == null) View.VISIBLE else View.GONE
+        val plain = if (captions != null && player != null) captions.document.activeAt(player.currentPosition, captions.delayMs).joinToString("<br>") { it.text.take(8192).replace("\n", "<br>") }.take(8192) else ""
+        val style = listOf(settings.subtitleColor, settings.subtitleFont, settings.subtitleSize, settings.subtitleBackground, settings.embeddedSubtitleStyles, video.height, resources.configuration.fontScale)
+        if (lastCaptionHtml != plain || lastCaptionStyle != style) {
+            val parsed = androidx.core.text.HtmlCompat.fromHtml(plain.take(8192), androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY).trimEnd()
+            externalCaption.text = if (settings.embeddedSubtitleStyles) parsed else parsed.toString()
+            externalCaption.setTextColor(settings.subtitleColor)
+            externalCaption.typeface = arrayOf(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.SERIF, android.graphics.Typeface.MONOSPACE)[settings.subtitleFont]
+            externalCaption.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, video.height.coerceAtLeast(1) * floatArrayOf(.035f, .0533f, .075f)[settings.subtitleSize] * resources.configuration.fontScale)
+            externalCaption.setBackgroundColor(if (settings.subtitleBackground && parsed.isNotEmpty()) 0xB0000000.toInt() else android.graphics.Color.TRANSPARENT)
+            lastCaptionHtml = plain; lastCaptionStyle = style
+        }
+        externalCaption.visibility = if (externalCaption.text.isEmpty() || captions == null) View.GONE else View.VISIBLE
+        val margin = (video.height * settings.subtitlePosition / 100) + if (::bottom.isInitialized && bottom.visibility == View.VISIBLE) dp(52) else 0
+        val layout = externalCaption.layoutParams as FrameLayout.LayoutParams
+        if (layout.bottomMargin != margin) { layout.bottomMargin = margin; externalCaption.layoutParams = layout }
     }
     private suspend fun replaceCaptions(player: MediaController, item: MediaItem, captions: List<MediaItem.SubtitleConfiguration>) {
         val caption = captions.firstOrNull()

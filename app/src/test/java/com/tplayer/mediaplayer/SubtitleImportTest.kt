@@ -16,6 +16,18 @@ class SubtitleImportTest {
         assertEquals(500L, shifted.cues.first().end)
         assertEquals(1, SubtitleImport.parse(document.srt(-2000), "shifted.srt").cues.size)
     }
+    @Test fun activeCuesHandleOverlapBoundariesAndPausedSeekPositions() {
+        val first = SubtitleCue(1000, 4000, "first"); val second = SubtitleCue(2000, 3000, "second")
+        val doc = SubtitleDocument(listOf(first, second, SubtitleCue(20000, 24000, "third")))
+        assertTrue(doc.activeAt(999, 0).isEmpty())
+        assertEquals(listOf(first), doc.activeAt(1000, 0))
+        assertEquals(listOf(first, second), doc.activeAt(2500, 0))
+        assertEquals(listOf(first), doc.activeAt(3000, 0))
+        assertTrue(doc.activeAt(4000, 0).isEmpty())
+        assertTrue(doc.activeAt(20500, 1000).isEmpty())
+        assertEquals("third", doc.activeAt(21500, 1000).single().text)
+        assertEquals(listOf(first, second), doc.activeAt(2500, 0)) // backward seek after a later cue
+    }
     @Test fun legacyTextFormatsNormalizeToTheSameTimeline() {
         val fixtures = mapOf(
             "a.srt" to "1\n00:00:01,000 --> 00:00:03,000\nHello\nworld\n",
