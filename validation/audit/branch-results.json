@@ -1,0 +1,29 @@
+{
+  "source_commit": "5a8c4a9e59e757985556f12bd675808cd22215e5",
+  "branch_run": 39002930201,
+  "unit": {
+    "tests": 42,
+    "failures": 0,
+    "ignored": 0
+  },
+  "native": {
+    "28": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "external_preparation_tests": 1,
+      "external_cold_restore_tests": 1,
+      "external_result": "passed"
+    },
+    "34": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "external_preparation_tests": 1,
+      "external_cold_restore_tests": 1,
+      "external_result": "passed"
+    }
+  }
+}

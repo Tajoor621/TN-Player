@@ -20,3 +20,5 @@
 | FEATURE_STATUS.md | Implemented features and unfinished modules |
 
 The public repository contains no private signing keys. GitHub Pages is the landing/download site for the native Android app.
+
+- `AUDIT.md`: professional source/workflow audit, implemented fixes and prioritized remaining features.

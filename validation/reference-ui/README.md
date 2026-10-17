@@ -1,6 +1,16 @@
 # TN-Player native screens
 
-Android 14 emulator captures from source `8abcd28b95983d7eebad2ece18701e65b16f3070` on 17 October 2026. These are real app screens at 320 dp portrait / 640 dp landscape, not mockups. Media names, test pattern and selection files are temporary test fixtures, not a shipped demo library. Panels scroll vertically and shortcut rows scroll horizontally.
+Android 14 emulator captures from source `5a8c4a9e59e757985556f12bd675808cd22215e5` on 17 October 2026. These are real app screens at 320 dp portrait / 640 dp landscape, not mockups. Media names, test pattern and selection files are temporary test fixtures, not a shipped demo library. Panels scroll vertically and shortcut rows scroll horizontally.
+
+## Downloads
+
+Android 14: lifecycle-scoped download status, bytes/percentage, failure count and per-file actions. Failed transfers can retry; cancel/remove requires confirmation. This capture uses one imported completed fixture. Live network fault behavior still needs the acceptance matrix.
+
+![Downloads on Android 14](downloads.png)
+
+The same completed-file and confirmation/removal test also passes on Android 9:
+
+![Downloads on Android 9](downloads-android9.png)
 
 ## Select files individually or all together
 

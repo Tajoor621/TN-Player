@@ -1,6 +1,7 @@
 name: Android checks and APK
 on:
   push:
+    branches-ignore: ['dependabot/**']
   pull_request:
   workflow_dispatch:
 permissions:
