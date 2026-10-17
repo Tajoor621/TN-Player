@@ -333,6 +333,7 @@ class MainActivity : AppCompatActivity() {
     }
     private fun TextView.accessibilityHeadingCompat() { androidx.core.view.ViewCompat.setAccessibilityHeading(this, true) }
     private fun showTab(value: Int) {
+        if (value != tab) browser.selection.clear()
         tab = value; screen = Screen.forTab(value); activePlaylist = null
         when (value) { 1, 2 -> showMedia(value == 1); 3 -> showFiles(); 4 -> showStreams(); 5 -> showSettings() }
     }

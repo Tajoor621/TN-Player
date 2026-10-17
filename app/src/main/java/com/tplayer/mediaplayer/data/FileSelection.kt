@@ -22,6 +22,6 @@ class FileSelection {
         require(files.size <= LIMIT) { "More than $LIMIT files match. Narrow the search or select a smaller folder." }
         version++; values.clear(); files.forEach { values[it.uri] = it }; active = true
     }
-    fun remove(uris: Collection<String>) { uris.forEach(values::remove) }
+    fun remove(uris: Collection<String>) { version++; uris.forEach(values::remove) }
     fun clear() { version++; values.clear(); active = false }
 }

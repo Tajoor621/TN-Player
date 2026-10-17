@@ -12,6 +12,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.matcher.ViewMatchers.withText
+import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.tplayer.mediaplayer.data.*
@@ -24,6 +25,11 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class SelectionPlayerDeviceTest {
+    private fun waitForDialog(text: String) {
+        DevicePlayback.await("Dialog did not show: $text") {
+            DevicePlayback.instrumentation.uiAutomation.rootInActiveWindow?.findAccessibilityNodeInfosByText(text)?.any { it.isVisibleToUser } == true
+        }
+    }
     private fun capture(name: String) {
         DevicePlayback.instrumentation.waitForIdleSync()
         for (command in listOf("mkdir -p /sdcard/Download/tn-player-validation", "screencap -p /sdcard/Download/tn-player-validation/$name.png")) {
@@ -51,11 +57,13 @@ class SelectionPlayerDeviceTest {
                 scenario.onActivity { activity -> assertTrue(labels(activity).any { it.text.toString() == "2 / 2 selected" }) }
                 capture("file-selection")
                 scenario.onActivity { activity -> DevicePlayback.descendants(activity.findViewById(android.R.id.content)).first { it.contentDescription == "Delete selected" }.performClick() }
-                onView(withText("Cancel")).perform(click())
+                waitForDialog("Delete 2 files?")
+                onView(withText("Cancel")).inRoot(isDialog()).perform(click())
                 assertTrue(first.exists()); assertTrue(second.exists())
                 scenario.onActivity { (labels(it).first { v -> v.text.toString() == "Two.wav" }.parent.parent as View).performClick() }
                 scenario.onActivity { activity -> DevicePlayback.descendants(activity.findViewById(android.R.id.content)).first { it.contentDescription == "Delete selected" }.performClick() }
-                onView(withText("Delete")).perform(click())
+                waitForDialog("Delete 1 file?")
+                onView(withText("Delete")).inRoot(isDialog()).perform(click())
                 DevicePlayback.await("Confirmed file was not removed") { !first.exists() }
                 assertTrue("Unselected sibling was removed", second.exists())
                 DevicePlayback.await("Deletion result was not acknowledged") { var ok = false; scenario.onActivity { ok = ViewModelProvider(it)[FileDeleteModel::class.java].state.value.total == 0 }; ok }
@@ -87,7 +95,10 @@ class SelectionPlayerDeviceTest {
         val oldDisplay = settings.videoDisplay; val oldBackground = settings.backgroundPlayback; val oldResume = settings.resume
         val oldRotation = settings.playerOrientation; val oldMirror = settings.mirror; val oldFlip = settings.verticalFlip; val oldNight = settings.playerNight
         settings.videoDisplay = true; settings.backgroundPlayback = true; settings.resume = true; settings.playerOrientation = 1; settings.mirror = false; settings.verticalFlip = false; settings.playerNight = false
-        val audio = DevicePlayback.fixture("audio-fixture.wav"); val video = DevicePlayback.fixture("video-fixture.mp4")
+        val source = File(context.cacheDir, "exports/resume-${System.nanoTime()}.wav").apply { parentFile!!.mkdirs() }
+        DevicePlayback.instrumentation.context.assets.open("audio-fixture.wav").use { input -> source.outputStream().use { input.copyTo(it) } }
+        val audio = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".fileprovider", source)
+        val video = DevicePlayback.fixture("video-fixture.mp4")
         runBlocking { MediaDatabase.get(context).media().record(History(audio.toString(), "Resume fixture", 12000, 90000, mimeType = "audio/wav")) }
         val controller = DevicePlayback.controller()
         var scenario: ActivityScenario<PlayerActivity>? = null
@@ -112,7 +123,8 @@ class SelectionPlayerDeviceTest {
             active.onActivity { activity -> DevicePlayback.descendants(activity.findViewById(android.R.id.content)).filterIsInstance<TextView>().first { it.text.toString() == "More" }.performClick() }
             capture("player-tools")
             onView(withText("Display Settings")).perform(click())
-            onView(withText("Mirror mode")).perform(click())
+            waitForDialog("Mirror mode")
+            onView(withText("Mirror mode")).inRoot(isDialog()).perform(click())
             active.onActivity { activity -> assertTrue(DevicePlayback.descendants(activity.findViewById(android.R.id.content)).filterIsInstance<PlayerView>().first().videoSurfaceView!!.scaleX < 0) }
             active.close(); scenario = DevicePlayback.launch(audio, "audio/wav")
             DevicePlayback.await("Returning to a different file lost its saved position") { DevicePlayback.main { controller.currentMediaItem?.mediaId == audio.toString() && controller.currentPosition in 17500..27000 } }
@@ -120,6 +132,7 @@ class SelectionPlayerDeviceTest {
             scenario?.close(); DevicePlayback.stop(controller)
             settings.videoDisplay = oldDisplay; settings.backgroundPlayback = oldBackground; settings.resume = oldResume; settings.playerOrientation = oldRotation
             settings.mirror = oldMirror; settings.verticalFlip = oldFlip; settings.playerNight = oldNight
+            source.delete()
         }
     }
 }

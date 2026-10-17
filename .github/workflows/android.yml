@@ -55,9 +55,7 @@ jobs:
           api-level: 34
           arch: x86_64
           script: |
-            bash ./gradlew connectedDebugAndroidTest
-            adb pull /sdcard/Download/tn-player-validation app/build/reports/reference-ui
-            bash ./scripts/process-recovery-check.sh
+            bash ./scripts/device-validation.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:

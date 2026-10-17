@@ -245,7 +245,7 @@ class PlayerActivity : AppCompatActivity() {
         top = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(0xD9000000.toInt()) }
         val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         row.addView(chromeButton("Back") { finish() })
-        title = TextView(this).apply { text = "TN-Player"; textSize = 15f; setTextColor(-1); maxLines = 2 }
+        title = TextView(this).apply { text = "TN-Player"; textSize = 15f; setTextColor(-1); maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END }
         row.addView(title, LinearLayout.LayoutParams(0, -2, 1f))
         row.addView(chromeButton("PiP") { enterPip() }); row.addView(chromeButton("More") { menu() })
         top.addView(row)
@@ -312,12 +312,12 @@ class PlayerActivity : AppCompatActivity() {
         val player = controller ?: return
         playerTools(listOf(
             PlayerTool("Audio Track", R.drawable.hub_music) { trackDialog(C.TRACK_TYPE_AUDIO) },
-            PlayerTool("Subtitle", R.drawable.hub_files) { subtitleMenu() },
+            PlayerTool("Subtitle", R.drawable.player_subtitle) { subtitleMenu() },
             PlayerTool("Playing Queue", R.drawable.hub_playlist) { queueMenu() },
-            PlayerTool("Aspect Ratio", R.drawable.hub_popup) { control(1) },
+            PlayerTool("Aspect Ratio", R.drawable.player_aspect) { control(1) },
             PlayerTool("Display Settings", R.drawable.hub_settings) { displayMenu() },
-            PlayerTool("Information", R.drawable.hub_help) { currentInformation() },
-            PlayerTool("Share", R.drawable.hub_transfer) { shareCurrent() },
+            PlayerTool("Information", R.drawable.player_info) { currentInformation() },
+            PlayerTool("Share", R.drawable.player_share) { shareCurrent() },
             PlayerTool("Tutorial", R.drawable.hub_help) { info("Player guide", "Rotate chooses portrait, landscape or your device setting. Full screen hides system bars; swipe from an edge to reveal them. Lock hides controls; use Unlock or long-press the video to restore them. Two-finger swipes adjust seek/volume/brightness; pinch zooms. Tools includes track selection, queue, per-file details and custom shortcuts. Resume and last-played history are saved locally.") },
             PlayerTool("More", R.drawable.hub_settings) { advancedMenu() }
         ), settings.videoDisplay, settings.showPlayerShortcuts,
@@ -407,46 +407,47 @@ class PlayerActivity : AppCompatActivity() {
     }
     private fun control(index: Int) {
         val player = controller ?: return
-            when (index) {
-                0 -> { val values = floatArrayOf(.25f, .5f, .75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f)
-                    MaterialAlertDialogBuilder(this).setTitle("Playback speed").setItems(values.map { "${it}×" }.toTypedArray()) { _, i -> player.setPlaybackSpeed(values[i]) }.show() }
-                1 -> MaterialAlertDialogBuilder(this).setTitle("Aspect ratio").setItems(arrayOf("Fit", "Fill / stretch", "Crop / zoom")) { _, i -> settings.aspectRatio = i; video.resizeMode = intArrayOf(AspectRatioFrameLayout.RESIZE_MODE_FIT, AspectRatioFrameLayout.RESIZE_MODE_FILL, AspectRatioFrameLayout.RESIZE_MODE_ZOOM)[i] }.show()
-                2 -> subtitlePicker.launch(arrayOf("*/*"))
-                3 -> MaterialAlertDialogBuilder(this).setTitle("Subtitle size").setItems(arrayOf("Small", "Medium", "Large")) { _, i -> settings.subtitleSize = i; applySubtitleStyle() }.show()
-                4 -> launchUi {
-                    val item = player.currentMediaItem ?: return@launchUi
-                    if (dao.isFavorite(item.mediaId)) { dao.removeFavorite(item.mediaId); Toast.makeText(this@PlayerActivity, "Favorite removed", Toast.LENGTH_SHORT).show() }
-                    else { dao.addFavorite(Favorite(item.mediaId, title.text.toString(), player.mediaMetadata.extras?.getString("mime").orEmpty())); Toast.makeText(this@PlayerActivity, "Favorite saved", Toast.LENGTH_SHORT).show() }
-                }
-                5 -> launchUi { val item = player.currentMediaItem ?: return@launchUi; dao.addBookmark(Bookmark(uri = item.mediaId, title = title.text.toString(), position = player.currentPosition)); Toast.makeText(this@PlayerActivity, "Bookmark saved", Toast.LENGTH_SHORT).show() }
-                6 -> launchUi {
-                    val values = dao.bookmarks(player.currentMediaItem?.mediaId ?: "")
-                    if (values.isEmpty()) info("Bookmarks", "No bookmarks for this file yet.")
-                    else MaterialAlertDialogBuilder(this@PlayerActivity).setTitle("Bookmarks").setItems(values.map { "${it.position / 60000}:${((it.position / 1000) % 60).toString().padStart(2, '0')}" }.toTypedArray()) { _, i -> player.seekTo(values[i].position) }.show()
-                }
-                7 -> {
-                    if (!player.isCurrentMediaItemSeekable) { info("A–B repeat", "This stream does not allow seeking."); return }
-                    val a = loopA
-                    if (a == null) { loopA = player.currentPosition; Toast.makeText(this, "A set. Seek forward and select Set A–B repeat again.", Toast.LENGTH_LONG).show() }
-                    else if (PlaybackPolicy.validLoop(a, player.currentPosition)) {
-                        sendCommand(player, "SET_LOOP", Bundle().apply { putLong("a", a); putLong("b", player.currentPosition) }, "A–B repeat enabled"); loopA = null
-                    } else info("A–B repeat", "B must be at least half a second after A.")
-                }
-                8 -> { loopA = null; player.sendCustomCommand(SessionCommand("SET_LOOP", Bundle.EMPTY), Bundle().apply { putLong("a", -1); putLong("b", -1) }) }
-                9 -> MaterialAlertDialogBuilder(this).setTitle("Loop / shuffle").setItems(arrayOf("Off", "Repeat one", "Repeat all", "Shuffle")) { _, i ->
-                    player.repeatMode = when (i) { 1 -> Player.REPEAT_MODE_ONE; 2 -> Player.REPEAT_MODE_ALL; else -> Player.REPEAT_MODE_OFF }; player.shuffleModeEnabled = i == 3
-                }.show()
-                10 -> MaterialAlertDialogBuilder(this).setTitle("Sleep timer").setItems(arrayOf("Off", "15 minutes", "30 minutes", "60 minutes")) { _, i ->
-                    sendCommand(player, "SLEEP_TIMER", Bundle().apply { putLong("minutes", longArrayOf(0, 15, 30, 60)[i]) }, "Sleep timer updated")
-                }.show()
-                11 -> orientationMenu()
-                12 -> setLocked(true)
-                13 -> { player.stop(); player.clearMediaItems(); finish() }
-                14 -> subtitleStyleMenu()
-                15 -> audioEnhancements(player)
-                16 -> gestures.resetZoom()
+        when (index) {
+            0 -> { val values = floatArrayOf(.25f, .5f, .75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f)
+                MaterialAlertDialogBuilder(this).setTitle("Playback speed").setItems(values.map { "${it}×" }.toTypedArray()) { _, i -> player.setPlaybackSpeed(values[i]) }.show() }
+            1 -> MaterialAlertDialogBuilder(this).setTitle("Aspect ratio").setItems(arrayOf("Fit", "Fill / stretch", "Crop / zoom")) { _, i -> settings.aspectRatio = i; video.resizeMode = intArrayOf(AspectRatioFrameLayout.RESIZE_MODE_FIT, AspectRatioFrameLayout.RESIZE_MODE_FILL, AspectRatioFrameLayout.RESIZE_MODE_ZOOM)[i] }.show()
+            2 -> subtitlePicker.launch(arrayOf("*/*"))
+            3 -> MaterialAlertDialogBuilder(this).setTitle("Subtitle size").setItems(arrayOf("Small", "Medium", "Large")) { _, i -> settings.subtitleSize = i; applySubtitleStyle() }.show()
+            4 -> launchUi {
+                val item = player.currentMediaItem ?: return@launchUi
+                if (dao.isFavorite(item.mediaId)) { dao.removeFavorite(item.mediaId); Toast.makeText(this@PlayerActivity, "Favorite removed", Toast.LENGTH_SHORT).show() }
+                else { dao.addFavorite(Favorite(item.mediaId, title.text.toString(), player.mediaMetadata.extras?.getString("mime").orEmpty())); Toast.makeText(this@PlayerActivity, "Favorite saved", Toast.LENGTH_SHORT).show() }
             }
+            5 -> launchUi { val item = player.currentMediaItem ?: return@launchUi; dao.addBookmark(Bookmark(uri = item.mediaId, title = title.text.toString(), position = player.currentPosition)); Toast.makeText(this@PlayerActivity, "Bookmark saved", Toast.LENGTH_SHORT).show() }
+            6 -> launchUi {
+                val values = dao.bookmarks(player.currentMediaItem?.mediaId ?: "")
+                if (values.isEmpty()) info("Bookmarks", "No bookmarks for this file yet.")
+                else MaterialAlertDialogBuilder(this@PlayerActivity).setTitle("Bookmarks").setItems(values.map { "${it.position / 60000}:${((it.position / 1000) % 60).toString().padStart(2, '0')}" }.toTypedArray()) { _, i -> player.seekTo(values[i].position) }.show()
+            }
+            7 -> {
+                if (!player.isCurrentMediaItemSeekable) { info("A–B repeat", "This stream does not allow seeking."); return }
+                val a = loopA
+                if (a == null) { loopA = player.currentPosition; Toast.makeText(this, "A set. Seek forward and select Set A–B repeat again.", Toast.LENGTH_LONG).show() }
+                else if (PlaybackPolicy.validLoop(a, player.currentPosition)) {
+                    sendCommand(player, "SET_LOOP", Bundle().apply { putLong("a", a); putLong("b", player.currentPosition) }, "A–B repeat enabled"); loopA = null
+                } else info("A–B repeat", "B must be at least half a second after A.")
+            }
+            8 -> { loopA = null; player.sendCustomCommand(SessionCommand("SET_LOOP", Bundle.EMPTY), Bundle().apply { putLong("a", -1); putLong("b", -1) }) }
+            9 -> MaterialAlertDialogBuilder(this).setTitle("Loop / shuffle").setItems(arrayOf("Off", "Repeat one", "Repeat all", "Shuffle")) { _, i ->
+                player.repeatMode = when (i) { 1 -> Player.REPEAT_MODE_ONE; 2 -> Player.REPEAT_MODE_ALL; else -> Player.REPEAT_MODE_OFF }; player.shuffleModeEnabled = i == 3
+            }.show()
+            10 -> MaterialAlertDialogBuilder(this).setTitle("Sleep timer").setItems(arrayOf("Off", "15 minutes", "30 minutes", "60 minutes")) { _, i ->
+                sendCommand(player, "SLEEP_TIMER", Bundle().apply { putLong("minutes", longArrayOf(0, 15, 30, 60)[i]) }, "Sleep timer updated")
+            }.show()
+            11 -> orientationMenu()
+            12 -> setLocked(true)
+            13 -> { player.stop(); player.clearMediaItems(); finish() }
+            14 -> subtitleStyleMenu()
+            15 -> audioEnhancements(player)
+            16 -> gestures.resetZoom()
+        }
     }
+
     private fun applySubtitleStyle() {
         video.subtitleView?.apply {
             setApplyEmbeddedStyles(false)
