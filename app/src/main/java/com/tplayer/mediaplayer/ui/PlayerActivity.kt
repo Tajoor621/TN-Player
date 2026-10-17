@@ -361,7 +361,7 @@ class PlayerActivity : AppCompatActivity() {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); clipData = ClipData.newRawUri("Media", uri)
         } else if (uri.scheme in setOf("https", "rtsp")) Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, uri.toString())
         else { info("Share", "Open this file through Android's picker to share a content URI securely."); return }
-        try { startActivity(Intent.createChooser(share, "Share media")) } catch (_: ActivityNotFoundException) { info("Share", "No compatible app is installed.") }
+        try { startActivity(Intent.createChooser(share, "Share media")) } catch (_: Exception) { info("Share", "Android could not share this source. Check that access is still available.") }
     }
     private fun customizeShortcuts() {
         val checked = settings.playerShortcuts.toMutableSet()

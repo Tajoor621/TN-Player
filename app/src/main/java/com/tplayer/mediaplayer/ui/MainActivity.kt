@@ -515,11 +515,12 @@ class MainActivity : AppCompatActivity() {
         val files = browser.selection.items
         if (files.isEmpty()) { info("Share files", "Select one or more files first."); return }
         if (files.any { Uri.parse(it.uri).scheme != "content" }) { info("Share files", "Choose these files through Android's folder picker to share content URIs securely."); return }
+        if (files.sumOf { it.uri.length.toLong() } > 100000) { info("Share files", "This selection is too large for Android's share request. Share fewer files at once."); return }
         val uris = ArrayList(files.map { Uri.parse(it.uri) })
         val share = Intent(if (uris.size == 1) Intent.ACTION_SEND else Intent.ACTION_SEND_MULTIPLE).setType("*/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         if (uris.size == 1) share.putExtra(Intent.EXTRA_STREAM, uris.first()) else share.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
         share.clipData = ClipData.newRawUri("Selected files", uris.first()).apply { uris.drop(1).forEach { addItem(ClipData.Item(it)) } }
-        try { startActivity(Intent.createChooser(share, "Share selected files")) } catch (_: ActivityNotFoundException) { info("Share files", "No compatible app is installed.") }
+        try { startActivity(Intent.createChooser(share, "Share selected files")) } catch (_: Exception) { info("Share files", "Android could not open this share request. Try fewer files and check source access.") }
     }
     private fun showStreams() {
         val actions = setup("Network streams")

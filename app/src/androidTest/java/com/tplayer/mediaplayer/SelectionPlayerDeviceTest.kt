@@ -115,12 +115,14 @@ class SelectionPlayerDeviceTest {
             fun showControls() { active.onActivity { activity -> DevicePlayback.descendants(activity.findViewById(android.R.id.content)).filterIsInstance<PlayerView>().first().showController() } }
             showControls(); capture("player-portrait")
             active.onActivity { activity -> DevicePlayback.descendants(activity.findViewById(android.R.id.content)).filterIsInstance<TextView>().first { it.text.toString() == "Rotate" }.performClick() }
-            onView(withText("Landscape")).perform(click())
+            waitForDialog("Landscape")
+            onView(withText("Landscape")).inRoot(isDialog()).perform(click())
             DevicePlayback.await("Landscape was not applied") { var ok = false; active.onActivity { ok = it.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE }; ok }
             assertEquals(video.toString(), DevicePlayback.main { controller.currentMediaItem?.mediaId })
             assertTrue(DevicePlayback.main { !controller.isPlaying && controller.currentPosition in 7800..8200 })
             showControls(); capture("player-landscape")
             active.onActivity { activity -> DevicePlayback.descendants(activity.findViewById(android.R.id.content)).filterIsInstance<TextView>().first { it.text.toString() == "More" }.performClick() }
+            waitForDialog("Display Settings")
             capture("player-tools")
             onView(withText("Display Settings")).perform(click())
             waitForDialog("Mirror mode")
