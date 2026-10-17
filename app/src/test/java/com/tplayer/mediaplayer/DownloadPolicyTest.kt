@@ -21,6 +21,11 @@ class DownloadPolicyTest {
         assertTrue(DownloadPolicy.progress(Long.MAX_VALUE, Long.MAX_VALUE).contains("100%"))
         assertTrue(DownloadPolicy.progress(200, 100).contains("100%"))
     }
+    @Test fun completedImportsDisplayTheirKnownTotalEvenWhenAndroidReportsZeroCurrentBytes() {
+        val entry = com.tplayer.mediaplayer.data.DownloadEntry(1, "Imported", DownloadManager.STATUS_SUCCESSFUL, 0, 0, 200, "audio/wav", "content://downloads/1")
+        assertTrue(entry.completed)
+        assertTrue(entry.item().detail.contains("100%"))
+    }
     @Test fun explainsActionableFailureAndWaitReasons() {
         assertEquals("Waiting for Wi-Fi", DownloadPolicy.status(DownloadManager.STATUS_PAUSED, DownloadManager.PAUSED_QUEUED_FOR_WIFI))
         assertEquals("Failed: storage full", DownloadPolicy.status(DownloadManager.STATUS_FAILED, DownloadManager.ERROR_INSUFFICIENT_SPACE))

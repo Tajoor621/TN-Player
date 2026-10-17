@@ -75,9 +75,11 @@ class PlaybackPersistence private constructor(context: Context) {
     suspend fun clearHistory() = history.clear()
     fun save(value: PlaybackCheckpoint?) { latest = value; hasMemory = true; writes.trySend(Update(value, revision.incrementAndGet())) }
     suspend fun flush() {
-        history.flush()
         val target = revision.get()
-        withTimeout(10000) { while (persistedRevision < target) delay(20) }
+        withTimeout(10000) {
+            history.flush()
+            while (persistedRevision < target) delay(20)
+        }
     }
     suspend fun read(): PlaybackCheckpoint? = withContext(Dispatchers.IO) { if (hasMemory) latest else store.read() }
     companion object {

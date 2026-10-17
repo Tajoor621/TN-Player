@@ -55,7 +55,7 @@ data class DownloadEntry(val id: Long, val title: String, val status: Int, val r
     val completed get() = status == DownloadManager.STATUS_SUCCESSFUL && playableUri != null
     val active get() = status in setOf(DownloadManager.STATUS_PENDING, DownloadManager.STATUS_RUNNING, DownloadManager.STATUS_PAUSED)
     fun item() = LibraryItem(playableUri ?: "tn-download:$id", title,
-        (if (status == DownloadManager.STATUS_SUCCESSFUL && playableUri == null) "Completed file unavailable" else DownloadPolicy.status(status, reason)) + " · " + DownloadPolicy.progress(bytes, total), mimeType = mime, downloadId = id)
+        (if (status == DownloadManager.STATUS_SUCCESSFUL && playableUri == null) "Completed file unavailable" else DownloadPolicy.status(status, reason)) + " · " + DownloadPolicy.progress(if (status == DownloadManager.STATUS_SUCCESSFUL && total >= 0) total else bytes, total), mimeType = mime, downloadId = id)
 }
 class DownloadRepository(context: Context) {
     private val app = context.applicationContext

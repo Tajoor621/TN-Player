@@ -10,6 +10,8 @@ bash scripts/process-recovery-check.sh
 
 JUnit tests cover stream rejection (including credentials, malformed URLs, insecure HTTP and unsupported protocols), resume/completed-media policy, loop boundaries, filename traversal rejection, Room history upsert and playlist foreign-key cascade. Robolectric also smoke-tests MainActivity navigation. Additional tests cover encrypted URL storage across collections, legacy database migration, history retention, authenticated checkpoint tampering, verified transfer failures and cancellation, and the Files/playlist-cancel regression. Instrumentation includes navigation/help, real Keystore, local file transfers, audio continuation, pause/screen-awake and video PiP. The separate process-recovery script force-stops the app between preparation and cold restoration. These are targeted checks, not comprehensive playback certification.
 
+The audit update adds source-mutation/cancellation checks before move deletion; intentionally blocked and failed history-writer checks, rapid reopen and burst-update regressions; direct-download URL/MIME/progress/reason validation; and native completed-download confirmation/removal tests. CI runs the instrumentation and separate force-stop recovery workflow on API 28 and API 34. Feature-specific MediaStore tests skip versions below their required APIs. Dependency trees are attached to the build validation artifacts.
+
 ## Real-device acceptance matrix (not executed unless stated in VALIDATION.md)
 
 | Area | Exercise | Expected outcome |
@@ -27,7 +29,7 @@ JUnit tests cover stream rejection (including credentials, malformed URLs, insec
 | Streams | HTTPS MP4, HLS, DASH, SS, RTSP, outage, expired URL | Correct playback or actionable error; no false universal-protocol claim |
 | Timeline | Seek, pause/resume, speed, A–B, loop/shuffle | Stable state and positions; service loop works in background |
 | Lifecycle | Activity recreation, theme switch, screen off, task removal, force-stop, process death | One engine; no duplicate audio; history checkpoint within 5 s; force-stop does not auto-restart |
-| Downloads | Direct HTTPS file, no space, offline, m3u8/mpd | Supported job visible through Android; adaptive links rejected; app-owned file accessible on completion |
+| Downloads | Direct HTTPS file, no space, offline, m3u8/mpd | Status/progress/failure shown in app; retry works; cancel/remove confirmation preserves on Keep; adaptive links rejected; completed file can play/share; test denied legacy storage access |
 | Collections | Favorites, playlist duplicates, play all, delete list | No duplicate URI rows; deleting playlist retains files/favorites |
 | Privacy | Inspect merged manifest and network traffic | No analytics/ads/phone/audio recording requests; traffic only to chosen sources/system components |
 | Accessibility | TalkBack, 200% font, keyboard, portrait/landscape | Controls named, reachable, legible; test lock/unlock and PiP independently |

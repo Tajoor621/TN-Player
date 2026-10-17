@@ -83,6 +83,7 @@ class MainActivity : AppCompatActivity() {
     private val dao by lazy { MediaDatabase.get(this).media() }
     private val downloads by lazy { DownloadRepository(this) }
     private var downloadEntries = emptyMap<Long, DownloadEntry>()
+    private var renderedDownloads: MediaAdapter? = null
     private lateinit var content: LinearLayout
     private lateinit var status: TextView
     private lateinit var adapter: MediaAdapter
@@ -640,10 +641,14 @@ class MainActivity : AppCompatActivity() {
         val current = adapter
         val entries = downloads.entries()
         if (screen != Screen.DOWNLOADS || adapter !== current) return
-        downloadEntries = entries.associateBy { it.id }
-        current.submit(entries.map { it.item() })
-        status.text = if (entries.isEmpty()) "No downloads. Add a direct HTTPS file from Streams."
+        val updated = entries.associateBy { it.id }
+        if (updated != downloadEntries || renderedDownloads !== current) {
+            downloadEntries = updated; renderedDownloads = current
+            current.submit(entries.map { it.item() })
+        }
+        val summary = if (entries.isEmpty()) "No downloads. Add a direct HTTPS file from Streams."
             else "${entries.size} downloads · ${entries.count { it.active }} active · ${entries.count { it.status == DownloadManager.STATUS_FAILED }} failed" + if (entries.size == 500) " · showing up to 500" else ""
+        if (status.text.toString() != summary) status.text = summary
     }
     private fun downloadOptions(item: LibraryItem) {
         val entry = downloadEntries[item.downloadId] ?: return

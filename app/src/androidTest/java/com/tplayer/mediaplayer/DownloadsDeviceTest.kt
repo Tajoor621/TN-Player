@@ -39,7 +39,7 @@ class DownloadsDeviceTest {
         try {
             id = manager.addCompletedDownload(file.name, "TN-Player test fixture", false, "audio/wav", file.absolutePath, file.length(), true)
             val entry = runBlocking { DownloadRepository(context).entries().single { it.id == id } }
-            assertTrue(entry.completed); assertEquals(file.length(), entry.bytes)
+            assertTrue(entry.completed); assertEquals(file.length(), entry.total)
             ActivityScenario.launch(MainActivity::class.java).use {
                 openActionBarOverflowOrOptionsMenu(context)
                 onView(withText("Library")).perform(click())
