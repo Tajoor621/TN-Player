@@ -20,6 +20,14 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class FolderBrowserDeviceTest {
+    private fun capture(name: String) {
+        DevicePlayback.instrumentation.waitForIdleSync()
+        for (command in listOf("mkdir -p /sdcard/Download/tn-player-validation", "screencap -p /sdcard/Download/tn-player-validation/$name.png")) {
+            DevicePlayback.instrumentation.uiAutomation.executeShellCommand(command).use { descriptor ->
+                java.io.FileInputStream(descriptor.fileDescriptor).use { it.readBytes() }
+            }
+        }
+    }
     @androidx.test.filters.SdkSuppress(minSdkVersion = 29)
     @Test fun indexedFoldersOpenTheirMediaAndLayoutPersistsAcrossRecreation() {
         val context = DevicePlayback.context
@@ -52,11 +60,13 @@ class FolderBrowserDeviceTest {
                 DevicePlayback.await("Indexed folder was not displayed") {
                     var found = false; scenario.onActivity { found = labels(it).any { view -> view.text.toString() == tag } }; found
                 }
+                capture("folders")
                 scenario.onActivity { activity -> (labels(activity).first { it.text.toString() == tag }.parent.parent as View).performClick() }
                 DevicePlayback.await("Folder contents did not open") {
                     var found = false; scenario.onActivity { found = labels(it).any { view -> view.text.toString() == "Two.mp4" } }; found
                 }
                 scenario.onActivity { activity -> labels(activity).first { it.text.toString() == "View & layout" }.performClick() }
+                capture("view-options")
                 androidx.test.espresso.Espresso.onView(androidx.test.espresso.matcher.ViewMatchers.withText("Grid")).perform(androidx.test.espresso.action.ViewActions.click())
                 androidx.test.espresso.Espresso.onView(androidx.test.espresso.matcher.ViewMatchers.withText("Done")).perform(androidx.test.espresso.action.ViewActions.click())
                 assertTrue(settings.libraryDisplay.grid)
@@ -68,6 +78,7 @@ class FolderBrowserDeviceTest {
                     assertTrue(labels(activity).any { it.text.toString() == "Me" })
                     assertTrue(labels(activity).any { it.text.toString() == "Media Manager" })
                 }
+                capture("settings-hub")
             }
         } finally {
             settings.libraryDisplay = previous; settings.hidden = oldHidden
