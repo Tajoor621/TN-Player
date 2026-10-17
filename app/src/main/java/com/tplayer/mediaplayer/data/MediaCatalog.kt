@@ -66,7 +66,7 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
     private val query: String, private val hidden: Boolean, private val offset: Int, private val pageSize: Int) {
     init { require(offset >= 0 && pageSize in 1..500); require(offset <= Int.MAX_VALUE - pageSize) }
     private val order = comparator(display)
-    private val files = PriorityQueue<CatalogEntry>(pageSize, order.reversed())
+    private val files = PriorityQueue<CatalogEntry>(pageSize, Comparator { a, b -> order.compare(b, a) })
     private val folders = mutableMapOf<IndexedFolder, CatalogEntry>()
     private var totalFiles = 0
     private fun keep(entry: CatalogEntry) {
@@ -116,7 +116,7 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
                 MediaSort.FRAME_RATE -> a.frameRate.compareTo(b.frameRate)
                 MediaSort.TYPE -> a.mime.compareTo(b.mime)
             } }
-            return (if (display.descending) primary.reversed() else primary)
+            return (if (display.descending) Comparator<CatalogEntry> { a, b -> primary.compare(b, a) } else primary)
                 .thenBy { it.title.lowercase(Locale.ROOT) }.thenBy { it.uri }
         }
     }
