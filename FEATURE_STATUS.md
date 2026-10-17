@@ -18,7 +18,7 @@
 | Seek, speed, loop, shuffle | Standard transport; 0.25–4×; repeat modes; playlists | Frame-accurate stepping requires decoder-specific implementation |
 | A–B repeat and sleep timer | Service-owned loop and pause timer | Test seekable/live sources; persistence across process death not provided |
 | Resume history | Room, ordered pending-history reads, checkpoint every 5 s, restarts near-completed files at 0 | Encrypted queue restoration implemented; abrupt termination may lose recent progress |
-| Tracks and subtitles | Media3 tracks; external SRT/VTT; persistent size/color/typeface/background/position | Add delay pipeline, ASS/SSA renderer and image subtitles where supported |
+| Tracks and subtitles | Media3 tracks; external SRT/VTT, MPL2, PJS, MicroDVD/SubViewer, TMPlayer; timed-import delay and cue navigation; external native SSA/ASS/TTML; subtitle gesture mode; persistent style | Embedded/native-track delay, full libass styling, image sidecars, SAMI ruby and multi-external tracks remain; see MX_PLAYER_COMPARISON.md |
 | Online subtitle lookup | Not implemented | Use official OpenSubtitles REST API with a provisioned client key, user auth where required, rate limits, consent and cache; do not add unverified Maven coordinates |
 | Video display | Persistent fit/fill/crop, rotation, pinch/pan 1–3× and window brightness gesture | Mirror/vertical flip/night display, explicit portrait/landscape/fullscreen and bounded PNG frame export implemented; add color-processing shaders and deinterlace pipeline |
 | Audio processing | Service-owned device-band-aware Equalizer, capability-gated BassBoost/Virtualizer and saved controls | Add custom PCM processor for delay/boost with limiter and clipping tests. Do not label a device's 5-band EQ as 10-band |

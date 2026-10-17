@@ -38,6 +38,7 @@ class PlayerUiState : ViewModel() {
     var captions: ExternalCaptions? = null
     var subtitleGestures = false
     var pendingSubtitle: Uri? = null
+    var pendingSubtitleMediaId: String? = null
 }
 class PlayerActivity : AppCompatActivity() {
     private lateinit var video: PlayerView
@@ -77,7 +78,11 @@ class PlayerActivity : AppCompatActivity() {
             if (resumeRequested && player.mediaItemCount > 0) { resumeRequested = false; startPlayback(player) }
             updateAwake(); updatePip()
         }
-        override fun onMediaItemTransition(item: MediaItem?, reason: Int) { loopA = null }
+        override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+            loopA = null
+            if (ui.captions?.mediaId != item?.mediaId) ui.captions = null
+            if (ui.pendingSubtitleMediaId != null && ui.pendingSubtitleMediaId != item?.mediaId) { subtitleJob?.cancel(); ui.pendingSubtitle = null; ui.pendingSubtitleMediaId = null }
+        }
     }
     private val subtitlePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -354,12 +359,13 @@ class PlayerActivity : AppCompatActivity() {
         TrackSelectionDialogBuilder(this, if (type == C.TRACK_TYPE_AUDIO) "Audio Track" else "Subtitle", player, type).setShowDisableOption(type == C.TRACK_TYPE_TEXT).build().show()
     }
     private fun subtitleMenu() {
-        val options = arrayOf("Embedded tracks", "Load external subtitle", "Subtitle style", "Subtitle timing", "Previous caption", "Next caption", if (ui.subtitleGestures) "Subtitle gestures: on" else "Subtitle gestures: off", "Remove external subtitle")
+        val options = arrayOf("Embedded tracks", "Load external subtitle", "Subtitle style", "Subtitle timing", "Previous caption", "Next caption", if (ui.subtitleGestures) "Subtitle gestures: on" else "Subtitle gestures: off", "Remove external subtitle", "Supported subtitle formats")
         MaterialAlertDialogBuilder(this).setTitle("Subtitle").setItems(options) { _, index -> when (index) {
             0 -> trackDialog(C.TRACK_TYPE_TEXT); 1 -> control(2); 2 -> control(14)
             3 -> subtitleTiming(); 4 -> jumpCaption(-1); 5 -> jumpCaption(1)
             6 -> { ui.subtitleGestures = !ui.subtitleGestures; info("Subtitle gestures", if (ui.subtitleGestures) "Use two fingers: swipe horizontally to the previous/next external caption, vertically to move captions, or pinch to change text size. Normal video zoom returns when subtitle gestures are off. Embedded or styled captions may define their own position." else "Video seek, brightness, volume, zoom and pan gestures restored.") }
             7 -> { subtitleJob?.cancel(); ui.pendingSubtitle = null; ui.captions = null; ui.subtitleGestures = false; controller?.let { p -> p.currentMediaItem?.let { item -> replaceCaptions(p, item, emptyList()) } } }
+            8 -> info("Subtitle formats", "Timed import: SRT, WebVTT, MPL2 (.mpl), PJS, MicroDVD (.sub with frame-rate header), SubViewer 2.0 (.sub), TMPlayer (.txt). Native rendering: ASS/SSA and TTML/DFXP. Text must use UTF-8 or BOM-marked UTF-16, up to 2 MB. Delay and cue navigation apply to timed imports; advanced WebVTT and legacy styling is not retained.")
         } }.show()
     }
     private fun subtitleTiming() {
@@ -569,7 +575,7 @@ class PlayerActivity : AppCompatActivity() {
         val player = controller ?: return
         val item = player.currentMediaItem ?: return
         subtitleJob?.cancel()
-        ui.pendingSubtitle = uri
+        ui.pendingSubtitle = uri; ui.pendingSubtitleMediaId = item.mediaId
         subtitleJob = launchUi {
             val imported = withContext(Dispatchers.IO) {
                 require(uri.scheme in setOf("content", "file")) { "Choose a local subtitle file." }

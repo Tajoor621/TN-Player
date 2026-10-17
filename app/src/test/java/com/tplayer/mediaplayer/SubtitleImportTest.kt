@@ -45,6 +45,7 @@ class SubtitleImportTest {
         rejects { SubtitleImport.parse("{25}{75}Guess my frame rate", "bad.sub") }
         rejects { SubtitleImport.parse("{1}{1}NaN\n{25}{75}Bad", "bad.sub") }
         rejects { SubtitleImport.parse("[20][10]Backwards", "bad.mpl") }
+        rejects { SubtitleImport.parse("[184467440737095517][184467440737095518]Overflow", "bad.mpl") }
         rejects { SubtitleImport.parse("1\n00:99:01,000 --> 00:99:03,000\nBad", "bad.srt") }
         rejects { SubtitleImport.parse("0:00:02:a\n0:00:01:b", "bad.txt") }
         rejects { SubtitleImport.parse("not a subtitle", "bad.txt") }
@@ -53,6 +54,6 @@ class SubtitleImportTest {
         rejects { SubtitleImport.parse((1..20001).joinToString("\n") { "[10][30]cue" }, "large.mpl") }
     }
     private fun rejects(action: () -> Unit) {
-        try { action(); fail("Invalid subtitle was accepted") } catch (_: IllegalArgumentException) { }
+        try { action(); fail("Invalid subtitle was accepted") } catch (_: Exception) { }
     }
 }

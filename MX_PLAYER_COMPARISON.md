@@ -27,7 +27,7 @@ This is an independent implementation of functional behavior. No MX Player sourc
 ## New implementation details
 
 - Text imports are bounded to 2 MB, 20,000 cues, 16,384 characters per line and seven days of timestamps. Frame rates and malformed encodings/timestamps are checked. Original files are never rewritten.
-- Normalized captions are stored only in app-private cache, named by SHA-256. Unused old cache files are eligible for cleanup after seven days. Android may evict cached captions; reload the source if needed.
+- Normalized captions are stored only in app-private cache, named by SHA-256. Cached imports older than seven days are eligible for cleanup. Android may evict cached captions; reload the source if needed.
 - Current external-caption timeline/delay survives Activity recreation through a ViewModel. It is not restored after process death or included in the library backup. The playback queue/history recovery behavior remains unchanged.
 - Subtitle import and shared-file display-name queries run off the UI thread. Cancellation retains pending input for the next Activity start; a new media request cancels the old request.
 - External caption imports replace the current external subtitle; simultaneous external tracks are not implemented. Embedded tracks remain selectable.
