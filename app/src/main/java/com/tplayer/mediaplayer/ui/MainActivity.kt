@@ -40,6 +40,8 @@ class BrowserState : ViewModel() {
     val searches = mutableMapOf<Screen, String>()
     val mediaFolders = mutableMapOf<Boolean, IndexedFolder?>()
     var settingsDetails = false
+    var pendingDownload: LibraryItem? = null
+    var pendingRetry: Long? = null
     val selection = FileSelection()
 }
 class MainActivity : AppCompatActivity() {
@@ -95,6 +97,12 @@ class MainActivity : AppCompatActivity() {
     private var selectAllHandler: (() -> Unit)? = null
     private val deleteConsent = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { deletions.result(it.resultCode == RESULT_OK) }
     private val legacyWrite = registerForActivityResult(ActivityResultContracts.RequestPermission()) { deletions.result(it) }
+    private val downloadWrite = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val item = browser.pendingDownload; val retry = browser.pendingRetry
+        browser.pendingDownload = null; browser.pendingRetry = null
+        if (granted && (item != null || retry != null)) queueDownload(item, retry)
+        else if (!granted) info("Downloads", "Storage permission was not granted. No new download was queued.")
+    }
     private var folder: DocumentFile?
         get() = browser.folder
         set(value) { browser.folder = value }
@@ -223,6 +231,16 @@ class MainActivity : AppCompatActivity() {
         }
         root.addView(NowPlayingBar(this))
         root.addView(nav); setContentView(root)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    delay(2000)
+                    if (screen == Screen.DOWNLOADS) try { refreshDownloads() }
+                    catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { if (screen == Screen.DOWNLOADS) status.text = "Cannot refresh downloads. Tap Refresh to try again." }
+                }
+            }
+        }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when {
@@ -577,9 +595,18 @@ class MainActivity : AppCompatActivity() {
     }
     private fun download(item: LibraryItem) {
         DownloadPolicy.error(item.uri, item.mimeType)?.let { info("Downloads", it); return }
+        queueDownload(item)
+    }
+    private fun queueDownload(item: LibraryItem? = null, retry: Long? = null) {
+        if (Build.VERSION.SDK_INT <= 28 && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            browser.pendingDownload = item; browser.pendingRetry = retry
+            downloadWrite.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            return
+        }
         launchUi {
-            downloads.start(item)
-            info("Download queued", "Open Library → Downloads for progress, failures, retry and cancellation. Android manages the background transfer. Files are removed on uninstall.")
+            if (item != null) downloads.start(item) else downloads.retry(checkNotNull(retry))
+            if (screen == Screen.DOWNLOADS) showDownloads()
+            else info("Download queued", "Open Library → Downloads for progress, failures, retry and cancellation. Android manages the background transfer. Files are removed on uninstall.")
         }
     }
     private fun collections() {
@@ -607,18 +634,16 @@ class MainActivity : AppCompatActivity() {
         val actions = setup("Downloads")
         actions.addView(button("Refresh") { showDownloads() })
         status.text = "Loading Android-managed downloads…"
-        job = launchUi {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                while (isActive) {
-                    val entries = downloads.entries()
-                    downloadEntries = entries.associateBy { it.id }
-                    adapter.submit(entries.map { it.item() })
-                    status.text = if (entries.isEmpty()) "No downloads. Add a direct HTTPS file from Streams."
-                        else "${entries.size} downloads · ${entries.count { it.active }} active · ${entries.count { it.status == DownloadManager.STATUS_FAILED }} failed" + if (entries.size == 500) " · showing up to 500" else ""
-                    delay(2000)
-                }
-            }
-        }
+        job = launchUi { refreshDownloads() }
+    }
+    private suspend fun refreshDownloads() {
+        val current = adapter
+        val entries = downloads.entries()
+        if (screen != Screen.DOWNLOADS || adapter !== current) return
+        downloadEntries = entries.associateBy { it.id }
+        current.submit(entries.map { it.item() })
+        status.text = if (entries.isEmpty()) "No downloads. Add a direct HTTPS file from Streams."
+            else "${entries.size} downloads · ${entries.count { it.active }} active · ${entries.count { it.status == DownloadManager.STATUS_FAILED }} failed" + if (entries.size == 500) " · showing up to 500" else ""
     }
     private fun downloadOptions(item: LibraryItem) {
         val entry = downloadEntries[item.downloadId] ?: return
@@ -637,7 +662,7 @@ class MainActivity : AppCompatActivity() {
                         .putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         .apply { clipData = ClipData.newRawUri("Download", uri) }, "Share download"))
                 } catch (_: Exception) { info("Share", "This downloaded file is no longer accessible.") }
-                "Retry download" -> launchUi { downloads.retry(entry.id); showDownloads() }
+                "Retry download" -> queueDownload(retry = entry.id)
                 else -> MaterialAlertDialogBuilder(this).setTitle(choices[index] + "?")
                     .setMessage("${entry.title}\n\nAndroid will remove the download record and its downloaded or partial file. This cannot be undone here.")
                     .setNegativeButton("Keep", null).setPositiveButton("Remove") { _, _ -> launchUi {

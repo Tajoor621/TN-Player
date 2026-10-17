@@ -29,7 +29,7 @@ Windows: use `gradlew.bat`. The real Gradle 8.7 wrapper JAR and scripts are incl
 Debug APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 `assembleRelease` produces an unsigned, R8-optimized release APK; configure your own signing key before distribution. Never commit keystores or signing passwords.
 
-The GitHub Actions workflow builds debug/release, runs unit tests/lint, and includes Android 14 emulator navigation, playback, Keystore, PiP and process-recovery checks. Both workflows are committed to this repository and run in GitHub Actions. Check the Actions tab for current results; historical validation is kept separately.
+The GitHub Actions workflow builds debug/release, runs unit tests/lint, and includes Android 9 and Android 14 emulator navigation, playback, Keystore, PiP and process-recovery checks. Both workflows are committed to this repository and run in GitHub Actions. Check the Actions tab for current results; historical validation is kept separately.
 
 ## Branding and GitHub Pages
 
@@ -68,6 +68,15 @@ Debug APKs may use different signing keys between runs. Android may reject an in
 - **Rotate** offers device-controlled rotation, portrait or landscape. Playback stays in the foreground service through orientation changes. **Full screen** toggles system bars; swipe from an edge to reveal them. **Lock** has a visible accessible Unlock button as well as the long-press fallback.
 - **Screenshot** exports an available decoded frame via a user-chosen PNG destination, up to 1,920 pixels on its longest edge. UI, mirror/flip/night rendering transforms are not burned into the exported frame; protected/unavailable video may prevent capture.
 - Resume/history and encrypted queue checkpoints remain in place. Queue transitions with unknown duration no longer overwrite a known duration. Background play remains on by default; turning it off pauses when the player leaves the foreground.
+
+## Repository audit improvements
+
+- Read the [professional audit and prioritized roadmap](AUDIT.md) for findings, fixes and release blockers.
+- Move operations recheck the source hash before deleting it; a changed/unreadable source leaves both copies intact. The final provider delete is not a universal atomic compare-and-delete operation.
+- Per-file resume lookups now wait for pending history writes. Pending updates coalesce by file within the existing 200-file history policy; clear/flush use that same ordered writer.
+- **Library → Downloads** shows queued/running/paused/completed/failed transfers, bytes/percentage and failure reasons. Failed downloads can retry. Cancel/remove requires confirmation and removes the record plus downloaded/partial bytes. Completed entries offer Play, Share and Properties. The list refreshes while visible and displays up to 500 records.
+- Direct HTTPS requests reject known adaptive manifest paths and MIME types; offline HLS/DASH remains unfinished. Android 9 and earlier request the storage permission needed for legacy downloads. Android DownloadManager remains the backend; migration to an app-controlled download worker is recommended in the audit.
+- Both CI workflows pin action commit hashes; monthly Dependabot updates and resolved release-dependency artifacts support maintenance. Native checks now run on API 28 and API 34.
 
 ## First use
 

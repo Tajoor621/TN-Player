@@ -28,13 +28,16 @@ class DownloadsDeviceTest {
     @Suppress("DEPRECATION")
     @Test fun completedDownloadIsListedAndRemovalRequiresConfirmation() {
         val context = DevicePlayback.context
+        if (android.os.Build.VERSION.SDK_INT <= 28) {
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(DevicePlayback.instrumentation.uiAutomation.executeShellCommand("pm grant ${context.packageName} android.permission.WRITE_EXTERNAL_STORAGE")).use { it.readBytes() }
+        }
         val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "TN-download-test-${System.nanoTime()}.wav")
         file.parentFile!!.mkdirs()
         DevicePlayback.instrumentation.context.assets.open("audio-fixture.wav").use { source -> file.outputStream().use { source.copyTo(it) } }
         var id = -1L
         try {
-            id = manager.addCompletedDownload(file.name, "TN-Player test fixture", false, "audio/wav", file.absolutePath, file.length(), false)
+            id = manager.addCompletedDownload(file.name, "TN-Player test fixture", false, "audio/wav", file.absolutePath, file.length(), true)
             val entry = runBlocking { DownloadRepository(context).entries().single { it.id == id } }
             assertTrue(entry.completed); assertEquals(file.length(), entry.bytes)
             ActivityScenario.launch(MainActivity::class.java).use {
@@ -43,6 +46,9 @@ class DownloadsDeviceTest {
                 waitFor("Your library")
                 onView(withText("Downloads")).inRoot(isDialog()).perform(click())
                 waitFor(file.name)
+                for (command in listOf("mkdir -p /sdcard/Download/tn-player-validation", "screencap -p /sdcard/Download/tn-player-validation/downloads.png")) {
+                    android.os.ParcelFileDescriptor.AutoCloseInputStream(DevicePlayback.instrumentation.uiAutomation.executeShellCommand(command)).use { stream -> stream.readBytes() }
+                }
                 onView(withText(file.name)).perform(click())
                 waitFor("Remove download")
                 onView(withText("Remove download")).inRoot(isDialog()).perform(click())

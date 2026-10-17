@@ -17,18 +17,18 @@
 | Foreground audio / lock-screen / headset | Delegated to Media3 service/session/audio focus | Test Bluetooth/car/OEM lock-screen paths; optional headset reconnect setting requires explicit behavior design |
 | Seek, speed, loop, shuffle | Standard transport; 0.25–4×; repeat modes; playlists | Frame-accurate stepping requires decoder-specific implementation |
 | A–B repeat and sleep timer | Service-owned loop and pause timer | Test seekable/live sources; persistence across process death not provided |
-| Resume history | Room, checkpoint every 5 s, restarts near-completed files at 0 | Encrypted queue restoration implemented; abrupt termination may lose recent progress |
+| Resume history | Room, ordered pending-history reads, checkpoint every 5 s, restarts near-completed files at 0 | Encrypted queue restoration implemented; abrupt termination may lose recent progress |
 | Tracks and subtitles | Media3 tracks; external SRT/VTT; persistent size/color/typeface/background/position | Add delay pipeline, ASS/SSA renderer and image subtitles where supported |
 | Online subtitle lookup | Not implemented | Use official OpenSubtitles REST API with a provisioned client key, user auth where required, rate limits, consent and cache; do not add unverified Maven coordinates |
 | Video display | Persistent fit/fill/crop, rotation, pinch/pan 1–3× and window brightness gesture | Mirror/vertical flip/night display, explicit portrait/landscape/fullscreen and bounded PNG frame export implemented; add color-processing shaders and deinterlace pipeline |
 | Audio processing | Service-owned device-band-aware Equalizer, capability-gated BassBoost/Virtualizer and saved controls | Add custom PCM processor for delay/boost with limiter and clipping tests. Do not label a device's 5-band EQ as 10-band |
 | PiP | API 26+ guard, auto enter API 31+, runtime params, media-session system controls | Custom play/pause/previous/next RemoteActions implemented; add expanded PiP capability checks; measure transitions |
 | File browsing | User-chosen SAF folder, nested navigation, hidden toggle, search | No root escalation; system/other-app private folders remain protected |
-| File operations | Verified staged individual-file copy/move, rotation-safe progress/cancel UI, encrypted cleanup journal, rename, delete confirmation, share, new folder, properties | Individual and select-all file controls, confirmed batch deletion with Android approval and multi-share implemented; add tree-recursive copy/move with self-descendant guards and test document providers |
+| File operations | Verified staged individual-file copy/move with pre-delete source recheck, rotation-safe progress/cancel UI, encrypted cleanup journal, rename, delete confirmation, share, new folder, properties | Individual and select-all file controls, confirmed batch deletion with Android approval and multi-share implemented; add tree-recursive copy/move with self-descendant guards and test document providers |
 | Archives | Cancellable ZIP file/folder creation with CRC read-back; staged SAF extraction with path/collision, 512 MB, 5,000-entry and depth limits; originals retained | Process interruptions may leave hidden staging output; provider fault testing; separately license/test 7z/RAR |
 | SD card / USB | Through Android document providers and granted tree URIs | Test removable volumes and provider revocation; direct USB-host support requires explicit UsbManager consent, not a fictional USB_PERMISSION |
 | Streams | HTTPS progressive/HLS/DASH/SS; RTSP module | HTTP intentionally blocked. Add per-host opt-in only with explicit UX; RTMP/SMB/FTP/SFTP/NFS/DLNA/WebDAV require protocol-specific data sources and tests |
-| Downloads | Android Download Manager for direct HTTPS media; local completed-file list | Add real queue/progress/error UI and Media3 DownloadService/cache for offline adaptive media; reject DRM/offline assumptions |
+| Downloads | Android Download Manager for direct HTTPS media; lifecycle-scoped status/progress/reasons, retry and confirmed cancel/remove; completed playback/share/details | Migrate the system backend to app-owned HTTP/scheduled writes per Android security guidance; add Media3 offline adaptive cache/DRM handling |
 | Transfers / servers / Wi-Fi Direct | Not implemented | Design authenticated explicit sharing sessions, ephemeral credentials, foreground service only during transfers and tested connection lifecycles |
 | Cast | Not implemented | Add Cast SDK with receiver capability checks and separate DLNA discovery/control; local files require explicitly enabled authenticated LAN serving |
 | Cloud storage / sync | Not implemented | OAuth via provider SDK or Android document provider; encrypt secrets using Keystore; queue sync with conflict resolution and user opt-in |
@@ -46,7 +46,7 @@
 | Notifications | Media3 media playback; Android Download Manager | Add extra channels only for implemented user-visible events; no fabricated update channel |
 | R8 / packaging | Optimized unsigned release build configuration, consumer rules | Production signing, dependency/license inventory; ABI splits only after native libraries exist |
 | Backups | OS backup disabled; versioned 2 MB JSON export and previewed transactional collection merge via SAF; excludes network sources/credentials, media bytes and URI grants | Large/cross-provider round trips and interrupted preference-application testing |
-| Tests and performance | Unit/database tests, navigation instrumentation, CI definition | Real-device codec corpus, fault injection, lifecycle and battery benchmarks required; numerical targets are unmeasured |
+| Tests and performance | Unit/database/race/fault regressions, Android 9/14 native CI, pinned Actions, monthly dependency-update configuration and resolved release inventory | Real-device codec corpus, fault injection, lifecycle and battery benchmarks required; numerical targets are unmeasured |
 
 ## Recommended sequence to finish the full product
 
@@ -58,3 +58,5 @@
 6. Measure startup, seek latency, memory, thermal load and battery using representative hardware; complete signing and current distribution checks.
 
 Do not turn every declaration in an extracted third-party manifest into a required TN-Player component. Add only components that own actual behavior.
+
+Latest prioritized source/security/release findings: [AUDIT.md](AUDIT.md). Current compile/target 34 is a development baseline; API 36/toolchain migration remains necessary for a new Google Play phone-app submission under the requirements checked in October 2026.

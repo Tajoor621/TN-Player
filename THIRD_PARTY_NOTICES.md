@@ -15,3 +15,5 @@ Upstream references:
 - https://github.com/robolectric/robolectric
 
 Glide 4.16.0 (image/video thumbnail loading, compiler and transitive artifacts): BSD-style / Apache-2.0 components; see https://github.com/bumptech/glide/blob/v4.16.0/LICENSE. Audit the resolved distribution before production release.
+
+CI now saves `app/build/reports/release-dependencies.txt`, resolving the exact release classpath. This tree is a starting point for the complete transitive license/NOTICE review, not a substitute for it. Both workflows pin action commit hashes; `.github/dependabot.yml` schedules reviewable dependency updates.
