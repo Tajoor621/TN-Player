@@ -55,6 +55,7 @@ class FolderBrowserDeviceTest {
             val selected = folders.entries.first { it.title == tag }.folder
             val children = runBlocking { MediaCatalog(context).page(true, LibraryDisplay(), selected, "", false, emptyList()) }
             assertEquals(setOf("One.mp4", "Two.mp4"), children.entries.map { it.title }.toSet())
+            assertEquals("Existing media URI identity changed", uris.take(2).map { it.toString() }.toSet(), children.entries.map { it.uri }.toSet())
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                 fun labels(activity: MainActivity) = DevicePlayback.descendants(activity.findViewById(android.R.id.content)).filterIsInstance<TextView>()
                 DevicePlayback.await("Indexed folder was not displayed") {
