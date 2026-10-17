@@ -14,7 +14,7 @@ This is an independent implementation of functional behavior. No MX Player sourc
 | Privacy Folder | Not included | Requires reviewed encrypted media storage, authentication, import/export recovery and tests; hiding names is not encryption |
 | Kids lock | Existing control lock plus new Android screen-pinning action | User must approve Android's pinning UI; Android controls escape/emergency behavior; not a parental-control password |
 | SRT / WebVTT | External load, normalized timed cues, delay ±10 minutes, previous/next cue seek and removal | UTF-8 and BOM-marked UTF-16; WebVTT cue positioning/styling is not retained by normalization |
-| SSA / ASS | New external loading through Media3's native renderer | Media3 styling subset; no full libass fonts/animation guarantee; native timing, no new cue-navigation/delay controls |
+| SSA / ASS | New external loading through Media3's native renderer | Media3 styling subset with an embedded-styles toggle; no full libass fonts/animation guarantee; native timing, no new cue-navigation/delay controls |
 | MicroDVD | New external `.sub` import | Explicit `{1}{1}25` (or `{0}{0}`) frame-rate header required; no guessed FPS or advanced styling |
 | SubViewer 2.0 | New `.sub` timed text import | Basic `hh:mm:ss.xx,hh:mm:ss.xx` timing and `[br]` line breaks |
 | MPL2 / PJS / TMPlayer | New `.mpl`, `.pjs`, timed `.txt` import | Plain text and line breaks; TMPlayer ends each cue at next start, final cue at +5 seconds |

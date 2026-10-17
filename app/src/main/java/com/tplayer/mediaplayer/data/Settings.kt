@@ -32,6 +32,9 @@ class Settings(context: Context) {
     var amoled: Boolean
         get() = prefs.getBoolean("amoled", false)
         set(value) { prefs.edit().putBoolean("amoled", value).apply() }
+    var embeddedSubtitleStyles: Boolean
+        get() = prefs.getBoolean("embeddedSubtitleStyles", true)
+        set(value) { prefs.edit().putBoolean("embeddedSubtitleStyles", value).apply() }
     var subtitleSize: Int
         get() = prefs.getInt("subtitleSize", 1).coerceIn(0, 2)
         set(value) { prefs.edit().putInt("subtitleSize", value.coerceIn(0, 2)).apply() }
@@ -108,7 +111,7 @@ class Settings(context: Context) {
     fun backupValues(): Map<String, Any> = mapOf(
         "decoderPreference" to decoderPreference, "theme" to theme, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
         "seekMs" to seekMs, "gestures" to gestures, "amoled" to amoled,
-        "subtitleSize" to subtitleSize, "subtitleFont" to subtitleFont, "subtitleColor" to subtitleColor,
+        "embeddedSubtitleStyles" to embeddedSubtitleStyles, "subtitleSize" to subtitleSize, "subtitleFont" to subtitleFont, "subtitleColor" to subtitleColor,
         "subtitleBackground" to subtitleBackground, "subtitlePosition" to subtitlePosition,
         "aspectRatio" to aspectRatio,
         "libraryMode" to libraryDisplay.mode.ordinal, "libraryGrid" to libraryDisplay.grid,

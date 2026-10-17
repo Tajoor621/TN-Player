@@ -519,7 +519,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun applySubtitleStyle() {
         video.subtitleView?.apply {
-            setApplyEmbeddedStyles(false)
+            setApplyEmbeddedStyles(settings.embeddedSubtitleStyles)
             setFractionalTextSize(floatArrayOf(.035f, .0533f, .075f)[settings.subtitleSize])
             setBottomPaddingFraction(settings.subtitlePosition / 100f)
             setStyle(CaptionStyleCompat(settings.subtitleColor,
@@ -529,13 +529,14 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
     private fun subtitleStyleMenu() {
-        MaterialAlertDialogBuilder(this).setTitle("Subtitle style").setItems(arrayOf("Text size", "Text color", "Typeface", "Toggle background", "Position")) { _, choice ->
+        MaterialAlertDialogBuilder(this).setTitle("Subtitle style").setItems(arrayOf("Text size", "Text color", "Typeface", "Toggle background", "Position", if (settings.embeddedSubtitleStyles) "Embedded styles: on" else "Embedded styles: off")) { _, choice ->
             when (choice) {
                 0 -> MaterialAlertDialogBuilder(this).setTitle("Text size").setSingleChoiceItems(arrayOf("Small", "Medium", "Large"), settings.subtitleSize) { dialog, index -> settings.subtitleSize = index; applySubtitleStyle(); dialog.dismiss() }.show()
                 1 -> MaterialAlertDialogBuilder(this).setTitle("Text color").setItems(arrayOf("White", "Yellow", "Cyan")) { _, index -> settings.subtitleColor = intArrayOf(-1, -256, -16711681)[index]; applySubtitleStyle() }.show()
                 2 -> MaterialAlertDialogBuilder(this).setTitle("Typeface").setSingleChoiceItems(arrayOf("Sans", "Serif", "Monospace"), settings.subtitleFont) { dialog, index -> settings.subtitleFont = index; applySubtitleStyle(); dialog.dismiss() }.show()
                 3 -> { settings.subtitleBackground = !settings.subtitleBackground; applySubtitleStyle() }
                 4 -> MaterialAlertDialogBuilder(this).setTitle("Position").setItems(arrayOf("Low", "Raised", "High")) { _, index -> settings.subtitlePosition = intArrayOf(8, 16, 28)[index]; applySubtitleStyle() }.show()
+                5 -> { settings.embeddedSubtitleStyles = !settings.embeddedSubtitleStyles; applySubtitleStyle() }
             }
         }.show()
     }
@@ -583,6 +584,7 @@ class PlayerActivity : AppCompatActivity() {
         subtitleJob?.cancel()
         ui.pendingSubtitle = uri; ui.pendingSubtitleMediaId = item.mediaId
         subtitleJob = launchUi {
+            try {
             val imported = withContext(Dispatchers.IO) {
                 require(uri.scheme in setOf("content", "file")) { "Choose a local subtitle file." }
                 val name = displayName(uri)
@@ -601,6 +603,8 @@ class PlayerActivity : AppCompatActivity() {
                 val document = withContext(Dispatchers.Default) { SubtitleImport.parse(imported.second, imported.first) }
                 if (controller === player && player.currentMediaItem?.mediaId == item.mediaId) applyCaptions(player, item, ExternalCaptions(item.mediaId, imported.first, document))
             }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { ui.pendingSubtitle = null; ui.pendingSubtitleMediaId = null; throw e }
         }
     }
     private fun captionFile(text: String): File {
