@@ -17,24 +17,24 @@ fun Context.settingsHub(tiles: List<HubAction>, rows: List<HubAction>): ScrollVi
     val scroll = ScrollView(this).apply { setBackgroundColor(MaterialColors.layer(surface, accent, .04f)) }
     val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(8), dp(16), dp(8), dp(20)) }
     scroll.addView(box)
-    box.addView(TextView(this).apply { text = "Me"; textSize = 32f; setPadding(dp(8), 0, 0, dp(6)); androidx.core.view.ViewCompat.setAccessibilityHeading(this, true) })
-    box.addView(TextView(this).apply { text = "Make it yours"; textSize = 16f; alpha = .7f; setPadding(dp(8), 0, 0, dp(20)) })
+    box.addView(TextView(this).apply { readable(); text = "Me"; textSize = 32f; setTypeface(typeface, android.graphics.Typeface.BOLD); setPadding(dp(8), 0, 0, dp(6)); androidx.core.view.ViewCompat.setAccessibilityHeading(this, true) })
+    box.addView(TextView(this).apply { readable(); text = "Make it yours"; textSize = 16f; alpha = .7f; setPadding(dp(8), 0, 0, dp(20)) })
     fun card(child: android.view.View): MaterialCardView = MaterialCardView(this).apply {
         radius = dp(20).toFloat(); cardElevation = dp(1).toFloat(); setCardBackgroundColor(surface)
         addView(child); layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) }
     }
-    val grid = GridLayout(this).apply { columnCount = if (resources.configuration.screenWidthDp < 340) 2 else 3; setPadding(dp(6), dp(12), dp(6), dp(12)) }
+    val grid = GridLayout(this).apply { columnCount = if (resources.configuration.screenWidthDp < 300) 2 else 3; setPadding(dp(6), dp(12), dp(6), dp(12)) }
     tiles.forEachIndexed { index, tile ->
         val cell = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; minimumHeight = dp(132); setPadding(dp(4), dp(12), dp(4), dp(12))
+            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; minimumHeight = dp(116); setPadding(dp(4), dp(12), dp(4), dp(12))
             isFocusable = tile.action != null; isClickable = tile.action != null
             contentDescription = "${tile.title}, ${tile.detail}"
             tile.action?.let { action -> setOnClickListener { action() } }
         }
         cell.addView(ImageView(this).apply { setImageResource(tile.icon); imageTintList = ColorStateList.valueOf(accent); importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO }, LinearLayout.LayoutParams(dp(36), dp(36)))
-        cell.addView(TextView(this).apply { text = tile.title; textSize = 14f; gravity = Gravity.CENTER; setPadding(0, dp(12), 0, 0); maxLines = 2 }, LinearLayout.LayoutParams(-1, -2))
-        if (tile.detail.isNotEmpty()) cell.addView(TextView(this).apply { text = tile.detail; textSize = 11f; gravity = Gravity.CENTER; alpha = .65f; maxLines = 2 }, LinearLayout.LayoutParams(-1, -2))
-        if (tile.action == null) cell.alpha = .5f
+        cell.addView(TextView(this).apply { readable(); text = tile.title; textSize = 14f; gravity = Gravity.CENTER; setPadding(0, dp(12), 0, 0); maxLines = 2 }, LinearLayout.LayoutParams(-1, -2))
+        if (tile.detail.isNotEmpty()) cell.addView(TextView(this).apply { readable(); text = tile.detail; textSize = 11f; gravity = Gravity.CENTER; alpha = .65f; maxLines = 2 }, LinearLayout.LayoutParams(-1, -2))
+        if (tile.action == null) cell.alpha = .65f
         grid.addView(cell, GridLayout.LayoutParams(GridLayout.spec(index / grid.columnCount), GridLayout.spec(index % grid.columnCount, 1f)).apply { width = 0; height = -2 })
     }
     box.addView(card(grid))
@@ -47,13 +47,13 @@ fun Context.settingsHub(tiles: List<HubAction>, rows: List<HubAction>): ScrollVi
         }
         row.addView(ImageView(this).apply { setImageResource(item.icon); imageTintList = ColorStateList.valueOf(accent); importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO }, LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(18) })
         val label = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        label.addView(TextView(this).apply { text = item.title; textSize = 18f })
-        if (item.detail.isNotEmpty()) label.addView(TextView(this).apply { text = item.detail; textSize = 12f; alpha = .65f })
+        label.addView(TextView(this).apply { readable(); text = item.title; textSize = 18f })
+        if (item.detail.isNotEmpty()) label.addView(TextView(this).apply { readable(); text = item.detail; textSize = 12f; alpha = .65f })
         row.addView(label, LinearLayout.LayoutParams(0, -2, 1f))
-        row.addView(TextView(this).apply { text = "›"; textSize = 26f; alpha = .6f; importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO })
+        row.addView(TextView(this).apply { readable(); text = "›"; textSize = 26f; alpha = .6f; importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO })
         list.addView(row)
     }
     box.addView(card(list))
-    box.addView(TextView(this).apply { text = "TN-Player 1.0.0 · Your media, your device"; textSize = 12f; alpha = .65f; gravity = Gravity.CENTER; setPadding(0, dp(12), 0, dp(12)) })
+    box.addView(TextView(this).apply { readable(); text = "TN-Player 1.0.0 · Your media, your device"; textSize = 12f; alpha = .65f; gravity = Gravity.CENTER; setPadding(0, dp(12), 0, dp(12)) })
     return scroll
 }

@@ -68,6 +68,10 @@ class FolderBrowserDeviceTest {
                 scenario.onActivity { activity -> labels(activity).first { it.text.toString() == "View & layout" }.performClick() }
                 capture("view-options")
                 androidx.test.espresso.Espresso.onView(androidx.test.espresso.matcher.ViewMatchers.withText("Grid")).perform(androidx.test.espresso.action.ViewActions.click())
+                androidx.test.espresso.Espresso.onView(androidx.test.espresso.matcher.ViewMatchers.withText("Cancel")).perform(androidx.test.espresso.action.ViewActions.click())
+                assertFalse("Cancel changed the persisted layout", settings.libraryDisplay.grid)
+                scenario.onActivity { activity -> labels(activity).first { it.text.toString() == "View & layout" }.performClick() }
+                androidx.test.espresso.Espresso.onView(androidx.test.espresso.matcher.ViewMatchers.withText("Grid")).perform(androidx.test.espresso.action.ViewActions.click())
                 androidx.test.espresso.Espresso.onView(androidx.test.espresso.matcher.ViewMatchers.withText("Done")).perform(androidx.test.espresso.action.ViewActions.click())
                 assertTrue(settings.libraryDisplay.grid)
                 scenario.recreate()

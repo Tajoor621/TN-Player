@@ -13,13 +13,16 @@ fun Context.libraryViewDialog(initial: LibraryDisplay, hidden: Boolean, apply: (
     var draft = initial
     var showHidden = hidden
     val scroll = ScrollView(this)
-    val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), 0, dp(20), dp(16)) }
+    val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), 0, dp(16), dp(12)) }
     scroll.addView(box)
-    fun heading(title: String) { box.addView(TextView(this).apply { text = title; textSize = 18f; setPadding(0, dp(20), 0, dp(8)); androidx.core.view.ViewCompat.setAccessibilityHeading(this, true) }) }
+    fun heading(title: String) { box.addView(TextView(this).apply { readable(); text = title; textSize = 18f; setPadding(0, dp(20), 0, dp(8)); androidx.core.view.ViewCompat.setAccessibilityHeading(this, true) }) }
     fun choices(labels: List<String>, selected: Int, action: (Int) -> Unit) {
         val group = ChipGroup(this).apply { isSingleSelection = true; isSelectionRequired = true; chipSpacingHorizontal = dp(6); chipSpacingVertical = dp(4) }
         labels.forEachIndexed { index, label -> group.addView(Chip(this).apply {
-            id = View.generateViewId(); text = label; isCheckable = true; minHeight = dp(48); isChecked = index == selected
+            id = View.generateViewId(); text = label; textSize = 12f
+            chipStartPadding = dp(4).toFloat(); chipEndPadding = dp(4).toFloat()
+            textStartPadding = dp(4).toFloat(); textEndPadding = dp(4).toFloat(); setCheckedIconVisible(false)
+            readable(); isCheckable = true; minHeight = dp(48); isChecked = index == selected
             setOnCheckedChangeListener { _, checked -> if (checked) action(index) }
         }) }
         box.addView(group)

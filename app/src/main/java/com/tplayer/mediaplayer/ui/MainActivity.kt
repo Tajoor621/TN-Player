@@ -239,12 +239,12 @@ class MainActivity : AppCompatActivity() {
     }
     private fun setup(title: String): LinearLayout {
         job?.cancel(); content.removeAllViews(); searchHandler = null
-        val heading = TextView(this).apply { text = title; textSize = 28f; setPadding(dp(8), dp(16), 0, dp(12)); accessibilityHeadingCompat() }
+        val heading = TextView(this).apply { text = title; textSize = 28f; readable(); setTypeface(typeface, android.graphics.Typeface.BOLD); setPadding(dp(8), dp(16), 0, dp(12)); accessibilityHeadingCompat() }
         content.addView(heading)
         val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val scroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(actions) }
         content.addView(scroll)
-        status = TextView(this).apply { textSize = 13f; setPadding(dp(8), dp(8), dp(8), dp(8)); accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        status = TextView(this).apply { textSize = 13f; readable(); alpha = .7f; setPadding(dp(8), dp(8), dp(8), dp(8)); accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE }
         content.addView(status)
         val search = EditText(this).apply { hint = "Search this list"; contentDescription = "Search this list"; setSingleLine(); minHeight = dp(48); setText(browser.searches[screen].orEmpty()) }
         content.addView(search)
@@ -305,8 +305,11 @@ class MainActivity : AppCompatActivity() {
         ).forEachIndexed { index, (label, action) ->
             quick.addView(button(label, action).apply {
                 setIconResource(quickIcons[index]); iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_TOP
-                iconSize = dp(28); textSize = 12f; insetTop = 0; insetBottom = 0
-                layoutParams = LinearLayout.LayoutParams(dp(104), dp(90)).apply { marginEnd = dp(6) }
+                iconSize = dp(28); textSize = 11f; insetTop = 0; insetBottom = 0
+                backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+                val accent = com.google.android.material.color.MaterialColors.getColor(this@MainActivity, com.google.android.material.R.attr.colorPrimary, android.graphics.Color.BLUE)
+                setTextColor(accent); iconTint = android.content.res.ColorStateList.valueOf(accent)
+                layoutParams = LinearLayout.LayoutParams(dp(84), dp(76)).apply { marginEnd = dp(6) }
             })
         }
         content.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(quick) }, 2)

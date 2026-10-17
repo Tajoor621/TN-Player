@@ -140,11 +140,10 @@ class MediaCatalog(private val context: Context) {
                 val volume = if (Build.VERSION.SDK_INT >= 29) string("volume_name").ifBlank { "external_primary" } else "external"
                 val path = if (Build.VERSION.SDK_INT >= 29) string("relative_path") else string("_data").substringBeforeLast('/', "").trimStart('/')
                 val key = IndexedFolder(volume, path.trim('/').let { if (it.isEmpty()) "" else "$it/" })
-                val source = if (Build.VERSION.SDK_INT >= 29) {
-                    if (video) MediaStore.Video.Media.getContentUri(volume) else MediaStore.Audio.Media.getContentUri(volume)
-                } else collection
-                val uri = ContentUris.withAppendedId(source, number("_id")).toString()
-                val prior = recent[uri] ?: recent[ContentUris.withAppendedId(collection, number("_id")).toString()]
+                // Keep the original aggregate content URI stable for existing favorites,
+                // playlists and history. Volume identity is carried separately in the folder key.
+                val uri = ContentUris.withAppendedId(collection, number("_id")).toString()
+                val prior = recent[uri]
                 val duration = number("duration").coerceAtLeast(0)
                 val state = if (prior == null) 0 else if (prior.duration > 0 && prior.position > 0 && prior.position >= prior.duration - minOf(5000, prior.duration / 20)) 2 else 1
                 val rate = string("capture_framerate").toFloatOrNull()?.takeIf { it.isFinite() && it > 0 } ?: 0f
