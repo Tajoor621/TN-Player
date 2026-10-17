@@ -51,3 +51,8 @@ Remaining privacy work includes a user-facing recovery path for invalidated secu
 - [DownloadManager reference](https://developer.android.com/reference/android/app/DownloadManager): status, reason, byte counters and removal behavior used by the legacy management screen.
 
 [FEATURE_STATUS.md](FEATURE_STATUS.md) remains the complete master-specification gap matrix. This audit's implemented fixes are not a claim that every remaining feature in that matrix has been completed.
+
+
+## MX Player comparison follow-up
+
+Source `7b32affb39d66929ff8b0a04d5c0d049395faa42` addresses the previously listed shared-file display-name queries on the UI thread and adds platform codec preferences, bounded timed subtitle imports/rendering/navigation/offset/export, subtitle gestures, native styled-caption loading and Android screen pinning. See [the current comparison](MX_PLAYER_COMPARISON.md) and [validation evidence](VALIDATION.md). Historical findings above describe the audited baseline; universal native decoding, full libass/image formats, encrypted vault and production release work remain open.

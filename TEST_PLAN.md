@@ -37,3 +37,11 @@ The audit update adds source-mutation/cancellation checks before move deletion; 
 ## Performance measurement
 
 Use a release build and record phone model, Android version, codec, resolution, file location, network and screen brightness. Measure cold/warm startup (Macrobenchmark), first-frame latency, seek-to-render latency, idle/playback PSS and a one-hour audio/video battery run. Compare with the prompt's targets only after collecting these results. Network/decoder buffering can exceed the desired 500 ms/100 ms thresholds.
+
+
+## MX comparison additions
+
+- Automated JVM: legacy caption normalization, shifted/clipped timing and cue navigation, BOM-marked UTF-16, malformed UTF-8, size/cue/line/frame-rate bounds, decoder preference stability and preference backup.
+- Automated API 28/34: actual imported-caption rendering, next-caption seek, shifted cue visibility, paused Activity recreation, and decoder reinitialization retaining queue/position before resuming video.
+- Physical manual: Android screen-pinning approval/cancellation/unpin gestures; control unlock; portrait/landscape; TalkBack suppression of two-finger gestures; caption pinch/vertical/horizontal gestures; native SSA/ASS/TTML fixtures; subtitle removal; import cancellation when switching files. Confirm no original caption file is modified.
+- These checks do not certify full libass styling, image sidecar formats, every OEM codec, private folders, native decoder licensing, nearby transfers, or volume amplification.

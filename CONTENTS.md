@@ -17,6 +17,7 @@
 | validation/history/ | Preserved historical evidence |
 | validation/reference-ui/ | Native emulator screenshots of the folder browser, view dialog and Me hub |
 | VALIDATION.md | Current verified results and limitations |
+| MX_PLAYER_COMPARISON.md | Current store and historical manual comparison, additions and remaining gaps |
 | FEATURE_STATUS.md | Implemented features and unfinished modules |
 
 The public repository contains no private signing keys. GitHub Pages is the landing/download site for the native Android app.

@@ -1,51 +1,48 @@
-# TN-Player repository audit release — 17 October 2026
+# TN-Player — MX Player comparison delivery
 
-## Source and checks
+Validated source: [`7b32affb39d66929ff8b0a04d5c0d049395faa42`](https://github.com/Tajoor621/TN-Player/commit/7b32affb39d66929ff8b0a04d5c0d049395faa42), merged into `main` on 17 October 2026. This is an independently implemented feature update, not full MX Player parity.
 
-App source/build: `5a8c4a9e59e757985556f12bd675808cd22215e5`. Later APK-publication/documentation commits do not identify a different app binary.
+## Implemented and checked
 
-- [Branch checks](https://github.com/Tajoor621/TN-Player/actions/runs/39002930201): build, lint, unit tests and both native jobs passed.
-- [Merged-source Android checks](https://github.com/Tajoor621/TN-Player/actions/runs/39003239181): build plus Android 9/API 28 and Android 14/API 34 jobs passed. Debug and optimized unsigned release assembly succeeded.
-- [APK publication and public verification](https://github.com/Tajoor621/TN-Player/actions/runs/39003239426): packages the matching APK, waits for all Android jobs, then publishes to main/root Pages and verifies its revision, byte count and complete SHA-256.
+- Platform codec preference: automatic / prefer hardware / prefer platform software, compatible initialization fallbacks, settings/backup persistence, service-owned reinitialization preserving paused queue position.
+- External text subtitle imports: SRT, WebVTT, MPL2, PJS, MicroDVD with explicit FPS, SubViewer 2.0, TMPlayer. Input size, encoding, cue count, line length, timestamp and FPS limits are checked.
+- Timed imports render in a bounded overlay driven by player position. Delay ±10 minutes, previous/next caption seek, overlapping-cue handling, subtitle gesture mode, styles and adjusted-SRT export are implemented. Android tests verify actual on-screen caption text, paused seeks, +1000 ms timing changes and Activity recreation.
+- Native external ASS/SSA and TTML/DFXP loading uses Media3 with an embedded-styles toggle. This is a styling subset; these formats still require dedicated physical-device fixtures. It is not a full libass implementation.
+- Android screen pinning is exposed for kids lock, alongside existing control lock. Android owns approval and unpin behavior; physical OEM tests remain required.
+- Shared-file display-name lookups and subtitle reads/parsing run off the UI thread. Original subtitle/media files are not rewritten by import or timing changes.
 
-| Check | Recorded result |
-|---|---|
-| JVM / Robolectric | 42 tests, zero failures/ignored |
-| Android 9 ordinary suite | 12 reported, 10 executed, two recovery cases intentionally skipped; zero failures/errors |
-| Android 14 ordinary suite | 14 reported, 12 executed, two recovery cases intentionally skipped; zero failures/errors |
-| External recovery on each OS | Preparation OK (1 test), force-stop, cold restoration OK (1 test) |
-| Lint / packaging | No lint errors; debug and R8 release builds pass. Existing lint warnings remain; abort-on-error stays enabled. |
-| Public APK | Passed in GitHub and rechecked directly: source revision, byte count and full APK SHA-256 match. |
+## Evidence
 
-The two MediaStore tests requiring API 29/30 are not selected on Android 9. The ordinary suite's two recovery cases run separately through the process-recovery script. Do not count the skipped ordinary cases as executed tests. Machine-readable branch counts are in [validation/audit/branch-results.json](validation/audit/branch-results.json); the [resolved release dependency tree](validation/audit/release-dependencies.txt) comes from that same tested source. It is not a complete license or vulnerability certificate.
+| Check | Result |
+| --- | --- |
+| [Feature branch CI](https://github.com/Tajoor621/TN-Player/actions/runs/39022223508) | Build, lint, debug/release APK and both emulator jobs passed |
+| [Main CI](https://github.com/Tajoor621/TN-Player/actions/runs/39022517661) | All three jobs passed |
+| JVM/Robolectric | 48 tests, zero failures, zero ignored |
+| API 28 ordinary instrumentation | 14 reported, zero failures/errors, two recovery-only tests skipped in this suite; API 29/30-only MediaStore cases excluded |
+| API 34 ordinary instrumentation | 16 reported, zero failures/errors, two recovery-only tests skipped in this suite |
+| Separate process recovery | Preparation and post-force-stop cold restoration each passed on both OS versions |
+| [APK publication and verification](https://github.com/Tajoor621/TN-Player/actions/runs/39022517701) | Publication and public full-APK SHA-256 verification passed; independently verified again from this workspace |
 
-## What this update implements
+The initial caption tests exposed metadata-only subtitle replacement and unreliable paused native text output. The final timed-import path renders from the validated cue timeline and tests the visible TextView. Rendering assertions were retained; tests were not disabled to obtain a green run.
 
-- Moves recheck the source bytes/hash before deleting it. Same-length changes, destination corruption, disk failure and cancellation are regression-tested. A changed/unreadable source or failed deletion leaves both copies. Providers do not expose a universal atomic compare-and-delete transaction; another writer can still race the final check/delete boundary.
-- Ordered, bounded pending history replaces the dropping event queue. Immediate lookups wait for writes; latest updates coalesce per URI within the existing 200-file retention policy. Failed writes/failed clear preserve pending positions. History flush/clear and information dialogs use the ordered path. New explicit playback requests retain precedence over startup checkpoint restoration.
-- Downloads now lists queued/running/paused/completed/failed jobs, progress and actionable reason text. Retry, confirmed cancel/remove, completed Play/Share/Properties, legacy storage-permission handling and explicit adaptive-manifest rejection are implemented. Polling is lifecycle-owned; unchanged rows/status are not rebound. List limit: 500 records.
-- Native download tests import a disposable local fixture, verify its completed record, keep it through cancellation, then confirm removal and verify deletion. URL/MIME/progress/status policy has unit tests. End-to-end Internet downloads, server interruption/redirect behavior and actual full storage still require the physical/network fault matrix.
-- Both workflows pin seven Actions dependencies to upstream commit hashes. Monthly grouped/capped Dependabot update configuration and a resolved release dependency artifact are included. Bot pushes are excluded from Android CI to avoid duplicate push/PR runs. Automated update proposals still require review, especially when new libraries raise their minimum Android version.
+## Public APK
 
-## UI evidence
+[Download TN-Player debug APK](https://tajoor621.github.io/TN-Player/downloads/TN-Player-1.0.0-debug.apk?build=7b32aff)
 
-[Native screenshot gallery](validation/reference-ui/README.md): Android 9/14 Downloads, selection, portrait/landscape player, tools, folders, view settings and the Me hub. Captures are from the passing branch run of the same source revision. Test patterns and downloaded/selected media are synthetic, temporary fixtures, removed after testing. They are not shipped as the user's media library. No real user media was deleted by validation.
-
-The supplied TN logo, Android package, version, Room schema 2, backup format and existing collections remain unchanged.
-
-## Published testing APK
-
-- [Download TN-Player](https://tajoor621.github.io/TN-Player/downloads/TN-Player-1.0.0-debug.apk?build=5a8c4a9)
-- Version 1.0.0 / code 1; package `com.tplayer.mediaplayer`
-- Bytes: 12,283,520
-- SHA-256: `dfa7097581bbda03e5cc0d0bb197240753751993f3d8d7b0c20e6ddc1c453313`
+- Package: `com.tplayer.mediaplayer`
+- Version: 1.0.0 / code 1
+- Source: `7b32affb39d66929ff8b0a04d5c0d049395faa42`
+- Bytes: 12,319,805
+- SHA-256: `f6ff8d4a72aeb87d792097d78bd37bdfb84fa08a2fd823b76f0e1d830b37cb4a`
 
 Debug signing can differ from older testing builds. Preserve needed files/exports before uninstalling an existing build. Production signing and upgrade-install validation remain release work; no private signing key is committed.
 
 ## Remaining scope
 
-The [professional audit and prioritized roadmap](AUDIT.md) and [full feature matrix](FEATURE_STATUS.md) distinguish implemented fixes from unfinished work. Current target/compile 34 and API 21 minimum remain the requested development baseline. API 36/toolchain migration, maintained decoder/dependency evaluation, production signing and full notices, external-queue metadata threading, physical Samsung/SD/USB/accessibility coverage and measured startup/seek/memory/battery results remain necessary. Cast/DLNA, network-share clients, universal native decoding, adaptive offline downloads and encrypted vault/app lock are not completed by this update.
+The [current feature comparison](MX_PLAYER_COMPARISON.md), [master feature matrix](FEATURE_STATUS.md) and [professional audit](AUDIT.md) keep remaining work explicit. Universal native codecs/HW+, a secure private folder/app lock, Wi-Fi Direct/QR transfer, native image/SAMI/Teletext subtitle coverage, simultaneous external subtitles, online subtitle search, seek previews, custom fonts, subtitle speed correction, clock/battery overlay and PCM volume amplification are not completed by this update.
 
-Android DownloadManager remains the download backend; migration to an app-controlled HTTP/scheduled-write pipeline is explicitly recommended in the audit. No numerical performance target or whole-product “10/10” certification is claimed.
+Timed external-caption state survives Activity recreation; finishing the player or process death discards this imported-caption session. Reload its source on return. Playback queue/history recovery is separately persisted and tested. Gesture mappings differ from MX Player. Physical OEM screen-pinning, accessibility, SD/USB, native styled-caption and codec/format matrix checks remain necessary.
 
-Prior delivery evidence: [file/player controls](validation/history/file-controls-2026-10-17.md), [folder browser](validation/history/folder-browser-2026-10-17.md), and earlier history folders.
+Target/compile SDK 34 and minimum SDK 21 remain the requested baseline. Play-target migration, dependency/native-backend licensing, release signing, network-share/Cast clients, adaptive downloads and measured performance targets remain release/roadmap work. No whole-product 10/10 certification is claimed.
+
+Earlier audit evidence: [repository audit](validation/history/repository-audit-2026-10-17.md), [file/player controls](validation/history/file-controls-2026-10-17.md), [folder browser](validation/history/folder-browser-2026-10-17.md). Existing device screenshots are in [the reference gallery](validation/reference-ui/README.md).

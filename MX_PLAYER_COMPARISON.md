@@ -30,7 +30,7 @@ This is an independent implementation of functional behavior. No MX Player sourc
 
 - Text imports are bounded to 2 MB, 20,000 cues, 16,384 characters per line and seven days of timestamps. Frame rates and malformed encodings/timestamps are checked. Original files are never rewritten.
 - Timed imports render in an app-owned overlay tied to playback position, including paused seeks; native ASS/SSA/TTML imports use Media3. Timed overlays display at most eight simultaneous cues/eight lines/8,192 characters to bound layout work. Adjusted SRT can be exported through Android's save picker. Native caption copies are stored only in app-private cache, named by SHA-256. Cached imports older than seven days are eligible for cleanup. Android may evict cached captions; reload the source if needed.
-- Current external-caption timeline/delay survives Activity recreation through a ViewModel. It is not restored after process death or included in the library backup. The playback queue/history recovery behavior remains unchanged.
+- Current external-caption timeline/delay survives Activity recreation through a ViewModel. Finishing the player or process death discards the imported-caption session; reload the source on return. It is not included in the library backup. The playback queue/history recovery behavior remains unchanged.
 - Subtitle import and shared-file display-name queries run off the UI thread. Cancellation retains pending input for the next Activity start; a new media request cancels the old request.
 - External caption imports replace the current external subtitle; simultaneous external tracks are not implemented. Embedded tracks remain selectable.
 
