@@ -259,7 +259,7 @@ class PlayerActivity : AppCompatActivity() {
         frame.addView(bottom, FrameLayout.LayoutParams(-1, dp(48), Gravity.BOTTOM))
         unlock = chromeButton("Unlock") { setLocked(false) }.apply { visibility = View.GONE; contentDescription = "Unlock player controls" }
         frame.addView(unlock, FrameLayout.LayoutParams(dp(88), dp(48), Gravity.BOTTOM or Gravity.END))
-        video.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_controller)?.setPadding(0, dp(56), 0, dp(52))
+        video.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_controller)?.setPadding(0, 0, 0, dp(52))
         applyDisplay()
     }
     private fun renderShortcuts() {
