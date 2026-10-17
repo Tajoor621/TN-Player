@@ -121,7 +121,7 @@ class MediaPlaybackService : MediaSessionService() {
                         .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
                             .add(SessionCommand("SET_LOOP", Bundle.EMPTY)).add(SessionCommand("SLEEP_TIMER", Bundle.EMPTY))
                             .add(SessionCommand("AUDIO_EFFECTS_STATE", Bundle.EMPTY)).add(SessionCommand("AUDIO_EFFECTS_SET", Bundle.EMPTY))
-                            .add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).add(SessionCommand("DECODER_PREFERENCE", Bundle.EMPTY)).build()).build()
+                            .add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).add(SessionCommand("DECODER_PREFERENCE", Bundle.EMPTY)).add(SessionCommand("EXTERNAL_SUBTITLE", Bundle.EMPTY)).build()).build()
                 }
                 override fun onPlaybackResumption(session: MediaSession, controller: MediaSession.ControllerInfo): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
                     val result = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
@@ -148,6 +148,43 @@ class MediaPlaybackService : MediaSessionService() {
                                     }
                                     result.set(SessionResult(SessionResult.RESULT_SUCCESS))
                                 }
+                            }
+                            return result
+                        }
+                        "EXTERNAL_SUBTITLE" -> {
+                            if (controller.packageName != packageName) return Futures.immediateFuture(SessionResult(SessionError.ERROR_PERMISSION_DENIED))
+                            val result = SettableFuture.create<SessionResult>()
+                            scope.launch {
+                                try {
+                                    val id = args.getString("mediaId") ?: error("No media")
+                                    val uri = args.getString("uri").orEmpty()
+                                    val mime = args.getString("mime").orEmpty()
+                                    val captions = if (uri.isEmpty()) emptyList() else {
+                                        require(mime in setOf(MimeTypes.APPLICATION_SUBRIP, MimeTypes.TEXT_SSA, MimeTypes.APPLICATION_TTML))
+                                        val parsed = android.net.Uri.parse(uri)
+                                        withContext(Dispatchers.IO) {
+                                            require(parsed.scheme == "file")
+                                            val folder = java.io.File(cacheDir, "subtitles").canonicalFile
+                                            val file = java.io.File(requireNotNull(parsed.path)).canonicalFile
+                                            require(file.parentFile == folder && file.isFile && file.length() <= 4L * 1024 * 1024)
+                                        }
+                                        listOf(MediaItem.SubtitleConfiguration.Builder(parsed).setMimeType(mime).setLanguage("und")
+                                            .setLabel(args.getString("label").orEmpty().take(256)).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build())
+                                    }
+                                    require(player.currentMediaItem?.mediaId == id)
+                                    val index = player.currentMediaItemIndex; val position = player.currentPosition; val playing = player.playWhenReady
+                                    val items = (0 until player.mediaItemCount).map { i -> player.getMediaItemAt(i).let { item ->
+                                        if (i == index) item.buildUpon().setSubtitleConfigurations(captions).build() else item
+                                    } }
+                                    // 1.4.x may optimize replaceMediaItem into a metadata update and never create a subtitle source.
+                                    // Build a fresh playlist on the owning player, retaining every original local configuration.
+                                    applyingCheckpoint = true
+                                    try { player.setMediaItems(items, index, position) } finally { applyingCheckpoint = false }
+                                    if (captions.isNotEmpty()) player.trackSelectionParameters = player.trackSelectionParameters.buildUpon().setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false).build()
+                                    player.prepare(); player.playWhenReady = playing
+                                    result.set(SessionResult(SessionResult.RESULT_SUCCESS))
+                                } catch (e: CancellationException) { result.cancel(false); throw e }
+                                catch (_: Exception) { result.set(SessionResult(SessionError.ERROR_BAD_VALUE)) }
                             }
                             return result
                         }

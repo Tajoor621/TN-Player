@@ -364,7 +364,7 @@ class PlayerActivity : AppCompatActivity() {
             0 -> trackDialog(C.TRACK_TYPE_TEXT); 1 -> control(2); 2 -> control(14)
             3 -> subtitleTiming(); 4 -> jumpCaption(-1); 5 -> jumpCaption(1)
             6 -> { ui.subtitleGestures = !ui.subtitleGestures; info("Subtitle gestures", if (ui.subtitleGestures) "Use two fingers: swipe horizontally to the previous/next external caption, vertically to move captions, or pinch to change text size. Normal video zoom returns when subtitle gestures are off. Embedded or styled captions may define their own position." else "Video seek, brightness, volume, zoom and pan gestures restored.") }
-            7 -> { subtitleJob?.cancel(); ui.pendingSubtitle = null; ui.captions = null; ui.subtitleGestures = false; controller?.let { p -> p.currentMediaItem?.let { item -> replaceCaptions(p, item, emptyList()) } } }
+            7 -> { subtitleJob?.cancel(); ui.pendingSubtitle = null; ui.captions = null; ui.subtitleGestures = false; controller?.let { p -> p.currentMediaItem?.let { item -> launchUi { replaceCaptions(p, item, emptyList()) } } } }
             8 -> info("Subtitle formats", "Timed import: SRT, WebVTT, MPL2 (.mpl), PJS, MicroDVD (.sub with frame-rate header), SubViewer 2.0 (.sub), TMPlayer (.txt). Native rendering: ASS/SSA and TTML/DFXP. Text must use UTF-8 or BOM-marked UTF-16, up to 2 MB. Delay and cue navigation apply to timed imports; advanced WebVTT and legacy styling is not retained.")
         } }.show()
     }
@@ -632,10 +632,14 @@ class PlayerActivity : AppCompatActivity() {
             .setLanguage("und").setLabel(captions.name).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
         replaceCaptions(player, item, listOf(config)); ui.captions = captions; ui.pendingSubtitle = null
     }
-    private fun replaceCaptions(player: MediaController, item: MediaItem, captions: List<MediaItem.SubtitleConfiguration>) {
-        val position = player.currentPosition; val playing = player.playWhenReady
-        player.replaceMediaItem(player.currentMediaItemIndex, item.buildUpon().setUri(item.mediaId).setMimeType(item.mediaMetadata.extras?.getString("mime")?.ifBlank { null }).setSubtitleConfigurations(captions).build())
-        player.seekTo(position); player.prepare(); player.playWhenReady = playing
+    private suspend fun replaceCaptions(player: MediaController, item: MediaItem, captions: List<MediaItem.SubtitleConfiguration>) {
+        val caption = captions.firstOrNull()
+        val result = player.sendCustomCommand(SessionCommand("EXTERNAL_SUBTITLE", Bundle.EMPTY), Bundle().apply {
+            putString("mediaId", item.mediaId); putString("uri", caption?.uri?.toString().orEmpty())
+            putString("mime", caption?.mimeType.orEmpty()); putString("label", caption?.label.orEmpty())
+        })
+        val accepted = withContext(Dispatchers.IO) { result.get(10, java.util.concurrent.TimeUnit.SECONDS).resultCode == SessionResult.RESULT_SUCCESS }
+        check(accepted) { "The subtitle could not be attached. Check that the same media is still open." }
     }
     private fun inPip() = Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode
     @androidx.annotation.ChecksSdkIntAtLeast(api = 26)
