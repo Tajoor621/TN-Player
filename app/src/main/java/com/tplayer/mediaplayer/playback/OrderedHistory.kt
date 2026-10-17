@@ -56,7 +56,8 @@ class OrderedHistory(
         } ?: stored
     }
     suspend fun clear() = gate.withLock {
-        synchronized(pending) { pending.clear() }
         clearDatabase()
+        // A failed clear must not discard positions still waiting to be saved.
+        synchronized(pending) { pending.clear() }
     }
 }

@@ -45,4 +45,18 @@ class OrderedHistoryTest {
             repeat(100) { n -> assertEquals((900 + n).toLong(), writer.historyFor("content://file/$n")!!.position) }
         } finally { scope.cancel() }
     }
+    @Test fun failedClearRetainsUnsavedHistory() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val failed = CompletableDeferred<Unit>(); val allow = java.util.concurrent.atomic.AtomicBoolean(false)
+        val rows = java.util.concurrent.ConcurrentHashMap<String, History>()
+        val writer = OrderedHistory(scope, { if (!allow.get()) throw java.io.IOException("locked"); rows[it.uri] = it }, { rows[it] }, { throw java.io.IOException("locked") }, { failed.complete(Unit) })
+        try {
+            writer.record(History("content://one", "One", 25000, 90000))
+            withTimeout(5000) { failed.await() }
+            try { writer.clear(); fail("Failed clear was accepted") } catch (_: java.io.IOException) { }
+            allow.set(true)
+            assertEquals(25000L, writer.historyFor("content://one")!!.position)
+        } finally { scope.cancel() }
+    }
+
 }
