@@ -15,6 +15,7 @@
 | scripts/verify-pages.py | Verify the public source commit and full APK checksum |
 | scripts/process-recovery-check.sh | Prepare, force-stop and verify cold restoration |
 | validation/history/ | Preserved historical evidence |
+| validation/reference-ui/ | Native emulator screenshots of the folder browser, view dialog and Me hub |
 | VALIDATION.md | Current verified results and limitations |
 | FEATURE_STATUS.md | Implemented features and unfinished modules |
 

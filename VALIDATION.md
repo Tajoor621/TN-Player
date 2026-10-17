@@ -1,29 +1,37 @@
-# TN-Player feature upgrade — 16 October 2026
+# TN-Player folder browser and layout upgrade — 17 October 2026
 
-## Verified source and checks
+## Verified source
 
-Android source/build commit: `ed0eaef7582240cad9c61930f24a3145bcf82c37`.
+App source/build commit: `703cbcc313b21ec61984bd8fb70d2daa3e922b5d`.
 
-- [Final branding branch checks](https://github.com/Tajoor621/TN-Player/actions/runs/38949397261): build and emulator jobs succeeded before merging.
-- [Main Android checks](https://github.com/Tajoor621/TN-Player/actions/runs/38950067907): unit regressions, lint, debug/release assembly and Android 14 emulator validation succeeded.
-- The device suite covers Settings/Help navigation, foreground/background audio, video/PiP, Keystore, verified file moves, multi-share playback queues, widget transport and ZIP round trips with unsafe-path rejection.
-- Preparation and cold-restoration tests are intentionally skipped in the ordinary suite. The external process-recovery script reinstalls test APKs, runs preparation, force-stops the app and verifies cold restoration; both explicit cases reported OK (1 test).
-- New unit regressions cover JSON backup validation/merge and playlist-name collisions, settings persistence, bounded ZIP extraction, unsafe paths, collisions and directory payload rejection.
-- [Pages publish and public verification](https://github.com/Tajoor621/TN-Player/actions/runs/38950067891): publishes only after the matching Android checks succeed. The verification downloads the entire public APK and matches its source commit, byte count and SHA-256.
+- [Branch validation](https://github.com/Tajoor621/TN-Player/actions/runs/38990520186): unit regressions, lint, debug/release assembly and Android 14 device tests succeeded. A lint-discovered Comparator.reversed API-24 dependency was replaced with API-21-compatible comparators.
+- [Main Android validation](https://github.com/Tajoor621/TN-Player/actions/runs/38990844980): build and emulator jobs succeeded for the final app source, including the compact shortcut labels and visible first-run permission action.
+- Unit coverage now includes same-named folders on different volumes, direct/descendant counts, hierarchy boundary checks, global numeric sorting across pages, hidden/minimum-duration filters, empty results, unknown frame-rate handling and layout preferences through backup/restore.
+- The Android 14 suite includes a real MediaStore fixture: two indexed folders, accurate counts, opening the selected folder, preserving aggregate media URI identity, Cancel versus Done in the view dialog, grid persistence after recreation and the Me hub. Existing playback, PiP, navigation, Keystore and file-transfer tests remain included.
+- The ordinary instrumentation suite reported 12 cases (10 executed, two process-recovery cases intentionally skipped there). The external script separately ran preparation, force-stop and cold restoration; both explicit recovery cases reported OK (1 test).
+- [Pages build and public verification](https://github.com/Tajoor621/TN-Player/actions/runs/38990844995) waits for matching Android validation before publishing. Verification downloads the full public APK and matches the source commit, SHA-256 and byte count.
 
-## Supplied logo
+## UI evidence
 
-The user-provided original JPEG is preserved unchanged in branding/TN-Player-logo-original.jpeg. A square launcher adaptation removes portrait whitespace and the small Player wordmark. Identical PNG bytes are used in branding, Android and Pages. Public icon SHA-256 matches the repository: `554d804dd9f54ed66e56fd15b305dd98411b02ffef3e1bd3b626c005e4cefb2c`.
+[Native emulator screenshot gallery](validation/reference-ui/README.md) contains the final folder list, view dialog and Me hub. These are real 320 dp Android emulator captures, not mockups. Temporary media fixtures are removed after testing and are not shipped as the user's library.
+
+The supplied TN logo is unchanged. The original JPEG remains in branding/TN-Player-logo-original.jpeg; Android and Pages use the square adaptation.
 
 ## Published testing APK
 
 - [Download](https://tajoor621.github.io/TN-Player/downloads/TN-Player-1.0.0-debug.apk)
 - Version: 1.0.0 / code 1; package com.tplayer.mediaplayer
-- Bytes: 12,167,604
-- SHA-256: `00c9e4047593de904fddf0a29ffed60fdeaa4adc9abde9c66dc0f3e7e652ff65`
+- Bytes: 12,214,559
+- SHA-256: `8575c01943c2faee1924951492ae51f4cb9e1d01fa62140fc31b910b0b162917`
 
-## Scope and remaining validation
+## Scope and limits
 
-This verifies the feature upgrade on the Android 14 CI emulator. Physical-device gesture, widget-launcher, audio-effects, removable-provider, accessibility, codec, performance and battery certification remain outstanding. The master specification is not complete; FEATURE_STATUS.md identifies remaining modules, including native universal decoding, network shares/Cast, cloud clients and encrypted vault/app lock.
+Folder counts cover accessible indexed videos/audio for the active tab, after hidden and minimum-duration filters. Selected-video access on Android 14 exposes only the granted selection. Empty/unindexed/.nomedia and protected directories may be absent; Files → Choose folder handles document-provider folders. Metadata sorting scans on IO and keeps folder summaries and a page prefix; large-library throughput has not been benchmarked.
 
-Debug signing may differ from previously installed testing APKs; preserve needed data before uninstalling an existing build. No private signing key is committed. Source commit identifies the app binary; generated-APK and documentation commits do not imply a different app build. Earlier evidence remains in validation/history/ and Git history.
+Capture fps is Android's indexed capture frame rate, not a guaranteed encoded frame rate. Missing values remain unknown. Playback status/last-played sorting uses the retained 200-item local history. Folder size/duration are sums; date and last-played are the newest member values.
+
+The Me hub intentionally labels Private Folder, Local Network and Recycle Bin unavailable. Cloud Drive uses an installed Android document provider; it is not a built-in OAuth/sync client. File Transfer refers to the existing local file copy/move workflow. Full product gaps remain listed in FEATURE_STATUS.md.
+
+Validation covers the Android 14 emulator and Robolectric tests; API 21 compatibility was lint-checked, not certified on Android 5 hardware. Physical Samsung/SD/USB/provider, large-font/accessibility, performance, battery and codec validation remain necessary. Debug signing can differ from earlier testing APKs; preserve needed data before uninstalling an existing build. No private signing key is committed.
+
+Generated APK and documentation commits do not identify a different app binary. Prior upgrade evidence is preserved under validation/history/.
