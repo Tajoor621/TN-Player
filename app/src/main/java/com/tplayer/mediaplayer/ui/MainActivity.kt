@@ -318,9 +318,10 @@ class MainActivity : AppCompatActivity() {
         } else Manifest.permission.READ_EXTERNAL_STORAGE
         val hasFull = ContextCompat.checkSelfPermission(this, required) == PackageManager.PERMISSION_GRANTED
         val hasPartial = video && Build.VERSION.SDK_INT >= 34 && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
-        actions.addView(button(if (hasFull) "Library access" else "Grant access") {
+        val access = button(if (hasFull) "Library access" else "Grant access") {
             permissions.launch(if (video && Build.VERSION.SDK_INT >= 34) arrayOf(required, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) else arrayOf(required))
-        })
+        }
+        actions.addView(access, if (hasFull) actions.childCount else 0)
         if (!hasFull && !hasPartial) { status.text = "Grant library access to see media folders and file counts, or open an individual file. Files → Choose folder also supports SD/USB and document providers."; return }
         val loaded = mutableListOf<LibraryItem>()
         var offset = 0
