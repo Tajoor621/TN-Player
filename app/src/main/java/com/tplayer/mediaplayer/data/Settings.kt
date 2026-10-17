@@ -8,6 +8,9 @@ class Settings(context: Context) {
     var theme: Int
         get() = prefs.getInt("theme", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         set(value) { prefs.edit().putInt("theme", value).apply() }
+    var decoderPreference: Int
+        get() = prefs.getInt("decoderPreference", 0).coerceIn(0, 2)
+        set(value) { prefs.edit().putInt("decoderPreference", value.coerceIn(0, 2)).apply() }
     var autoPip: Boolean
         get() = prefs.getBoolean("autoPip", true)
         set(value) { prefs.edit().putBoolean("autoPip", value).apply() }
@@ -103,7 +106,7 @@ class Settings(context: Context) {
             ?: setOf(PlayerShortcut.ROTATION, PlayerShortcut.SPEED, PlayerShortcut.BACKGROUND, PlayerShortcut.EQUALIZER, PlayerShortcut.AB)
         set(value) { prefs.edit().putString("playerShortcuts", PlayerShortcut.values().filter { it in value }.joinToString(",") { it.name }).apply() }
     fun backupValues(): Map<String, Any> = mapOf(
-        "theme" to theme, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
+        "decoderPreference" to decoderPreference, "theme" to theme, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
         "seekMs" to seekMs, "gestures" to gestures, "amoled" to amoled,
         "subtitleSize" to subtitleSize, "subtitleFont" to subtitleFont, "subtitleColor" to subtitleColor,
         "subtitleBackground" to subtitleBackground, "subtitlePosition" to subtitlePosition,

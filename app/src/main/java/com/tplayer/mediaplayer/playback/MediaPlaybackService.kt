@@ -8,6 +8,8 @@ import android.os.Looper
 import androidx.media3.common.*
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.session.*
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -99,7 +101,11 @@ class MediaPlaybackService : MediaSessionService() {
     }
     override fun onCreate() {
         super.onCreate()
-        val player = ExoPlayer.Builder(this)
+        val renderers = DefaultRenderersFactory(this).setEnableDecoderFallback(true).setMediaCodecSelector { mime, secure, tunneling ->
+            DecoderPreference.order(MediaCodecSelector.DEFAULT.getDecoderInfos(mime, secure, tunneling), Settings(this).decoderPreference,
+                { it.hardwareAccelerated }, { it.softwareOnly })
+        }
+        val player = ExoPlayer.Builder(this, renderers)
             .setSeekBackIncrementMs(Settings(this).seekMs).setSeekForwardIncrementMs(Settings(this).seekMs)
             .build().apply {
                 setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
@@ -115,7 +121,7 @@ class MediaPlaybackService : MediaSessionService() {
                         .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
                             .add(SessionCommand("SET_LOOP", Bundle.EMPTY)).add(SessionCommand("SLEEP_TIMER", Bundle.EMPTY))
                             .add(SessionCommand("AUDIO_EFFECTS_STATE", Bundle.EMPTY)).add(SessionCommand("AUDIO_EFFECTS_SET", Bundle.EMPTY))
-                            .add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).build()).build()
+                            .add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).add(SessionCommand("DECODER_PREFERENCE", Bundle.EMPTY)).build()).build()
                 }
                 override fun onPlaybackResumption(session: MediaSession, controller: MediaSession.ControllerInfo): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
                     val result = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
@@ -144,6 +150,15 @@ class MediaPlaybackService : MediaSessionService() {
                                 }
                             }
                             return result
+                        }
+                        "DECODER_PREFERENCE" -> {
+                            val mode = args.getInt("mode", -1)
+                            if (mode !in 0..2) return Futures.immediateFuture(SessionResult(SessionError.ERROR_BAD_VALUE))
+                            Settings(this@MediaPlaybackService).decoderPreference = mode
+                            if (player.mediaItemCount > 0 && player.playbackState != Player.STATE_IDLE) {
+                                val playing = player.playWhenReady
+                                player.stop(); player.prepare(); player.playWhenReady = playing
+                            }
                         }
                         "AUDIO_EFFECTS_STATE" -> {
                             return try {

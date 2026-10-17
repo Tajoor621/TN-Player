@@ -108,7 +108,7 @@ object BackupFormat {
         val prefs = root.getJSONObject("preferences"); val values = mutableMapOf<String, Any>()
         for (key in listOf("autoPip", "resume", "hidden", "gestures", "amoled", "subtitleBackground", "libraryGrid", "libraryDescending", "fieldDuration", "fieldSize", "fieldResolution", "fieldPath", "fieldDate", "fieldPlayed", "fieldFrameRate", "fieldType", "backgroundPlayback", "videoDisplay", "showPlayerShortcuts", "mirror", "verticalFlip", "playerNight"))
             if (prefs.has(key)) { require(prefs.get(key) is Boolean); values[key] = prefs.getBoolean(key) }
-        for ((key, range) in mapOf("theme" to -1..2, "subtitleSize" to 0..2, "subtitleFont" to 0..2, "subtitlePosition" to 0..35, "aspectRatio" to 0..2, "libraryMode" to 0..2, "librarySort" to 0..9, "minimumSeconds" to 0..3600, "playerOrientation" to 0..2)) {
+        for ((key, range) in mapOf("decoderPreference" to 0..2, "theme" to -1..2, "subtitleSize" to 0..2, "subtitleFont" to 0..2, "subtitlePosition" to 0..35, "aspectRatio" to 0..2, "libraryMode" to 0..2, "librarySort" to 0..9, "minimumSeconds" to 0..3600, "playerOrientation" to 0..2)) {
             if (prefs.has(key)) { val number = prefs.getInt(key); require(number in range && (key != "theme" || number != 0)); values[key] = number }
         }
         if (prefs.has("playerShortcuts")) {

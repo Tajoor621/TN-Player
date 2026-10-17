@@ -387,6 +387,12 @@ class PlayerActivity : AppCompatActivity() {
         if (target == null) Toast.makeText(this, "No more captions in this direction", Toast.LENGTH_SHORT).show()
         else player.seekTo(target.coerceAtMost(player.duration.takeIf { it > 0 } ?: Long.MAX_VALUE))
     }
+    private fun decoderMenu() {
+        MaterialAlertDialogBuilder(this).setTitle("Decoder preference").setMessage("Uses codecs available on this device. A preference keeps compatible fallback decoders; it does not add FFmpeg or HW+. Applying briefly reinitializes playback at the current position.")
+            .setSingleChoiceItems(arrayOf("Automatic", "Prefer hardware codecs", "Prefer platform software codecs"), settings.decoderPreference) { dialog, mode ->
+                controller?.let { player -> sendCommand(player, "DECODER_PREFERENCE", Bundle().apply { putInt("mode", mode) }, "Decoder preference applied") }; dialog.dismiss()
+            }.setNegativeButton("Cancel", null).show()
+    }
     private fun kidsLock() {
         MaterialAlertDialogBuilder(this).setTitle("Pin player · kids lock").setMessage("Android will ask to pin TN-Player on screen. Enable screen pinning in your device settings if needed. Android controls approval, emergency access and the unpin gesture. Unlock player controls also requests unpinning. This is not a parental-control password.")
             .setNegativeButton("Cancel", null).setPositiveButton("Pin player") { _, _ ->
@@ -465,8 +471,8 @@ class PlayerActivity : AppCompatActivity() {
         } catch (_: Exception) { ui.screenshot = null; info("Screenshot", "This source cannot provide a frame. Protected video may prevent capture.") }
     }
     private fun advancedMenu() {
-        val choices = arrayOf("Playback speed", "Aspect ratio", "External subtitle", "Subtitle size", "Add/remove favorite", "Add bookmark", "Bookmarks", "Set A–B repeat", "Clear A–B repeat", "Loop / shuffle", "Sleep timer", "Rotate screen", "Lock controls", "Stop playback", "Subtitle style", "Audio enhancements", "Reset zoom", "Pin player · kids lock")
-        MaterialAlertDialogBuilder(this).setTitle("Playback controls").setItems(choices) { _, index -> if (index == 17) kidsLock() else control(index) }.show()
+        val choices = arrayOf("Playback speed", "Aspect ratio", "External subtitle", "Subtitle size", "Add/remove favorite", "Add bookmark", "Bookmarks", "Set A–B repeat", "Clear A–B repeat", "Loop / shuffle", "Sleep timer", "Rotate screen", "Lock controls", "Stop playback", "Subtitle style", "Audio enhancements", "Reset zoom", "Pin player · kids lock", "Decoder preference")
+        MaterialAlertDialogBuilder(this).setTitle("Playback controls").setItems(choices) { _, index -> when (index) { 17 -> kidsLock(); 18 -> decoderMenu(); else -> control(index) } }.show()
     }
     private fun control(index: Int) {
         val player = controller ?: return
@@ -624,7 +630,7 @@ class PlayerActivity : AppCompatActivity() {
     }
     private fun replaceCaptions(player: MediaController, item: MediaItem, captions: List<MediaItem.SubtitleConfiguration>) {
         val position = player.currentPosition; val playing = player.playWhenReady
-        player.replaceMediaItem(player.currentMediaItemIndex, item.buildUpon().setUri(item.mediaId).setSubtitleConfigurations(captions).build())
+        player.replaceMediaItem(player.currentMediaItemIndex, item.buildUpon().setUri(item.mediaId).setMimeType(item.mediaMetadata.extras?.getString("mime")?.ifBlank { null }).setSubtitleConfigurations(captions).build())
         player.seekTo(position); player.prepare(); player.playWhenReady = playing
     }
     private fun inPip() = Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode

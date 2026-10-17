@@ -9,7 +9,7 @@ import java.util.Locale
 data class SubtitleCue(val start: Long, val end: Long, val text: String)
 data class SubtitleDocument(val cues: List<SubtitleCue>) {
     fun adjacent(position: Long, direction: Int, delayMs: Long): Long? {
-        val starts = cues.map { (it.start + delayMs).coerceAtLeast(0) }.distinct()
+        val starts = cues.filter { it.end + delayMs > 0 }.map { (it.start + delayMs).coerceAtLeast(0) }.distinct()
         return if (direction > 0) starts.firstOrNull { it > position + 100 }
             else starts.lastOrNull { it < position - 100 }
     }

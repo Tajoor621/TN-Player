@@ -7,8 +7,8 @@ This is an independent implementation of functional behavior. No MX Player sourc
 
 | Published feature | TN-Player implementation | Remaining limits |
 | --- | --- | --- |
-| Hardware acceleration / HW+ | Media3 uses Android's MediaCodec decoders | MX's proprietary HW+ and universal software decoding are not implemented; codec availability depends on device |
-| Multi-core decoding | Platform decoder implementation | No bundled multi-core software video decoder or performance equivalence claim |
+| Hardware acceleration / HW+ | Media3 uses Android's MediaCodec decoders; new Automatic / prefer hardware / prefer platform software control | MX's proprietary HW+ and universal software decoding are not implemented; codec availability depends on device |
+| Multi-core decoding | Platform decoder implementation; compatible fallback candidates remain available | No bundled multi-core software video decoder or performance equivalence claim |
 | Pinch zoom, zoom and pan | Existing two-finger video gestures, zoom reset, mirror and flip | Texture surface/device dependent; gestures disabled during TalkBack touch exploration |
 | Subtitle gestures | New explicit Subtitle gestures mode: two-finger horizontal swipe navigates external captions, vertical swipe moves text, pinch changes text size | Timed external imports only for cue navigation; native captions may define their own position; three text-size levels; turn mode off for video gestures |
 | Privacy Folder | Not included | Requires reviewed encrypted media storage, authentication, import/export recovery and tests; hiding names is not encryption |
@@ -26,6 +26,8 @@ This is an independent implementation of functional behavior. No MX Player sourc
 
 ## New implementation details
 
+- Decoder preference applies through the playback service, reinitializes current playback while retaining queue/position and play/pause state, and persists in settings/backup. Hardware/software classification is the platform/Media3 classification, including its older-device heuristics. Unsupported codecs do not become supported by changing this preference.
+
 - Text imports are bounded to 2 MB, 20,000 cues, 16,384 characters per line and seven days of timestamps. Frame rates and malformed encodings/timestamps are checked. Original files are never rewritten.
 - Normalized captions are stored only in app-private cache, named by SHA-256. Cached imports older than seven days are eligible for cleanup. Android may evict cached captions; reload the source if needed.
 - Current external-caption timeline/delay survives Activity recreation through a ViewModel. It is not restored after process death or included in the library backup. The playback queue/history recovery behavior remains unchanged.
@@ -34,6 +36,6 @@ This is an independent implementation of functional behavior. No MX Player sourc
 
 ## Validation
 
-New JVM tests exercise text-format conversion, clipping and offset navigation, UTF-16/UTF-8 decoding, oversized input, ambiguous frame rate, malformed/reversed timing and cue-count limits. A device test imports MPL2 into real Media3 playback, checks rendered text, seeks by caption, shifts timestamps by +1000 ms, checks cue visibility and recreates the Activity while paused. CI runs Android API 28 and 34 plus the existing unit, lint, release and process-recovery checks.
+New JVM tests check stable decoder preference ordering without dropping fallback candidates and settings/backup round-trip. A decoder device test switches preference while paused, checks queue/position, resumes video and rejects an invalid mode. Subtitle JVM tests exercise text-format conversion, clipping and offset navigation, UTF-16/UTF-8 decoding, oversized input, ambiguous frame rate, malformed/reversed timing and cue-count limits. A device test imports MPL2 into real Media3 playback, checks rendered text, seeks by caption, shifts timestamps by +1000 ms, checks cue visibility and recreates the Activity while paused. CI runs Android API 28 and 34 plus the existing unit, lint, release and process-recovery checks.
 
 Screen-pinning approval and unpin gestures are owned by Android and still require manual checks on physical OEM devices. No all-features-complete or 10/10 claim is made.

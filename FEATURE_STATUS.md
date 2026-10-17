@@ -63,4 +63,4 @@ Latest prioritized source/security/release findings: [AUDIT.md](AUDIT.md). Curre
 
 ## MX Player comparison additions
 
-See [MX_PLAYER_COMPARISON.md](MX_PLAYER_COMPARISON.md) for the source-based gap matrix, external subtitle formats, timing and navigation, subtitle gesture mode, Android screen pinning, and explicit remaining limitations. These additions do not provide full MX Player feature parity.
+See [MX_PLAYER_COMPARISON.md](MX_PLAYER_COMPARISON.md) for the source-based gap matrix, platform decoder preferences with fallback, external subtitle formats, timing and navigation, subtitle gesture mode, Android screen pinning, and explicit remaining limitations. These additions do not provide full MX Player feature parity.
