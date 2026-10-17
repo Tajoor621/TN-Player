@@ -305,11 +305,13 @@ class MainActivity : AppCompatActivity() {
         ).forEachIndexed { index, (label, action) ->
             quick.addView(button(label, action).apply {
                 setIconResource(quickIcons[index]); iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_TOP
-                iconSize = dp(28); textSize = 11f; insetTop = 0; insetBottom = 0
+                iconSize = dp(28); textSize = 12f; insetTop = 0; insetBottom = 0
+                setAllCaps(false); letterSpacing = 0f; maxLines = 1; setPadding(dp(4), dp(4), dp(4), dp(4))
+                elevation = 0f; stateListAnimator = null
                 backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
                 val accent = com.google.android.material.color.MaterialColors.getColor(this@MainActivity, com.google.android.material.R.attr.colorPrimary, android.graphics.Color.BLUE)
                 setTextColor(accent); iconTint = android.content.res.ColorStateList.valueOf(accent)
-                layoutParams = LinearLayout.LayoutParams(dp(84), dp(76)).apply { marginEnd = dp(6) }
+                layoutParams = LinearLayout.LayoutParams(dp(88), dp(76)).apply { marginEnd = dp(6) }
             })
         }
         content.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(quick) }, 2)
