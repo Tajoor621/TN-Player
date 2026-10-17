@@ -9,7 +9,6 @@ import androidx.media3.common.MediaMetadata
 import com.tplayer.mediaplayer.security.*
 import com.tplayer.mediaplayer.data.History
 import com.tplayer.mediaplayer.data.MediaDatabase
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import org.json.JSONArray
@@ -55,27 +54,28 @@ class PlaybackPersistence private constructor(context: Context) {
     private val app = context.applicationContext
     @Volatile private var hasMemory = false
     @Volatile private var latest: PlaybackCheckpoint? = null
-    private val history = Channel<History>(64, BufferOverflow.DROP_OLDEST)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val revision = AtomicLong()
     @Volatile private var persistedRevision = 0L
     private data class Update(val checkpoint: PlaybackCheckpoint?, val revision: Long)
     private val writes = Channel<Update>(Channel.CONFLATED)
+    private val history = OrderedHistory(scope,
+        { MediaDatabase.get(app).media().record(it) }, { MediaDatabase.get(app).media().historyFor(it) },
+        { MediaDatabase.get(app).media().clearHistory() }, { android.util.Log.w("TNPlayer", "Playback history could not be saved") })
     init {
-        scope.launch {
-            for (value in history) try { MediaDatabase.get(app).media().record(value) }
-            catch (e: CancellationException) { throw e }
-            catch (_: Exception) { android.util.Log.w("TNPlayer", "Playback history could not be saved") }
-        }
         scope.launch {
             for (update in writes) try { store.write(update.checkpoint); persistedRevision = update.revision }
             catch (e: CancellationException) { throw e }
             catch (_: Exception) { android.util.Log.w("TNPlayer", "Playback checkpoint could not be saved") }
         }
     }
-    fun recordHistory(value: History) { history.trySend(value) }
+    fun recordHistory(value: History) { history.record(value) }
+    suspend fun historyFor(uri: String): History? = history.historyFor(uri)
+    suspend fun flushHistory() = history.flush()
+    suspend fun clearHistory() = history.clear()
     fun save(value: PlaybackCheckpoint?) { latest = value; hasMemory = true; writes.trySend(Update(value, revision.incrementAndGet())) }
     suspend fun flush() {
+        history.flush()
         val target = revision.get()
         withTimeout(10000) { while (persistedRevision < target) delay(20) }
     }

@@ -23,7 +23,7 @@ class VerifiedTransferTest {
         val result = VerifiedTransfer.run(backend, true) { phases += it.phase }
         assertTrue(backend.committed); assertTrue(backend.deleted); assertFalse(backend.aborted)
         assertEquals(200000L, result.bytes); assertTrue(result.sourceRemoved)
-        assertEquals(setOf("Copying", "Verifying"), phases)
+        assertEquals(setOf("Copying", "Verifying", "Rechecking source"), phases)
     }
     @Test fun corruptionRetainsOriginalAndAbortsTheIncompleteTarget() = runBlocking {
         val backend = Backend(byteArrayOf(1,2,3), corrupt = true)
@@ -49,4 +49,21 @@ class VerifiedTransferTest {
         }
         job.join(); assertFalse(backend.deleted); assertFalse(backend.committed); assertTrue(backend.aborted)
     }
+    @Test fun sameLengthSourceMutationDuringVerificationNeverDeletesTheNewOriginal() = runBlocking {
+        val source = byteArrayOf(1, 2, 3)
+        val backend = Backend(source)
+        val result = VerifiedTransfer.run(backend, true) { if (it.phase == "Verifying") source[0] = 9 }
+        assertTrue(backend.committed); assertFalse(backend.deleted); assertFalse(result.sourceRemoved)
+        assertArrayEquals(byteArrayOf(1, 2, 3), backend.output.toByteArray())
+    }
+    @Test fun cancellationDuringSourceRecheckRetainsBothCopies() = runBlocking {
+        val backend = Backend(ByteArray(300000) { 12 })
+        val job = launch {
+            val operation = currentCoroutineContext()
+            try { VerifiedTransfer.run(backend, true) { if (it.phase == "Rechecking source") operation.cancel() } }
+            catch (_: CancellationException) { }
+        }
+        job.join(); assertTrue(backend.committed); assertFalse(backend.deleted); assertFalse(backend.aborted)
+    }
+
 }

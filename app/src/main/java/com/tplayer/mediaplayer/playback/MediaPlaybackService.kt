@@ -27,6 +27,7 @@ class MediaPlaybackService : MediaSessionService() {
     private val handler = Handler(Looper.getMainLooper())
     private val persistence by lazy { PlaybackPersistence.get(this) }
     private var restoring = true
+    private var applyingCheckpoint = false
     private var preparingHistory = false
     private var historyRestore: Job? = null
     private var transition = 0L
@@ -66,14 +67,14 @@ class MediaPlaybackService : MediaSessionService() {
             loopA = -1; loopB = -1; handler.removeCallbacks(loopTicker)
             val oldId = previousId; previousId = item?.mediaId
             if (item == null) { if (oldId != null) persistence.save(null); return }
-            if (restoring) return
+            if (applyingCheckpoint) return
             // Repeats, auto-next and subtitle updates must never jump back to an old history position.
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED && item.mediaId != oldId &&
                 player.currentPosition == 0L && Settings(this@MediaPlaybackService).resume) {
                 preparingHistory = true
                 historyRestore = scope.launch {
                     try {
-                        val saved = MediaDatabase.get(this@MediaPlaybackService).media().historyFor(item.mediaId)
+                        val saved = persistence.historyFor(item.mediaId)
                         if (transition == version && player.currentMediaItem?.mediaId == item.mediaId && player.currentPosition < 1000 && saved != null) {
                             player.seekTo(PlaybackPolicy.resumePosition(saved.position, saved.duration))
                         }
@@ -180,9 +181,12 @@ class MediaPlaybackService : MediaSessionService() {
                 val saved = persistence.read()
                 // An explicit new media intent always takes precedence over a late disk restore.
                 if (saved != null && transition == 0L && player.mediaItemCount == 0) {
-                    player.setMediaItems(saved.items.map { it.mediaItem() }, saved.index, saved.position)
-                    player.repeatMode = saved.repeatMode; player.shuffleModeEnabled = saved.shuffle
-                    player.playWhenReady = false
+                    applyingCheckpoint = true
+                    try {
+                        player.setMediaItems(saved.items.map { it.mediaItem() }, saved.index, saved.position)
+                        player.repeatMode = saved.repeatMode; player.shuffleModeEnabled = saved.shuffle
+                        player.playWhenReady = false
+                    } finally { applyingCheckpoint = false }
                 }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { android.util.Log.w("TNPlayer", "Saved playback queue is unavailable") }

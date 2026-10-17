@@ -43,7 +43,16 @@ object VerifiedTransfer {
             currentCoroutineContext().ensureActive()
             backend.commit(); committed = true
             currentCoroutineContext().ensureActive()
-            return TransferResult(copied.first, move && backend.deleteSource())
+            if (!move) return TransferResult(copied.first, false)
+            // A provider can modify the original while destination verification runs.
+            // Retain both copies unless a fresh read still matches the copied bytes.
+            val unchanged = try {
+                val current = backend.openSource().use { digest(it, null, "Rechecking source", copied.first, progress) }
+                current.first == copied.first && MessageDigest.isEqual(current.second, copied.second)
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { false }
+            currentCoroutineContext().ensureActive()
+            return TransferResult(copied.first, unchanged && backend.deleteSource())
         } catch (e: Throwable) {
             failure = e; throw e
         } finally {

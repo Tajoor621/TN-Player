@@ -8,7 +8,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-data class LibraryItem(val uri: String, val title: String, val detail: String = "", val mimeType: String = "", val artworkUri: String? = null, val indexedFolder: IndexedFolder? = null)
+data class LibraryItem(val uri: String, val title: String, val detail: String = "", val mimeType: String = "", val artworkUri: String? = null, val indexedFolder: IndexedFolder? = null, val downloadId: Long? = null)
 data class LibraryPage(val items: List<LibraryItem>, val nextKey: Long, val hasMore: Boolean)
 class LibraryRepository(private val context: Context) {
     suspend fun page(video: Boolean, before: Long = Long.MAX_VALUE, query: String = "", pageSize: Int = 200): LibraryPage = withContext(Dispatchers.IO) {

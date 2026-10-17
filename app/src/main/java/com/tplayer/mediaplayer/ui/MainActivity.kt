@@ -79,6 +79,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private val dao by lazy { MediaDatabase.get(this).media() }
+    private val downloads by lazy { DownloadRepository(this) }
+    private var downloadEntries = emptyMap<Long, DownloadEntry>()
     private lateinit var content: LinearLayout
     private lateinit var status: TextView
     private lateinit var adapter: MediaAdapter
@@ -311,10 +313,10 @@ class MainActivity : AppCompatActivity() {
                 browser.searches[screen] = ""; showMedia(screen == Screen.VIDEOS)
             } else if (screen == Screen.FILES && item.detail == "Folder") {
                 folder?.let { parents += it }; folder = documents[item.uri]; showFiles()
-            } else play(item)
+            } else if (screen == Screen.DOWNLOADS) downloadOptions(item) else play(item)
         }, { item ->
             if (item.indexedFolder != null) info(item.title, item.detail)
-            else if (screen == Screen.FILES) fileOptions(item) else mediaOptions(item)
+            else if (screen == Screen.FILES) fileOptions(item) else if (screen == Screen.DOWNLOADS) downloadOptions(item) else mediaOptions(item)
         }, grid = screen in setOf(Screen.VIDEOS, Screen.MUSIC) && settings.libraryDisplay.grid, selection = if (selectableScreen) browser.selection else null, selected = { updateSelection() })
         val list = RecyclerView(this).apply {
             layoutManager = if (screen in setOf(Screen.VIDEOS, Screen.MUSIC) && settings.libraryDisplay.grid)
@@ -574,18 +576,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private fun download(item: LibraryItem) {
-        if (Uri.parse(item.uri).scheme != "https") { info("Downloads", "Only direct HTTPS files can be downloaded."); return }
-        if (Uri.parse(item.uri).path?.lowercase()?.let { it.endsWith(".m3u8") || it.endsWith(".mpd") } == true) {
-            info("Downloads", "Adaptive/offline stream downloads are not implemented. Use a direct media file."); return
+        DownloadPolicy.error(item.uri, item.mimeType)?.let { info("Downloads", it); return }
+        launchUi {
+            downloads.start(item)
+            info("Download queued", "Open Library → Downloads for progress, failures, retry and cancellation. Android manages the background transfer. Files are removed on uninstall.")
         }
-        try {
-            val fileName = Uri.parse(item.uri).lastPathSegment?.replace(Regex("[^A-Za-z0-9._-]"), "_")?.take(100)?.ifEmpty { "media" } ?: "media"
-            val request = DownloadManager.Request(Uri.parse(item.uri)).setTitle(item.title)
-                .setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, "${System.currentTimeMillis()}-$fileName")
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            (getSystemService(DOWNLOAD_SERVICE) as DownloadManager).enqueue(request)
-            info("Download queued", "Android Download Manager will download this direct file. It is stored in TN-Player's app files and is removed on uninstall.")
-        } catch (e: Exception) { info("Download failed", e.message ?: "Cannot start download.") }
     }
     private fun collections() {
         MaterialAlertDialogBuilder(this).setTitle("Your library").setItems(arrayOf("Favorites", "History", "Playlists", "Downloads")) { _, index ->
@@ -604,28 +599,53 @@ class MainActivity : AppCompatActivity() {
     private fun showHistory() {
         screen = Screen.HISTORY; activePlaylist = null
         val actions = setup("Recently played"); status.text = "Tap a file to resume playback"
-        actions.addView(button("Clear history") { launchUi { dao.clearHistory(); adapter.submit(emptyList()) } })
-        job = launchUi { adapter.submit(dao.history().map { LibraryItem(it.uri, it.title, "Resume at ${it.position / 1000}s", it.mimeType) }) }
+        actions.addView(button("Clear history") { launchUi { com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@MainActivity).clearHistory(); adapter.submit(emptyList()) } })
+        job = launchUi { com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@MainActivity).flushHistory(); adapter.submit(dao.history().map { LibraryItem(it.uri, it.title, "Resume at ${it.position / 1000}s", it.mimeType) }) }
     }
     private fun showDownloads() {
         screen = Screen.DOWNLOADS; activePlaylist = null
-        setup("Downloads")
-        status.text = "Completed app downloads · Use Android notifications for active downloads"
+        val actions = setup("Downloads")
+        actions.addView(button("Refresh") { showDownloads() })
+        status.text = "Loading Android-managed downloads…"
         job = launchUi {
-            val items = withContext(Dispatchers.IO) {
-                val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-                val values = mutableListOf<LibraryItem>()
-                manager.query(DownloadManager.Query().setFilterByStatus(DownloadManager.STATUS_SUCCESSFUL))?.use { cursor ->
-                    while (cursor.moveToNext()) {
-                        val id = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_ID))
-                        val uri = manager.getUriForDownloadedFile(id) ?: continue
-                        values += LibraryItem(uri.toString(), cursor.getString(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE)) ?: "Download", "Completed download")
-                    }
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    val entries = downloads.entries()
+                    downloadEntries = entries.associateBy { it.id }
+                    adapter.submit(entries.map { it.item() })
+                    status.text = if (entries.isEmpty()) "No downloads. Add a direct HTTPS file from Streams."
+                        else "${entries.size} downloads · ${entries.count { it.active }} active · ${entries.count { it.status == DownloadManager.STATUS_FAILED }} failed" + if (entries.size == 500) " · showing up to 500" else ""
+                    delay(2000)
                 }
-                values
             }
-            adapter.submit(items)
         }
+    }
+    private fun downloadOptions(item: LibraryItem) {
+        val entry = downloadEntries[item.downloadId] ?: return
+        val choices = buildList {
+            if (entry.completed) { add("Play"); add("Properties"); add("Share") }
+            if (entry.status == DownloadManager.STATUS_FAILED) add("Retry download")
+            add(if (entry.active) "Cancel download" else "Remove download")
+        }
+        MaterialAlertDialogBuilder(this).setTitle(entry.title).setItems(choices.toTypedArray()) { _, index ->
+            when (choices[index]) {
+                "Play" -> play(item)
+                "Properties" -> details(item)
+                "Share" -> try {
+                    val uri = Uri.parse(checkNotNull(entry.playableUri))
+                    startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType(entry.mime.ifBlank { "*/*" })
+                        .putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        .apply { clipData = ClipData.newRawUri("Download", uri) }, "Share download"))
+                } catch (_: Exception) { info("Share", "This downloaded file is no longer accessible.") }
+                "Retry download" -> launchUi { downloads.retry(entry.id); showDownloads() }
+                else -> MaterialAlertDialogBuilder(this).setTitle(choices[index] + "?")
+                    .setMessage("${entry.title}\n\nAndroid will remove the download record and its downloaded or partial file. This cannot be undone here.")
+                    .setNegativeButton("Keep", null).setPositiveButton("Remove") { _, _ -> launchUi {
+                        if (!downloads.remove(entry.id)) info("Downloads", "This download was already removed or could not be removed.")
+                        showDownloads()
+                    } }.show()
+            }
+        }.setNegativeButton("Close", null).show()
     }
     private fun listPlaylists() {
         launchUi {

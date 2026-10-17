@@ -35,6 +35,11 @@ jobs:
             app/build/reports/
   emulator:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [28, 34]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -52,14 +57,14 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ matrix.api }}
           arch: x86_64
           script: |
             bash ./scripts/device-validation.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: android-device-test-reports
+          name: android-device-test-reports-api-${{ matrix.api }}
           path: |
             app/build/reports/androidTests/
             app/build/reports/reference-ui/

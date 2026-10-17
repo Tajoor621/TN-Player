@@ -338,7 +338,7 @@ class PlayerActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this).setTitle("Playing Queue · ${items.size}")
             .setSingleChoiceItems(items.map { it.mediaMetadata.title?.toString() ?: "Media" }.toTypedArray(), player.currentMediaItemIndex) { dialog, index ->
                 if (index != player.currentMediaItemIndex) launchUi {
-                    val saved = dao.historyFor(items[index].mediaId)
+                    val saved = com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@PlayerActivity).historyFor(items[index].mediaId)
                     player.seekTo(index, if (settings.resume && saved != null) PlaybackPolicy.resumePosition(saved.position, saved.duration) else 0)
                     startPlayback(player)
                 }
