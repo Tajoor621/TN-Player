@@ -13,7 +13,7 @@ class CleanupWorker(context: Context, params: WorkerParameters) : Worker(context
         try { runBlocking { DocumentOperations.recoverInterrupted(applicationContext) } }
         catch (_: Exception) { /* Keep the encrypted journal for a later retry after access is restored. */ }
         val cutoff = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
-        File(applicationContext.cacheDir, "exports").listFiles()?.filter { it.isFile && it.lastModified() < cutoff }?.forEach { it.delete() }
+        for (folder in listOf("exports", "subtitles")) File(applicationContext.cacheDir, folder).listFiles()?.filter { it.isFile && it.lastModified() < cutoff }?.forEach { it.delete() }
         return Result.success()
     }
 }

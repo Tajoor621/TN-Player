@@ -1,0 +1,39 @@
+# MX Player feature comparison — 17 October 2026
+
+The requested package `com.mxtech.videoplayer` could not be retrieved. This comparison uses Amazon Mobile LLC's accessible Google Play listing for **com.mxtech.videoplayer.ad**, updated 25 September 2026:
+https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad&hl=en_GB
+
+This is an independent implementation of functional behavior. No MX Player source, branding, assets, APK extraction or proprietary HW+ implementation is included. A store description is not an exhaustive behavioral specification; regional and version differences remain possible.
+
+| Published feature | TN-Player implementation | Remaining limits |
+| --- | --- | --- |
+| Hardware acceleration / HW+ | Media3 uses Android's MediaCodec decoders | MX's proprietary HW+ and universal software decoding are not implemented; codec availability depends on device |
+| Multi-core decoding | Platform decoder implementation | No bundled multi-core software video decoder or performance equivalence claim |
+| Pinch zoom, zoom and pan | Existing two-finger video gestures, zoom reset, mirror and flip | Texture surface/device dependent; gestures disabled during TalkBack touch exploration |
+| Subtitle gestures | New explicit Subtitle gestures mode: two-finger horizontal swipe navigates external captions, vertical swipe moves text, pinch changes text size | Timed external imports only for cue navigation; native captions may define their own position; three text-size levels; turn mode off for video gestures |
+| Privacy Folder | Not included | Requires reviewed encrypted media storage, authentication, import/export recovery and tests; hiding names is not encryption |
+| Kids lock | Existing control lock plus new Android screen-pinning action | User must approve Android's pinning UI; Android controls escape/emergency behavior; not a parental-control password |
+| SRT / WebVTT | External load, normalized timed cues, delay ±10 minutes, previous/next cue seek and removal | UTF-8 and BOM-marked UTF-16; WebVTT cue positioning/styling is not retained by normalization |
+| SSA / ASS | New external loading through Media3's native renderer | Media3 styling subset; no full libass fonts/animation guarantee; native timing, no new cue-navigation/delay controls |
+| MicroDVD | New external `.sub` import | Explicit `{1}{1}25` (or `{0}{0}`) frame-rate header required; no guessed FPS or advanced styling |
+| SubViewer 2.0 | New `.sub` timed text import | Basic `hh:mm:ss.xx,hh:mm:ss.xx` timing and `[br]` line breaks |
+| MPL2 / PJS / TMPlayer | New `.mpl`, `.pjs`, timed `.txt` import | Plain text and line breaks; TMPlayer ends each cue at next start, final cue at +5 seconds |
+| DVD / DVB subtitle tracks | Existing Media3 embedded-track selection | Container/renderer dependent; not a blanket DVD file playback claim |
+| SAMI ruby / VobSub / Teletext | Not added | Requires additional parsing/rendering and fixtures; `.sub` binary files are rejected |
+| Nearby file transfer | Existing Android content-URI sharing only | No Wi-Fi Direct/hotspot/QR transfer service |
+| PiP | Existing Android native PiP with playback actions | Android 8+ and device support; not an overlay window on older Android |
+| Video and music playback | Existing local media library, SAF folders, playback service, playlists, history, resume, file operations and streaming | See FEATURE_STATUS.md for protocol/codec and file-operation boundaries |
+
+## New implementation details
+
+- Text imports are bounded to 2 MB, 20,000 cues, 16,384 characters per line and seven days of timestamps. Frame rates and malformed encodings/timestamps are checked. Original files are never rewritten.
+- Normalized captions are stored only in app-private cache, named by SHA-256. Unused old cache files are eligible for cleanup after seven days. Android may evict cached captions; reload the source if needed.
+- Current external-caption timeline/delay survives Activity recreation through a ViewModel. It is not restored after process death or included in the library backup. The playback queue/history recovery behavior remains unchanged.
+- Subtitle import and shared-file display-name queries run off the UI thread. Cancellation retains pending input for the next Activity start; a new media request cancels the old request.
+- External caption imports replace the current external subtitle; simultaneous external tracks are not implemented. Embedded tracks remain selectable.
+
+## Validation
+
+New JVM tests exercise text-format conversion, clipping and offset navigation, UTF-16/UTF-8 decoding, oversized input, ambiguous frame rate, malformed/reversed timing and cue-count limits. A device test imports MPL2 into real Media3 playback, checks rendered text, seeks by caption, shifts timestamps by +1000 ms, checks cue visibility and recreates the Activity while paused. CI runs Android API 28 and 34 plus the existing unit, lint, release and process-recovery checks.
+
+Screen-pinning approval and unpin gestures are owned by Android and still require manual checks on physical OEM devices. No all-features-complete or 10/10 claim is made.

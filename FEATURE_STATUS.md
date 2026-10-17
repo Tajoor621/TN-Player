@@ -60,3 +60,7 @@
 Do not turn every declaration in an extracted third-party manifest into a required TN-Player component. Add only components that own actual behavior.
 
 Latest prioritized source/security/release findings: [AUDIT.md](AUDIT.md). Current compile/target 34 is a development baseline; API 36/toolchain migration remains necessary for a new Google Play phone-app submission under the requirements checked in October 2026.
+
+## MX Player comparison additions
+
+See [MX_PLAYER_COMPARISON.md](MX_PLAYER_COMPARISON.md) for the source-based gap matrix, external subtitle formats, timing and navigation, subtitle gesture mode, Android screen pinning, and explicit remaining limitations. These additions do not provide full MX Player feature parity.
