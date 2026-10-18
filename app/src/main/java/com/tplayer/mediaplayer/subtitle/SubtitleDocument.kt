@@ -9,8 +9,9 @@ import java.util.Locale
 data class SubtitleCue(val start: Long, val end: Long, val text: String)
 data class SubtitleDocument(val cues: List<SubtitleCue>) {
     private val maximumEnds = cues.runningFold(0L) { end, cue -> maxOf(end, cue.end) }.drop(1)
-    fun activeAt(position: Long, delayMs: Long): List<SubtitleCue> {
-        val time = position - delayMs
+    fun activeAt(position: Long, delayMs: Long, ratePermille: Int = 1000): List<SubtitleCue> {
+        require(ratePermille in 500..2000)
+        val time = (position - delayMs) * ratePermille / 1000
         var low = 0; var high = cues.size
         while (low < high) { val mid = (low + high) ushr 1; if (cues[mid].start <= time) low = mid + 1 else high = mid }
         val active = mutableListOf<SubtitleCue>(); var index = low - 1
@@ -20,19 +21,22 @@ data class SubtitleDocument(val cues: List<SubtitleCue>) {
         }
         return active.asReversed()
     }
-    fun adjacent(position: Long, direction: Int, delayMs: Long): Long? {
-        val starts = cues.filter { it.end + delayMs > 0 }.map { (it.start + delayMs).coerceAtLeast(0) }.distinct()
+    fun adjacent(position: Long, direction: Int, delayMs: Long, ratePermille: Int = 1000): Long? {
+        require(ratePermille in 500..2000)
+        val starts = cues.filter { it.end * 1000 / ratePermille + delayMs > 0 }.map { (it.start * 1000 / ratePermille + delayMs).coerceAtLeast(0) }.distinct()
         return if (direction > 0) starts.firstOrNull { it > position + 100 }
             else starts.lastOrNull { it < position - 100 }
     }
-    fun srt(delayMs: Long): String {
+    fun srt(delayMs: Long, ratePermille: Int = 1000): String {
+        require(ratePermille in 500..2000)
         require(delayMs in -600000L..600000L) { "Subtitle delay must be within 10 minutes." }
+        require(cues.all { it.end * 1000 / ratePermille + delayMs <= 604800000L }) { "Adjusted subtitles exceed the seven-day import range." }
         return buildString {
             var index = 0
             for (cue in cues) {
-                val end = cue.end + delayMs
+                val end = cue.end * 1000 / ratePermille + delayMs
                 if (end <= 0) continue
-                append(++index).append('\n').append(stamp((cue.start + delayMs).coerceAtLeast(0)))
+                append(++index).append('\n').append(stamp((cue.start * 1000 / ratePermille + delayMs).coerceAtLeast(0)))
                     .append(" --> ").append(stamp(end)).append('\n').append(cue.text).append("\n\n")
             }
         }
@@ -77,7 +81,13 @@ object SubtitleImport {
         if (extension in setOf("srt", "vtt")) {
             var i = 0
             while (i < lines.size) {
-                val match = arrow.matchEntire(lines[i++]) ?: continue
+                val line = lines[i++].trim()
+                if (extension == "vtt" && (line == "NOTE" || line.startsWith("NOTE ") || line == "STYLE" || line == "REGION")) {
+                    while (i < lines.size && lines[i].isNotBlank()) i++
+                    continue
+                }
+                val match = arrow.matchEntire(line)
+                if (match == null) { require(!line.contains("-->")) { "Invalid subtitle timestamp." }; continue }
                 val body = mutableListOf<String>()
                 while (i < lines.size && lines[i].isNotBlank()) body += lines[i++]
                 add(clock(match.groupValues[1]), clock(match.groupValues[2]), body.joinToString("\n"))

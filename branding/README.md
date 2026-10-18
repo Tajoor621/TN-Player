@@ -1,11 +1,20 @@
-# TN-Player supplied identity
+# TN-Player supplied gold/cyan identity — 18 October 2026
 
-The final identity is the user-supplied angular black TN monogram with a blue/cyan play triangle and two sound-wave arcs. The original upload, including the Player wordmark, is preserved unchanged in `TN-Player-logo-original.jpeg`.
+`TN-Player-logo-original.png` is the **unchanged user upload**, including the TN-Player and TN-MuzZify wordmarks. `source-manifest.json` records its SHA-256. The former JPEG identity is retained only as historical source; active branding uses the new artwork.
 
-`TN-Player-logo.png` is a square launcher adaptation made using the built-in image editing tool on 16 October 2026. It removes the small Player wordmark and portrait whitespace while retaining the supplied symbol. Android, shortcuts, toolbar, About and Pages all use this square PNG. Android adaptive icons add a white background and safe inset.
+`TN-Player-icon-master.png` is the emblem adaptation made with the built-in image editing tool: gold headphones, cyan/blue play triangle, gold TN letters and musical note, with the lower text removed for launcher legibility. The supplied original remains the full brand image in Settings/About and the website hero.
+
+Packaged consumers:
+
+- Android legacy icons: 48/72/96/144/192 px for mdpi–xxxhdpi.
+- Android 8+ adaptive icon: near-black background, emblem inset for system masks.
+- Android 13+ monochrome icon: simplified native vector for themed launcher tinting.
+- Toolbar, settings, widget and shortcuts: shared Android icon resources.
+- Website favicon, Apple touch icon, header, full hero artwork and icon download.
+- README: shared emblem artwork.
+
+Run `python3 scripts/prepare-branding.py ORIGINAL_PNG ICON_MASTER_PNG` with Pillow installed to reproduce the deterministic resize/package step. Use the supplied source files as inputs from another directory, since the script copies masters into this folder. Packaging only resamples approved assets; it does not generate a new design.
 
 ## Adaptation prompt
 
-Preserve the supplied angular black TN monogram, blue-to-cyan play triangle and two cyan sound-wave arcs. Remove only the gray Player wordmark and excessive portrait whitespace. Center the symbol on a clean white square with adaptive-icon safe margins. No redesign, shadows, border, added symbols or typography.
-
-The source image is user supplied; ownership and trademark clearance have not been independently verified.
+Keep the central gold headphone arch, cyan/blue play triangle with gold TN letters, gold/cyan musical note and cyan equalizer bars. Preserve shapes, metallic finish, proportions and colors. Remove the lower TN-Player/TN-MuzZify text and decorative rules. Center the emblem on a near-black square with generous adaptive-mask margins. No new symbols, words, borders or watermark.

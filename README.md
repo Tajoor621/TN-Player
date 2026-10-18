@@ -1,6 +1,6 @@
 # TN-Player 1.0.0
 
-<img src="branding/TN-Player-logo.png" width="112" alt="TN-Player TN monogram and play icon">
+<img src="branding/TN-Player-logo.png" width="112" alt="TN-Player gold headphones and cyan play icon">
 
 Native Android media-player core built from the TN-Player master specification.
 

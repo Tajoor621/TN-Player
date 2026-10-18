@@ -45,3 +45,7 @@ Use a release build and record phone model, Android version, codec, resolution, 
 - Automated API 28/34: actual imported-caption rendering, next-caption seek, shifted cue visibility, paused Activity recreation, and decoder reinitialization retaining queue/position before resuming video.
 - Physical manual: Android screen-pinning approval/cancellation/unpin gestures; control unlock; portrait/landscape; TalkBack suppression of two-finger gestures; caption pinch/vertical/horizontal gestures; native SSA/ASS/TTML fixtures; subtitle removal; import cancellation when switching files. Confirm no original caption file is modified.
 - These checks do not certify full libass styling, image sidecar formats, every OEM codec, private folders, native decoder licensing, nearby transfers, or volume amplification.
+
+## 18 October brand and caption delivery
+
+Run all JVM/lint/debug/release checks and the API 28/34 device suites. New assertions cover atomic encrypted per-file caption restoration, failed encryption retaining previous data, key/tamper rejection, bounded retention, subtitle speed/display/navigation/export consistency, WebVTT metadata exclusion, reopened player state, optional status overlays and double-tap pause. The separate prepare/force-stop/cold-restore sequence also restores encrypted caption text/delay/rate. Manually verify Android themed-icon masks, TalkBack, large fonts, gesture sides, native caption formats and hardware behavior on Samsung; inspect branding/launcher-preview.png for deterministic launcher previews.

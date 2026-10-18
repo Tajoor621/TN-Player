@@ -17,7 +17,9 @@ class PlayerGestures(private val activity: Activity, private val view: PlayerVie
     private val overlay: TextView, private val player: () -> Player?, private val enabled: () -> Boolean,
     private val seekMs: () -> Long, private val flips: () -> Pair<Boolean, Boolean> = { false to false },
     private val subtitleMode: () -> Boolean = { false }, private val captionJump: (Int) -> Unit = {},
-    private val captionMove: (Int) -> Unit = {}, private val captionSize: (Int) -> Unit = {}) {
+    private val captionMove: (Int) -> Unit = {}, private val captionSize: (Int) -> Unit = {},
+    private val captionPosition: () -> Int = { 8 }, private val captionTextSize: () -> Int = { 1 },
+    private val volumeRight: () -> Boolean = { false }, private val tapPlayPause: () -> Boolean = { false }) {
     private val audio = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val accessibility = activity.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
     private var tracking = false; private var mode = ""
@@ -25,12 +27,17 @@ class PlayerGestures(private val activity: Activity, private val view: PlayerVie
     private var startPosition = 0L; private var target = 0L; private var startVolume = 0
     private var startBrightness = .5f; private var zoom = 1f; private var startZoom = 1f
     private var panX = 0f; private var panY = 0f
+    private var startCaptionPosition = 8; private var startCaptionSize = 1
     private var captionDelta = 0; private var captionSteps = 0; private var captionDirection = 0
     private val hide = Runnable { overlay.visibility = View.GONE }
     private fun say(message: String) { overlay.removeCallbacks(hide); overlay.text = message; overlay.visibility = View.VISIBLE; overlay.postDelayed(hide, 1000) }
     private val taps = GestureDetector(activity, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(event: android.view.MotionEvent): Boolean {
             val media = player() ?: return false
+            if (tapPlayPause()) {
+                if (media.isPlaying) media.pause() else { if (media.playbackState == Player.STATE_ENDED) media.seekToDefaultPosition(); if (media.playbackState == Player.STATE_IDLE) media.prepare(); media.play() }
+                say(if (media.playWhenReady) "Play" else "Pause"); return true
+            }
             if (!media.isCurrentMediaItemSeekable) return false
             val delta = if (event.x < view.width / 2) -seekMs() else seekMs()
             media.seekTo((media.currentPosition + delta).coerceAtLeast(0)); say("${if (delta < 0) "−" else "+"}${seekMs() / 1000}s")
@@ -48,6 +55,7 @@ class PlayerGestures(private val activity: Activity, private val view: PlayerVie
                 startPosition = player()?.currentPosition ?: 0; target = startPosition
                 startVolume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
                 startBrightness = activity.window.attributes.screenBrightness.takeIf { it >= 0 } ?: (android.provider.Settings.System.getInt(activity.contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)
+                startCaptionPosition = captionPosition(); startCaptionSize = captionTextSize()
                 startZoom = zoom; panX = view.videoSurfaceView?.translationX ?: 0f; panY = view.videoSurfaceView?.translationY ?: 0f
                 view.parent?.requestDisallowInterceptTouchEvent(true); return@setOnTouchListener true
             }
@@ -62,18 +70,18 @@ class PlayerGestures(private val activity: Activity, private val view: PlayerVie
                     when (mode) {
                         "caption-size" -> {
                             val steps = (ln(ratio.coerceAtLeast(.01f)) / ln(1.3f)).toInt().coerceIn(-2, 2)
-                            if (steps != captionSteps) { captionSize(steps - captionSteps); captionSteps = steps; say("Subtitle text size") }
+                            if (steps != captionSteps) { captionSize((startCaptionSize + steps).coerceIn(0, 2)); captionSteps = steps; say("Subtitle text size") }
                         }
                         "caption-position" -> {
                             val delta = (-dy / view.height.coerceAtLeast(1) * 60).roundToInt()
-                            if (delta != captionDelta) { captionMove(delta - captionDelta); captionDelta = delta; say("Subtitle position") }
+                            if (delta != captionDelta) { captionMove((startCaptionPosition + delta).coerceIn(0, 35)); captionDelta = delta; say("Subtitle position") }
                         }
                         "caption-jump" -> { captionDirection = if (dx < 0) 1 else -1; say(if (captionDirection > 0) "Next caption" else "Previous caption") }
                     }
                     return@setOnTouchListener true
                 }
                 if (abs(ratio - 1) > .12f) mode = "zoom"
-                if (mode.isEmpty() && max(abs(dx), abs(dy)) > activity.dp(20)) mode = if (startZoom > 1.05f) "pan" else if (abs(dx) > abs(dy)) "seek" else if (startX < view.width / 2) "volume" else "brightness"
+                if (mode.isEmpty() && max(abs(dx), abs(dy)) > activity.dp(20)) mode = if (startZoom > 1.05f) "pan" else if (abs(dx) > abs(dy)) "seek" else if ((startX >= view.width / 2) == volumeRight()) "volume" else "brightness"
                 when (mode) {
                     "zoom", "pan" -> {
                         zoom = (startZoom * ratio).coerceIn(1f, 3f)

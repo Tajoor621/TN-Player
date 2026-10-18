@@ -26,6 +26,21 @@ class Settings(context: Context) {
     var tree: String?
         get() = prefs.getString("tree", null)
         set(value) { prefs.edit().putString("tree", value).apply() }
+    var gestureVolumeRight: Boolean
+        get() = prefs.getBoolean("gestureVolumeRight", false)
+        set(value) { prefs.edit().putBoolean("gestureVolumeRight", value).apply() }
+    var doubleTapPlayPause: Boolean
+        get() = prefs.getBoolean("doubleTapPlayPause", false)
+        set(value) { prefs.edit().putBoolean("doubleTapPlayPause", value).apply() }
+    var showPlayerClock: Boolean
+        get() = prefs.getBoolean("showPlayerClock", false)
+        set(value) { prefs.edit().putBoolean("showPlayerClock", value).apply() }
+    var showPlayerBattery: Boolean
+        get() = prefs.getBoolean("showPlayerBattery", false)
+        set(value) { prefs.edit().putBoolean("showPlayerBattery", value).apply() }
+    var showRemainingTime: Boolean
+        get() = prefs.getBoolean("showRemainingTime", false)
+        set(value) { prefs.edit().putBoolean("showRemainingTime", value).apply() }
     var gestures: Boolean
         get() = prefs.getBoolean("gestures", true)
         set(value) { prefs.edit().putBoolean("gestures", value).apply() }
@@ -109,7 +124,7 @@ class Settings(context: Context) {
             ?: setOf(PlayerShortcut.ROTATION, PlayerShortcut.SPEED, PlayerShortcut.BACKGROUND, PlayerShortcut.EQUALIZER, PlayerShortcut.AB)
         set(value) { prefs.edit().putString("playerShortcuts", PlayerShortcut.values().filter { it in value }.joinToString(",") { it.name }).apply() }
     fun backupValues(): Map<String, Any> = mapOf(
-        "decoderPreference" to decoderPreference, "theme" to theme, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
+        "decoderPreference" to decoderPreference, "theme" to theme, "gestureVolumeRight" to gestureVolumeRight, "doubleTapPlayPause" to doubleTapPlayPause, "showPlayerClock" to showPlayerClock, "showPlayerBattery" to showPlayerBattery, "showRemainingTime" to showRemainingTime, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
         "seekMs" to seekMs, "gestures" to gestures, "amoled" to amoled,
         "embeddedSubtitleStyles" to embeddedSubtitleStyles, "subtitleSize" to subtitleSize, "subtitleFont" to subtitleFont, "subtitleColor" to subtitleColor,
         "subtitleBackground" to subtitleBackground, "subtitlePosition" to subtitlePosition,

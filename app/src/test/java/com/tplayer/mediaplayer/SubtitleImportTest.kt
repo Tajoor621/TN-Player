@@ -28,6 +28,22 @@ class SubtitleImportTest {
         assertEquals("third", doc.activeAt(21500, 1000).single().text)
         assertEquals(listOf(first, second), doc.activeAt(2500, 0)) // backward seek after a later cue
     }
+    @Test fun rateCorrectionKeepsDisplayNavigationAndExportOnTheSameTimeline() {
+        val doc = SubtitleDocument(listOf(SubtitleCue(10000, 12000, "first"), SubtitleCue(20000, 24000, "second")))
+        assertEquals("second", doc.activeAt(11500, 1000, 2000).single().text)
+        assertEquals(11000L, doc.adjacent(7000, 1, 1000, 2000))
+        val exported = SubtitleImport.parse(doc.srt(1000, 2000), "adjusted.srt")
+        assertEquals(listOf(6000L, 11000L), exported.cues.map { it.start })
+        assertEquals(listOf(7000L, 13000L), exported.cues.map { it.end })
+        assertEquals("second", exported.activeAt(11500, 0).single().text)
+        rejects { doc.srt(0, 0) }
+        rejects { SubtitleDocument(listOf(SubtitleCue(600000000, 604800000, "Late"))).srt(600000) }
+    }
+    @Test fun webVttMetadataNeverBecomesVisibleCaptionText() {
+        val value = "WEBVTT\n\nNOTE hidden diagnostic\n00:01.000 --> 00:02.000\nNot a caption\n\nSTYLE\n::cue { color: cyan; }\n\n00:03.000 --> 00:04.000\nVisible caption\n"
+        assertEquals(listOf(SubtitleCue(3000, 4000, "Visible caption")), SubtitleImport.parse(value, "captions.vtt").cues)
+        rejects { SubtitleImport.parse("bad --> timing\nText", "bad.srt") }
+    }
     @Test fun legacyTextFormatsNormalizeToTheSameTimeline() {
         val fixtures = mapOf(
             "a.srt" to "1\n00:00:01,000 --> 00:00:03,000\nHello\nworld\n",

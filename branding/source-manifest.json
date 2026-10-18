@@ -1,0 +1,8 @@
+{
+  "original_sha256": "475c2945f8d9263840554d1e4a09211e32ec40da52305894558be58b6ee3a251",
+  "icon_master_sha256": "6f745b7eb32e22689dcb0d3e9620a8e37d68bfe2d8a4b96f4e1dd46524abf398",
+  "original": "TN-Player-logo-original.png",
+  "launcher": "TN-Player-logo.png",
+  "date": "2026-10-18",
+  "method": "User original preserved unchanged; built-in image edit for emblem adaptation; Pillow LANCZOS packaging"
+}

@@ -30,7 +30,7 @@ This is an independent implementation of functional behavior. No MX Player sourc
 
 - Text imports are bounded to 2 MB, 20,000 cues, 16,384 characters per line and seven days of timestamps. Frame rates and malformed encodings/timestamps are checked. Original files are never rewritten.
 - Timed imports render in an app-owned overlay tied to playback position, including paused seeks; native ASS/SSA/TTML imports use Media3. Timed overlays display at most eight simultaneous cues/eight lines/8,192 characters to bound layout work. Adjusted SRT can be exported through Android's save picker. Native caption copies are stored only in app-private cache, named by SHA-256. Cached imports older than seven days are eligible for cleanup. Android may evict cached captions; reload the source if needed.
-- Current external-caption timeline/delay survives Activity recreation through a ViewModel. Finishing the player or process death discards the imported-caption session; reload the source on return. It is not included in the library backup. The playback queue/history recovery behavior remains unchanged.
+- Current external-caption timeline/delay survives Activity recreation through a ViewModel. Up to ten recent timed-caption sessions now persist encrypted across closing/reopening and process death, within a 32 MB budget. Original files are not moved. Native ASS/SSA/TTML session persistence remains separate work; caption text is excluded from the plain library backup. The playback queue/history recovery behavior remains unchanged.
 - Subtitle import and shared-file display-name queries run off the UI thread. Cancellation retains pending input for the next Activity start; a new media request cancels the old request.
 - External caption imports replace the current external subtitle; simultaneous external tracks are not implemented. Embedded tracks remain selectable.
 
@@ -54,8 +54,8 @@ The older public [MX Player Features manual](https://sites.google.com/site/mxvpe
 | Movie folders, artwork, search, editing, themes and per-file resume | Existing; no scan-time performance guarantee; file-operation limits are in FEATURE_STATUS.md |
 | Associated-subtitle tags and new-file tags | Not implemented as a complete sidecar-indexing feature |
 | Online subtitle discovery, simultaneous subtitle files | Not implemented; online integration needs provisioned API/auth and multiple tracks need a rendering design |
-| Custom TTF/OTF fonts, subtitle playback-rate correction, fade effects, slash-prefixed italics | Not implemented; built-in font families and imported-caption offset are available |
-| Clock/battery overlay, mouse-wheel handling and joystick-specific controls | Not implemented as dedicated features; ordinary media/keyboard/D-pad seek controls exist |
+| Custom TTF/OTF fonts, subtitle playback-rate correction, fade effects, slash-prefixed italics | Speed correction 50–200% and built-in font families/offset are implemented; custom fonts/fade effects/slash-specific styling remain |
+| Clock/battery overlay, mouse-wheel handling and joystick-specific controls | Optional clock, battery and remaining-time overlays are implemented; dedicated mouse-wheel/joystick controls remain; ordinary media/keyboard/D-pad seek controls exist |
 | Corner-sequence kids unlock and animated touch effects | Not implemented; TN-Player offers control lock and Android screen pinning with different escape behavior |
 | Volume amplification beyond 100% | Not implemented; hardware equalizer/bass/virtualizer are not a PCM limiter or volume booster |
 | Multiwindow | Resizeable activities exist; OEM-specific Samsung behavior has not been certified |

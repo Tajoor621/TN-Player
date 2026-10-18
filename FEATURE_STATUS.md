@@ -18,7 +18,7 @@
 | Seek, speed, loop, shuffle | Standard transport; 0.25–4×; repeat modes; playlists | Frame-accurate stepping requires decoder-specific implementation |
 | A–B repeat and sleep timer | Service-owned loop and pause timer | Test seekable/live sources; persistence across process death not provided |
 | Resume history | Room, ordered pending-history reads, checkpoint every 5 s, restarts near-completed files at 0 | Encrypted queue restoration implemented; abrupt termination may lose recent progress |
-| Tracks and subtitles | Media3 tracks; external SRT/VTT, MPL2, PJS, MicroDVD/SubViewer, TMPlayer; timed-import delay and cue navigation; external native SSA/ASS/TTML; subtitle gesture mode; persistent style | Embedded/native-track delay, full libass styling, image sidecars, SAMI ruby and multi-external tracks remain; see MX_PLAYER_COMPARISON.md |
+| Tracks and subtitles | Media3 tracks; external SRT/VTT, MPL2, PJS, MicroDVD/SubViewer, TMPlayer; encrypted recent-caption restoration, timed-import delay/speed correction and cue navigation/export; external native SSA/ASS/TTML; subtitle gesture mode; persistent style | Embedded/native-track delay, full libass styling, image sidecars, SAMI ruby and multi-external tracks remain; see MX_PLAYER_COMPARISON.md |
 | Online subtitle lookup | Not implemented | Use official OpenSubtitles REST API with a provisioned client key, user auth where required, rate limits, consent and cache; do not add unverified Maven coordinates |
 | Video display | Persistent fit/fill/crop, rotation, pinch/pan 1–3× and window brightness gesture | Mirror/vertical flip/night display, explicit portrait/landscape/fullscreen and bounded PNG frame export implemented; add color-processing shaders and deinterlace pipeline |
 | Audio processing | Service-owned device-band-aware Equalizer, capability-gated BassBoost/Virtualizer and saved controls | Add custom PCM processor for delay/boost with limiter and clipping tests. Do not label a device's 5-band EQ as 10-band |
@@ -32,8 +32,8 @@
 | Transfers / servers / Wi-Fi Direct | Not implemented | Design authenticated explicit sharing sessions, ephemeral credentials, foreground service only during transfers and tested connection lifecycles |
 | Cast | Not implemented | Add Cast SDK with receiver capability checks and separate DLNA discovery/control; local files require explicitly enabled authenticated LAN serving |
 | Cloud storage / sync | Not implemented | OAuth via provider SDK or Android document provider; encrypt secrets using Keystore; queue sync with conflict resolution and user opt-in |
-| Themes | Light/dark/system and AMOLED with blue/cyan accent palette | Add accent presets and scheduled theme; physical-device contrast QA |
-| Gestures / controls | Standard controls, lock, keyboard and configurable-on/off two-finger swipes, double-tap seek and pinch/pan; disabled under touch exploration | Shortcut visibility/customization and visible Unlock implemented; add gesture mapping presets and physical TalkBack verification |
+| Themes | Light/dark/system and AMOLED with blue/cyan accent palette | User-supplied gold/cyan identity integrated across icons, widget, settings and web; add accent presets/scheduled theme and physical-device contrast QA |
+| Gestures / controls | Standard controls, lock, keyboard and configurable-on/off two-finger swipes, double-tap seek and pinch/pan; disabled under touch exploration | Shortcut visibility/customization, visible Unlock, reversed swipe sides and double-tap action presets implemented; physical TalkBack verification remains |
 | TV and D-pad | Some standard focusable controls; no TV launcher claim | TV banner, Leanback UI, D-pad focus graph and emulator/physical TV certification |
 | Settings / privacy / help | Reference-style Me hub with working shortcuts, view/layout draft dialog, detailed settings, PiP options, themes, notifications and help | Add settings migration and test full large-font landscape layouts |
 | Database / credentials | Room collections with encrypted network URL payloads and opaque identifiers; Keystore-backed encrypted playback checkpoints; embedded credentials rejected | Add entities only with implemented clients; encrypt credentials with Keystore-backed storage and handle key invalidation |
@@ -64,3 +64,8 @@ Latest prioritized source/security/release findings: [AUDIT.md](AUDIT.md). Curre
 ## MX Player comparison additions
 
 See [MX_PLAYER_COMPARISON.md](MX_PLAYER_COMPARISON.md) for the source-based gap matrix, platform decoder preferences with fallback, external subtitle formats, timing and navigation, subtitle gesture mode, Android screen pinning, and explicit remaining limitations. These additions do not provide full MX Player feature parity.
+
+
+## 18 October audit delivery
+
+The latest icon integration and prioritized source review are in [AUDIT_2026-10-18.md](AUDIT_2026-10-18.md). Added local encrypted retention of up to ten recent timed-caption sessions (32 MB total budget), speed correction, selectable embedded-track switching, gesture presets and optional clock/battery/remaining-time overlays. Native ASS/SSA/TTML session persistence is still separate work; this is not a full product completion claim.

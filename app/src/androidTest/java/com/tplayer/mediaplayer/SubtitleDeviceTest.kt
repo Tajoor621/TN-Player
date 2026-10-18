@@ -73,9 +73,20 @@ class SubtitleDeviceTest {
             DevicePlayback.await("Old subtitle remained before shifted cue") { shownCaption().isEmpty() }
             DevicePlayback.main { controller.seekTo(21500) }
             DevicePlayback.await("Shifted subtitle did not render") { shownCaption() == "Second caption" }
+            openSubtitle(); waitFor("Subtitle speed correction"); onView(withText("Subtitle speed correction")).inRoot(isDialog()).perform(click())
+            waitFor("Subtitle speed (%)"); onView(isAssignableFrom(EditText::class.java)).inRoot(isDialog()).perform(replaceText("200"), closeSoftKeyboard()); onView(withText("Apply")).inRoot(isDialog()).perform(click())
+            DevicePlayback.await("Rate not saved") { var ready = false; scenario.onActivity { ready = ViewModelProvider(it)[PlayerUiState::class.java].captions?.ratePermille == 2000 }; ready }
+            DevicePlayback.main { controller.seekTo(11500) }
+            DevicePlayback.await("Rate correction did not render") { shownCaption() == "Second caption" }
             scenario.recreate()
             scenario.onActivity { assertEquals(1000L, ViewModelProvider(it)[PlayerUiState::class.java].captions?.delayMs) }
-            assertTrue(DevicePlayback.main { !controller.isPlaying && controller.currentPosition in 21300..21700 })
-        } finally { scenario.close(); DevicePlayback.stop(controller); source.delete() }
+            assertTrue(DevicePlayback.main { !controller.isPlaying && controller.currentPosition in 11300..11700 })
+            scenario.close()
+            androidx.test.core.app.ActivityScenario.launch<PlayerActivity>(android.content.Intent(DevicePlayback.context, PlayerActivity::class.java)).use { reopened ->
+                DevicePlayback.await("Finishing the player lost saved captions") {
+                    var text = ""; reopened.onActivity { activity -> val caption = activity.findViewById<View>(android.R.id.content).findViewWithTag<TextView>("external-subtitles"); if (caption.isShown) text = caption.text.toString() }; text == "Second caption"
+                }
+            }
+        } finally { scenario.close(); DevicePlayback.stop(controller); com.tplayer.mediaplayer.subtitle.CaptionRepository.get(DevicePlayback.context).remove(DevicePlayback.fixture("video-fixture.mp4").toString()); source.delete() }
     }
 }

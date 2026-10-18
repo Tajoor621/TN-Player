@@ -169,6 +169,8 @@ class PrepareRecoveryTest {
             DevicePlayback.main { controller.seekTo(12000) }
             DevicePlayback.await("Recovery position was not checkpointed") { runBlocking { PlaybackPersistence.get(DevicePlayback.context).read()?.position ?: 0 } >= 12000 }
             runBlocking { PlaybackPersistence.get(DevicePlayback.context).flush() }
+            com.tplayer.mediaplayer.subtitle.CaptionRepository.get(DevicePlayback.context).save(com.tplayer.mediaplayer.subtitle.ExternalCaptions(
+                uri.toString(), "Recovery subtitles", com.tplayer.mediaplayer.subtitle.SubtitleDocument(listOf(com.tplayer.mediaplayer.subtitle.SubtitleCue(10000, 80000, "Saved caption"))), 250, 1250))
         } finally { scenario.close(); DevicePlayback.main { controller.release() } }
     }
 }
@@ -176,13 +178,17 @@ class PrepareRecoveryTest {
 class ColdRestoreTest {
     @Test fun aNewProcessRestoresTheEncryptedQueueAndPosition() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("coldRestore") == "true")
-        val saved = runBlocking { PlaybackPersistence.get(DevicePlayback.context).read() }
-        assertNotNull("No checkpoint survived process death", saved)
-        assertTrue("Checkpoint position was lost", saved!!.position >= 12000)
+        val saved = checkNotNull(runBlocking { PlaybackPersistence.get(DevicePlayback.context).read() }) { "No checkpoint survived process death" }
+        assertTrue("Checkpoint position was lost", saved.position >= 12000)
         val scenario = ActivityScenario.launch<PlayerActivity>(Intent(DevicePlayback.context, PlayerActivity::class.java).putExtra("resume", true))
         val controller = DevicePlayback.controller()
         try {
             DevicePlayback.await("Cold playback did not resume") { DevicePlayback.main { controller.isPlaying && controller.mediaMetadata.title?.toString() == "Recovery audio" && controller.currentPosition >= 12000 } }
-        } finally { DevicePlayback.stop(controller); scenario.close() }
+            DevicePlayback.await("Captions did not survive force-stop") {
+                var text = ""; scenario.onActivity { activity -> val caption = activity.findViewById<View>(android.R.id.content).findViewWithTag<TextView>("external-subtitles"); if (caption.isShown) text = caption.text.toString() }; text == "Saved caption"
+            }
+            val captions = com.tplayer.mediaplayer.subtitle.CaptionRepository.get(DevicePlayback.context).read(saved.items[saved.index].uri)!!
+            assertEquals(250L, captions.delayMs); assertEquals(1250, captions.ratePermille)
+        } finally { DevicePlayback.stop(controller); scenario.close(); com.tplayer.mediaplayer.subtitle.CaptionRepository.get(DevicePlayback.context).remove(saved.items[saved.index].uri) }
     }
 }

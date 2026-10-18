@@ -17,7 +17,7 @@ class SettingsPersistenceTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         context.getSharedPreferences("tplayer", Context.MODE_PRIVATE).edit().clear().commit()
         Settings(context).apply {
-            embeddedSubtitleStyles = false; decoderPreference = 2; resume = false; autoPip = false; hidden = true
+            gestureVolumeRight = true; doubleTapPlayPause = true; showPlayerClock = true; showPlayerBattery = true; showRemainingTime = true; embeddedSubtitleStyles = false; decoderPreference = 2; resume = false; autoPip = false; hidden = true
             seekMs = 30000; theme = AppCompatDelegate.MODE_NIGHT_YES
             tree = "content://provider/tree/example"
             backgroundPlayback = false; mirror = true; verticalFlip = true; playerOrientation = 2
@@ -35,6 +35,7 @@ class SettingsPersistenceTest {
         assertEquals(setOf(PlayerShortcut.MUTE, PlayerShortcut.SCREENSHOT), reloaded.playerShortcuts)
         assertTrue(reloaded.libraryDisplay.grid)
         assertEquals(MediaSort.SIZE, reloaded.libraryDisplay.sort)
+        assertTrue(reloaded.gestureVolumeRight); assertTrue(reloaded.doubleTapPlayPause); assertTrue(reloaded.showPlayerClock); assertTrue(reloaded.showPlayerBattery); assertTrue(reloaded.showRemainingTime)
         assertFalse(reloaded.embeddedSubtitleStyles)
         assertEquals(2, reloaded.decoderPreference)
         assertFalse(reloaded.resume)

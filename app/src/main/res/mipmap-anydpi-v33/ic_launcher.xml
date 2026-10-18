@@ -1,0 +1,5 @@
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/tn_icon_background" />
+    <foreground android:drawable="@drawable/tn_adaptive_foreground" />
+    <monochrome android:drawable="@drawable/tn_monochrome" />
+</adaptive-icon>
