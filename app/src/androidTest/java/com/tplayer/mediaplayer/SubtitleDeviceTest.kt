@@ -9,6 +9,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.Espresso.onData
+import org.hamcrest.Matchers.equalTo
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.espresso.matcher.RootMatchers.isDialog
@@ -73,7 +75,7 @@ class SubtitleDeviceTest {
             DevicePlayback.await("Old subtitle remained before shifted cue") { shownCaption().isEmpty() }
             DevicePlayback.main { controller.seekTo(21500) }
             DevicePlayback.await("Shifted subtitle did not render") { shownCaption() == "Second caption" }
-            openSubtitle(); waitFor("Subtitle speed correction"); onView(withText("Subtitle speed correction")).inRoot(isDialog()).perform(click())
+            openSubtitle(); onData(equalTo("Subtitle speed correction")).inRoot(isDialog()).perform(click())
             waitFor("Subtitle speed (%)"); onView(isAssignableFrom(EditText::class.java)).inRoot(isDialog()).perform(replaceText("200"), closeSoftKeyboard()); onView(withText("Apply")).inRoot(isDialog()).perform(click())
             DevicePlayback.await("Rate not saved") { var ready = false; scenario.onActivity { ready = ViewModelProvider(it)[PlayerUiState::class.java].captions?.ratePermille == 2000 }; ready }
             DevicePlayback.main { controller.seekTo(11500) }
