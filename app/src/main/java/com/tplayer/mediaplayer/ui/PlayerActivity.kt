@@ -258,7 +258,7 @@ class PlayerActivity : AppCompatActivity() {
         val titles = source.getStringArrayListExtra("titles")
         val mimes = source.getStringArrayListExtra("mimes")
         if (!queue.isNullOrEmpty()) {
-            require(queue.size <= 1000)
+            require(PlaybackPolicy.queueError(queue, queue.indices.map { titles?.getOrNull(it)?.take(1024) ?: "Media" }, queue.indices.map { mimes?.getOrNull(it)?.take(128).orEmpty() }) == null)
             val items = queue.mapIndexedNotNull { index, value -> makeItem(Uri.parse(value), titles?.getOrNull(index) ?: "Media", mimes?.getOrNull(index)) }
             if (items.isNotEmpty()) { player.setMediaItems(items); player.prepare(); player.play() }
             return
@@ -298,8 +298,8 @@ class PlayerActivity : AppCompatActivity() {
         if (scheme == "https" || scheme == "rtsp") {
             PlaybackPolicy.validateStream(uri.toString())?.let { info("Invalid stream", it); return null }
         }
-        return MediaItem.Builder().setUri(uri).setMediaId(uri.toString()).setMimeType(mime?.ifBlank { null })
-            .setMediaMetadata(MediaMetadata.Builder().setTitle(name).setExtras(Bundle().apply { putString("mime", mime.orEmpty()) }).build()).build()
+        return MediaItem.Builder().setUri(uri).setMediaId(uri.toString()).setMimeType(mime?.take(128)?.ifBlank { null })
+            .setMediaMetadata(MediaMetadata.Builder().setTitle(name.take(1024)).setExtras(Bundle().apply { putString("mime", mime.orEmpty().take(128)) }).build()).build()
     }
     private fun displayName(uri: Uri): String {
         if (uri.scheme?.lowercase() in setOf("https", "rtsp")) return uri.host ?: "Network stream"

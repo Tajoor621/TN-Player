@@ -551,8 +551,8 @@ class MainActivity : AppCompatActivity() {
     }
     private fun streamDialog(initial: LibraryItem? = null) {
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), 0, dp(24), 0) }
-        val title = EditText(this).apply { hint = "Stream name"; setSingleLine(); setText(initial?.title.orEmpty()) }
-        val url = EditText(this).apply { hint = "https://… or rtsp://…"; setSingleLine(); inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI }
+        val title = EditText(this).apply { hint = "Stream name"; filters = arrayOf(android.text.InputFilter.LengthFilter(1024)); setSingleLine(); setText(initial?.title.orEmpty()) }
+        val url = EditText(this).apply { hint = "https://… or rtsp://…"; filters = arrayOf(android.text.InputFilter.LengthFilter(32768)); setSingleLine(); inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI }
         val format = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, StreamFormat.values().map { it.label }) }
         url.setText(initial?.uri.orEmpty()); format.setSelection(StreamFormat.fromMime(initial?.mimeType).ordinal)
         box.addView(title); box.addView(url); box.addView(format)
@@ -566,7 +566,7 @@ class MainActivity : AppCompatActivity() {
     }
     private fun play(item: LibraryItem) {
         val uri = Uri.parse(item.uri)
-        val intent = Intent(this, PlayerActivity::class.java).setData(uri).putExtra("title", item.title).putExtra("mime", item.mimeType).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val intent = Intent(this, PlayerActivity::class.java).setData(uri).putExtra("title", item.title.take(1024)).putExtra("mime", item.mimeType.take(128)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         startActivity(intent)
     }
     private fun mediaOptions(item: LibraryItem) {
@@ -698,10 +698,11 @@ class MainActivity : AppCompatActivity() {
             val items = dao.playlistItems(id); status.text = "${items.size} tracks"
             adapter.submit(items.map { LibraryItem(it.uri, it.title, mimeType = it.mimeType) })
             actions.addView(button("Play all") {
-                if (items.isNotEmpty()) startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
-                    .putStringArrayListExtra("queue", ArrayList(items.map { it.uri }))
-                    .putStringArrayListExtra("titles", ArrayList(items.map { it.title }))
-                    .putStringArrayListExtra("mimes", ArrayList(items.map { it.mimeType })))
+                val uris = items.map { it.uri }; val titles = items.map { it.title.take(1024) }; val mimes = items.map { it.mimeType.take(128) }
+                val error = PlaybackPolicy.queueError(uris, titles, mimes)
+                if (error != null) info("Playlist cannot open", error)
+                else startActivity(Intent(this@MainActivity, PlayerActivity::class.java).putStringArrayListExtra("queue", ArrayList(uris))
+                    .putStringArrayListExtra("titles", ArrayList(titles)).putStringArrayListExtra("mimes", ArrayList(mimes)))
             })
             actions.addView(button("Delete playlist") {
                 MaterialAlertDialogBuilder(this@MainActivity).setTitle("Delete playlist?").setMessage("Media files are retained.")

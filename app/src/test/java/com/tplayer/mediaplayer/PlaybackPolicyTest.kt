@@ -12,6 +12,15 @@ class PlaybackPolicyTest {
         assertNull(PlaybackPolicy.validateStream("https://example.com/master.m3u8?token=abc"))
         assertNull(PlaybackPolicy.validateStream("rtsp://192.168.1.20:554/live"))
     }
+    @Test fun oversizedRequestsFailBeforeBuildingAnAndroidIntent() {
+        assertNotNull(PlaybackPolicy.validateStream("https://example.com/" + "x".repeat(32768)))
+        assertNotNull(PlaybackPolicy.validateStream("https://example.com/video\n.mp4"))
+        assertNull(PlaybackPolicy.queueError(listOf("content://media/1"), listOf("File"), listOf("video/mp4")))
+        assertNotNull(PlaybackPolicy.queueError(List(1001) { "content://media/$it" }, List(1001) { "File" }, List(1001) { "" }))
+        assertNotNull(PlaybackPolicy.queueError(List(200) { "content://media/$it" }, List(200) { "x".repeat(1000) }, List(200) { "" }))
+        assertNotNull(PlaybackPolicy.queueError(listOf("content://media/1"), emptyList(), listOf("")))
+        assertNotNull(PlaybackPolicy.queueError(listOf("content://media/1"), listOf("x".repeat(1025)), listOf("")))
+    }
     @Test fun completedMediaRestartsButUnfinishedMediaResumes() {
         assertEquals(0L, PlaybackPolicy.resumePosition(99900, 100000))
         assertEquals(42000L, PlaybackPolicy.resumePosition(42000, 100000))
