@@ -1,6 +1,6 @@
 # TN-Player 1.0.0
 
-> **Development phase — 2 November 2026:** Decoder workflow is integrated as source. The owner has deferred the final APK build/publication until three additional feature prompts are integrated. Normal pushes perform source checks only; APK/device checks and publication require explicit manual inputs. See [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md) and [FORMATS.md](docs/FORMATS.md). The public APK remains the prior published build.
+> **Development phase — 2 November 2026:** Decoder workflow is integrated as source. The owner has deferred the final APK build/publication until three additional feature prompts are integrated. Performance prompt **1 of 3** is integrated; two feature prompts remain. Normal pushes run source/script checks, Kotlin compilation, JVM tests and lint with an APK-task guard; APK/device checks and publication require explicit manual inputs. See [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md) [FORMATS.md](docs/FORMATS.md) and [BENCHMARKS.md](docs/BENCHMARKS.md). The public APK remains the prior published build.
 
 <img src="branding/TN-Player-logo.png" width="112" alt="TN-Player gold headphones and cyan play icon">
 
@@ -10,7 +10,7 @@ Native Android media-player core built from the TN-Player master specification.
 
 This is a hardened implementation of the playback and local-library core. It does not yet implement the entire master specification. See [FEATURE_STATUS.md](FEATURE_STATUS.md) for exact boundaries and concrete next steps. The tagline is the product vision; it is not a guarantee that every codec or DRM service can be played.
 
-The original logo is in `branding/`. GitHub Actions rebuilds the current APK for the Pages download page; see `CONTENTS.md` and `VALIDATION.md`.
+The original logo is in `branding/`. APK rebuilding/publication is manually gated and currently deferred; see `CONTENTS.md`, `DEVELOPMENT_PHASE.md` and `VALIDATION.md`.
 
 ## Build and run
 
@@ -19,7 +19,7 @@ The original logo is in `branding/`. GitHub Actions rebuilds the current APK for
 3. Connect an Android 5.0+ device with USB debugging, or select an emulator.
 4. Run the `app` configuration. No Firebase account, API key or backend is needed.
 
-Command line (set `ANDROID_HOME` to your SDK, or create `local.properties` with `sdk.dir=/your/sdk`):
+When final APK building is authorized, first build/install the pinned native decoder binaries as documented in [FORMATS.md](docs/FORMATS.md). Ordinary source compilation does not supply those JNI binaries. Then use the commands below (set `ANDROID_HOME` to your SDK, or create `local.properties` with `sdk.dir=/your/sdk`):
 
 ```sh
 ./gradlew testDebugUnitTest lintDebug assembleDebug
@@ -31,11 +31,11 @@ Windows: use `gradlew.bat`. The real Gradle 8.7 wrapper JAR and scripts are incl
 Debug APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 `assembleRelease` produces an unsigned, R8-optimized release APK; configure your own signing key before distribution. Never commit keystores or signing passwords.
 
-The GitHub Actions workflow builds debug/release, runs unit tests/lint, and includes Android 9 and Android 14 emulator navigation, playback, Keystore, PiP and process-recovery checks. Both workflows are committed to this repository and run in GitHub Actions. Check the Actions tab for current results; historical validation is kept separately.
+The GitHub Actions workflow builds debug/release, runs unit tests/lint, and includes Android 9 and Android 14 emulator navigation, playback, Keystore, PiP and process-recovery checks. APK/device jobs run only on a manual dispatch with `build_apk=true`; normal pushes perform the guarded source-only checks. Check the Actions tab for current results; historical validation is kept separately.
 
 ## Branding and GitHub Pages
 
-The original TN icon is integrated into Android and the root Pages page. The Pages workflow builds and tests the current Android source, then publishes a matching debug APK and checksum. Publishing supports this repository's configured **main / root** Pages source. The workflow commits the rebuilt APK, checksum and build manifest to that source, requests a Pages build, and verifies the public APK against its SHA-256 before reporting success. Workflow results are available in the Actions tab.
+The original TN icon is integrated into Android and the root Pages page. The manually gated Pages workflow requires a successful full Android run on the exact current source, then publishes a matching debug APK, decoder source archive, notices and checksum. It is paused during the three-prompt integration phase. Publishing supports this repository's configured **main / root** Pages source. The workflow commits the rebuilt APK, checksum and build manifest to that source, requests a Pages build, and verifies the public APK against its SHA-256 before reporting success. Workflow results are available in the Actions tab.
 
 Debug APKs may use different signing keys between runs. Android may reject an in-place update; preserve needed data before uninstalling an existing build. Do not commit private development or release keys.
 
@@ -109,7 +109,7 @@ Settings use app-private SharedPreferences. Media bytes remain in place. Network
 
 There is no Firebase, telemetry, advertising ID collection, background phone monitoring or account requirement. Android backup is disabled. A chosen network stream contacts its server; RTSP itself is generally unencrypted. Embedded username/password credentials are rejected. Network URLs can still contain access tokens, so their stored payloads are encrypted and their query strings are hidden in properties. This does not stop the chosen server from receiving its URL or protect an unlocked device from every threat.
 
-Codec/container support depends on Media3, platform decoders, device capabilities and source. DRM handling, universal software decoders, native FFmpeg, cast and encrypted vault are not implemented. External subtitle formats, timed-import navigation/delay, native styling limits, platform decoder preferences and Android screen pinning are documented in [MX_PLAYER_COMPARISON.md](MX_PLAYER_COMPARISON.md). Full MX Player parity is not claimed. Hardware performance targets are goals until measured on representative phones; see [TEST_PLAN.md](TEST_PLAN.md).
+Codec/container support depends on Media3, platform decoders, device capabilities and source. Software AC3/EAC3/DTS/TrueHD (FFmpeg), AV1 (libgav1) and VP9 (libvpx) fallbacks are integrated in source; the published APK still predates them. DRM services, arbitrary additional codecs/profiles, cast and an encrypted vault are not implemented. External subtitle formats, timed-import navigation/delay, native styling limits, platform decoder preferences and Android screen pinning are documented in [MX_PLAYER_COMPARISON.md](MX_PLAYER_COMPARISON.md). Full MX Player parity is not claimed. Hardware performance targets are goals until measured on representative phones; see [TEST_PLAN.md](TEST_PLAN.md).
 
 Pinned libraries preserve the requested API 21 / compile 34 compatibility baseline. Before a production release, review maintained dependency versions, security fixes, current distribution requirements and the supported Android range together.
 
@@ -124,3 +124,12 @@ Pinned libraries preserve the requested API 21 / compile 34 compatibility baseli
 ## Reliability improvements
 
 Cancelling the playlist chooser preserves Files navigation. Collection screens refresh when revisited. A now-playing bar keeps controls available while browsing. Pausing clears the screen-awake flag and stops A–B polling. Queue, position, MIME type, repeat and shuffle state are checkpointed; playback resumes only after an explicit user action. Abrupt process termination can still lose the latest few seconds. Filesystem permissions and provider behavior remain device-dependent.
+
+## Playback performance workflow (source integration)
+
+Settings now offer opt-in compatible tunneled playback, bounded next-local-file
+byte preloading and paused-background decoder release; all default off. The
+manual offline benchmark uses the real service/PlayerView, exports CSV and
+checks three references plus 30-minute background cleanup. Device performance
+acceptance is pending. See [BENCHMARKS.md](docs/BENCHMARKS.md) for definitions,
+limitations and the no-APK-build runner `scripts/benchmark.sh`.
