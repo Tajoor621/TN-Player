@@ -23,7 +23,7 @@ class PlaybackRecovery(private val player: ExoPlayer, private val selector: Reco
         renderers.clearSoftwareOverrides(); selector.refreshRendererChoices()
     }
     override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
-        if (item?.mediaId != activeId) { activeId = item?.mediaId; reset(); diagnostics.reset() }
+        if (item?.mediaId != activeId) { activeId = item?.mediaId; reset(); diagnostics.reset(item?.localConfiguration?.uri?.toString() ?: item?.mediaId) }
     }
     override fun onPlaybackStateChanged(state: Int) { if (state == Player.STATE_READY) recovering = false }
     override fun onTracksChanged(tracks: Tracks) {

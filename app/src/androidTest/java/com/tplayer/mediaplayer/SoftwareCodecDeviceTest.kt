@@ -39,18 +39,19 @@ class SoftwareCodecDeviceTest {
             nonSilentSamples.addAndGet(count)
         }
     }
-    private class FailingPlatformAudio(private val mime: String) : BaseRenderer(C.TRACK_TYPE_AUDIO) {
+    private class FailingPlatformAudio(private val mime: String, private val errorCode: Int) : BaseRenderer(C.TRACK_TYPE_AUDIO) {
         override fun getName() = "TNTestFailingHardware"
         override fun supportsFormat(format: Format) = RendererCapabilities.create(if (format.sampleMimeType == mime) C.FORMAT_HANDLED else C.FORMAT_UNSUPPORTED_TYPE)
         override fun isReady() = true
         override fun isEnded() = false
         override fun render(positionUs: Long, elapsedRealtimeUs: Long) {
+            if (errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED && positionUs < 500000) return
             throw createRendererException(IllegalStateException("Injected hardware decode failure"),
-                streamFormats.first(), PlaybackException.ERROR_CODE_DECODING_FAILED)
+                streamFormats.first(), errorCode)
         }
     }
     private class ProbeFactory(context: Context, private val excluded: Set<String>, val probe: PcmProbe,
-        private val failingMime: String? = null) : TnRenderersFactory(context) {
+        private val failingMime: String? = null, private val failureCode: Int = PlaybackException.ERROR_CODE_DECODING_FAILED) : TnRenderersFactory(context) {
         init { setMediaCodecSelector { mime, secure, tunneling -> if (mime in excluded) emptyList() else MediaCodecSelector.DEFAULT.getDecoderInfos(mime, secure, tunneling) } }
         override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
             DefaultAudioSink.Builder(context).setEnableFloatOutput(false).setAudioProcessors(arrayOf(TeeAudioProcessor(probe))).build()
@@ -58,12 +59,12 @@ class SoftwareCodecDeviceTest {
             val base = super.createRenderers(handler, video, audio, text, metadata)
             if (failingMime == null) return base
             platformRenderers = platformRenderers.mapValues { it.value + 1 } + (C.TRACK_TYPE_AUDIO to 0)
-            return arrayOf(guardPlatform(FailingPlatformAudio(failingMime))) + base
+            return arrayOf(guardPlatform(FailingPlatformAudio(failingMime, failureCode))) + base
         }
     }
-    private fun exerciseAudio(file: String, mime: String, failHardware: Boolean = false) {
+    private fun exerciseAudio(file: String, mime: String, failHardware: Boolean = false, failureCode: Int = PlaybackException.ERROR_CODE_DECODING_FAILED) {
         val probe = PcmProbe(); val messages = CopyOnWriteArrayList<String>(); val diagnostics = PlaybackDiagnostics()
-        val factory = DevicePlayback.main { ProbeFactory(DevicePlayback.context, setOf(mime), probe, if (failHardware) mime else null) }
+        val factory = DevicePlayback.main { ProbeFactory(DevicePlayback.context, setOf(mime), probe, if (failHardware) mime else null, failureCode) }
         val selector = DevicePlayback.main { RecoveryTrackSelector(DevicePlayback.context) }
         val player = DevicePlayback.main { ExoPlayer.Builder(DevicePlayback.context, factory).setTrackSelector(selector)
             .setMediaSourceFactory(DefaultMediaSourceFactory(DevicePlayback.context, DiagnosticExtractorsFactory(diagnostics))).build() }
@@ -74,6 +75,7 @@ class SoftwareCodecDeviceTest {
                 probe.nonSilentSamples.get() > 1000 && DevicePlayback.main { player.currentPosition > 500 }
             }
             assertNull(DevicePlayback.main { player.playerError })
+            assertEquals(1, DevicePlayback.main { player.mediaItemCount })
             val report = DevicePlayback.main { diagnostics.report() }
             assertTrue(report, report.contains("Audio decoder: ffmpeg", ignoreCase = true))
             assertTrue(report, report.contains("MatroskaExtractor"))
@@ -87,6 +89,7 @@ class SoftwareCodecDeviceTest {
         listOf("eac3.mka" to MimeTypes.AUDIO_E_AC3, "dts.mka" to MimeTypes.AUDIO_DTS,
             "ac3.mka" to MimeTypes.AUDIO_AC3, "truehd.mka" to MimeTypes.AUDIO_TRUEHD).forEach { (file, mime) -> exerciseAudio(file, mime) }
     }
+    @Test fun initializationFailureRetriesThroughRealFfmpegAudioTrack() { exerciseAudio("eac3.mka", MimeTypes.AUDIO_E_AC3, true, PlaybackException.ERROR_CODE_DECODER_INIT_FAILED) }
     @Test fun runtimeHardwareFailureRetriesThroughRealFfmpegAudioTrack() { exerciseAudio("eac3.mka", MimeTypes.AUDIO_E_AC3, true) }
     @Test fun unsupportedTrackReportsItsCodecWithoutCrashing() {
         val messages = CopyOnWriteArrayList<String>(); val diagnostics = PlaybackDiagnostics()

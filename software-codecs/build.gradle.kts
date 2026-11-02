@@ -6,6 +6,7 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
 dependencies {
+    implementation("androidx.annotation:annotation:1.8.0")
     implementation("androidx.media3:media3-decoder:1.4.1")
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     compileOnly("org.checkerframework:checker-qual:3.33.0")
