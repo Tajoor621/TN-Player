@@ -78,6 +78,11 @@ for abi in armeabi-v7a arm64-v8a x86 x86_64; do
 done
 mkdir -p "$sources/ndk_cpu_features"
 cp -R "$ndk/sources/android/cpufeatures/." "$sources/ndk_cpu_features/"
+mkdir -p "$sources/ndk_runtime_notices"
+for notice in NOTICE NOTICE.toolchain; do
+  if [ -f "$ndk/$notice" ]; then cp "$ndk/$notice" "$sources/ndk_runtime_notices/$notice"; fi
+done
+test -s "$sources/ndk_runtime_notices/NOTICE"
 bash scripts/generate-codec-fixtures.sh
 python3 scripts/package-native-sources.py
 bash scripts/install-native-codecs.sh

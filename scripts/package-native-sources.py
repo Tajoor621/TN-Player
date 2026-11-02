@@ -11,6 +11,9 @@ for name in ['ffmpeg','libvpx','libgav1','cpu_features']:
             shutil.copyfile(p,notices/f'{name}-{p.name}')
 ndk_source=(work/'sources/ndk_cpu_features/cpu-features.c').read_text()
 (notices/'NDK-cpu-features-LICENSE.txt').write_text(ndk_source.split('*/',1)[0]+'*/\n')
+for p in (work/'sources/ndk_runtime_notices').glob('*'):
+    shutil.copyfile(p,notices/('NDK-runtime-'+p.name))
+(work/'config/FFmpeg-changes.diff').write_text('')  # FFmpeg itself is unmodified; wrapper patches are documented.
 shutil.copyfile(root/'software-codecs/licenses/Media3-ffmpeg-APACHE-2.0.txt',notices/'Media3-APACHE-2.0.txt')
 manifest={'lock':lock,'libraries':{str(p.relative_to(dist)):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted((dist/'jniLibs').rglob('*.so'))}}
 (dist/'native-build.json').write_text(json.dumps(manifest,indent=2)+'\n')

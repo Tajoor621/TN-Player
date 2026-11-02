@@ -25,7 +25,12 @@ class PlaybackRecovery(private val player: ExoPlayer, private val selector: Reco
     override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
         if (item?.mediaId != activeId) { activeId = item?.mediaId; reset(); diagnostics.reset(item?.localConfiguration?.uri?.toString() ?: item?.mediaId) }
     }
-    override fun onPlaybackStateChanged(state: Int) { if (state == Player.STATE_READY) recovering = false }
+    override fun onPlaybackStateChanged(state: Int) {
+        if (state == Player.STATE_READY) recovering = false
+        if (state == Player.STATE_ENDED && !diagnostics.audioAdvanced && player.currentTracks.isTypeSelected(C.TRACK_TYPE_AUDIO)) {
+            diagnostics.audioFormat?.let { notice("${CodecLabels.name(it.sampleMimeType, it.codecs)} audio produced no playable output.") }
+        }
+    }
     override fun onTracksChanged(tracks: Tracks) {
         diagnostics.tracks(tracks)
         if (recovering) return

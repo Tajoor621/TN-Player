@@ -79,6 +79,11 @@ class SoftwareCodecDeviceTest {
             val report = DevicePlayback.main { diagnostics.report() }
             assertTrue(report, report.contains("Audio decoder: ffmpeg", ignoreCase = true))
             assertTrue(report, report.contains("MatroskaExtractor"))
+            if (mime == MimeTypes.AUDIO_TRUEHD) {
+                val before = probe.nonSilentSamples.get()
+                DevicePlayback.main { player.seekTo(1800); player.play() }
+                DevicePlayback.await("TrueHD seek lost PCM output") { probe.nonSilentSamples.get() > before + 1000 && DevicePlayback.main { player.currentPosition > 1900 } }
+            }
             if (failHardware) {
                 assertEquals(1, messages.count { it.startsWith("Retrying") })
                 assertTrue(DevicePlayback.main { factory.usesSoftwareFor(requireNotNull(diagnostics.audioFormat)) })
@@ -87,7 +92,7 @@ class SoftwareCodecDeviceTest {
     }
     @Test fun eac3DtsAc3AndTrueHdDecodeToNonSilentPcmWithoutPlatformCodecs() {
         listOf("eac3.mka" to MimeTypes.AUDIO_E_AC3, "dts.mka" to MimeTypes.AUDIO_DTS,
-            "ac3.mka" to MimeTypes.AUDIO_AC3, "truehd.mka" to MimeTypes.AUDIO_TRUEHD).forEach { (file, mime) -> exerciseAudio(file, mime) }
+            "ac3.mka" to MimeTypes.AUDIO_AC3, "truehd.mka" to MimeTypes.AUDIO_TRUEHD, "truehd-6ch.mka" to MimeTypes.AUDIO_TRUEHD).forEach { (file, mime) -> exerciseAudio(file, mime) }
     }
     @Test fun initializationFailureRetriesThroughRealFfmpegAudioTrack() { exerciseAudio("eac3.mka", MimeTypes.AUDIO_E_AC3, true, PlaybackException.ERROR_CODE_DECODER_INIT_FAILED) }
     @Test fun runtimeHardwareFailureRetriesThroughRealFfmpegAudioTrack() { exerciseAudio("eac3.mka", MimeTypes.AUDIO_E_AC3, true) }
@@ -102,6 +107,18 @@ class SoftwareCodecDeviceTest {
             DevicePlayback.await("Unsupported audio was silently omitted") { messages.contains("Vorbis audio is not supported on this device.") }
             assertTrue(messages.toString(), messages.none { it.startsWith("Retrying") })
             assertTrue(DevicePlayback.main { player.applicationLooper.thread.isAlive })
+        } finally { DevicePlayback.main { recovery.release(); player.release() } }
+    }
+    @Test fun repeatedlyCorruptEac3ReportsItsCodecInsteadOfPlayingSilently() {
+        val messages = CopyOnWriteArrayList<String>(); val diagnostics = PlaybackDiagnostics(); val probe = PcmProbe()
+        val factory = DevicePlayback.main { ProbeFactory(DevicePlayback.context, setOf(MimeTypes.AUDIO_E_AC3), probe) }
+        val selector = DevicePlayback.main { RecoveryTrackSelector(DevicePlayback.context) }
+        val player = DevicePlayback.main { ExoPlayer.Builder(DevicePlayback.context, factory).setTrackSelector(selector).build() }
+        val recovery = DevicePlayback.main { PlaybackRecovery(player, selector, factory, diagnostics, notify = messages::add).also { player.addListener(it); player.addAnalyticsListener(diagnostics) } }
+        try {
+            DevicePlayback.main { player.setMediaItem(MediaItem.fromUri(DevicePlayback.fixture("codecs/corrupt-eac3.mka"))); player.prepare(); player.play() }
+            DevicePlayback.await("Corrupt EAC3 produced no user-visible codec notice") { messages.any { it.contains("EAC3") && (it.contains("could not") || it.contains("no playable")) } }
+            assertEquals(0L, probe.nonSilentSamples.get())
         } finally { DevicePlayback.main { recovery.release(); player.release() } }
     }
     @Test fun av1AndVp9SoftwareRenderersDrawFramesWithoutPlatformDecoders() {

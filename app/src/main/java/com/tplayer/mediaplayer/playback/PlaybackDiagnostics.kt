@@ -19,8 +19,9 @@ class PlaybackDiagnostics : AnalyticsListener {
     private var trackReport = "No tracks detected yet"
     var audioFormat: Format? = null; private set
     var videoFormat: Format? = null; private set
+    var audioAdvanced: Boolean = false; private set
     var lastMessage: String = ""; private set
-    @Synchronized fun reset(source: String? = null) { activeSource = source; container = containers[source] ?: "Not detected yet"; audioDecoder = "not selected"; videoDecoder = "not selected"; audioFormat = null; videoFormat = null; trackReport = "No tracks detected yet"; lastMessage = "" }
+    @Synchronized fun reset(source: String? = null) { activeSource = source; container = containers[source] ?: "Not detected yet"; audioDecoder = "not selected"; videoDecoder = "not selected"; audioFormat = null; videoFormat = null; audioAdvanced = false; trackReport = "No tracks detected yet"; lastMessage = "" }
     @Synchronized fun containerDetected(source: String?, name: String) {
         val value = CodecLabels.clean(name)
         if (source != null) { containers[source] = value; while (containers.size > 8) containers.remove(containers.keys.first()) }
@@ -35,11 +36,12 @@ class PlaybackDiagnostics : AnalyticsListener {
         } }.joinToString("\n").take(18000)
         Log.d("TNPlayerFormats", trackReport)
     }
+    @Synchronized override fun onAudioPositionAdvancing(time: AnalyticsListener.EventTime, playoutStartSystemTimeMs: Long) { audioAdvanced = true }
     @Synchronized override fun onAudioDecoderInitialized(time: AnalyticsListener.EventTime, name: String, timestampMs: Long, durationMs: Long) { audioDecoder = CodecLabels.clean(name); Log.d("TNPlayerFormats", "Audio decoder: $audioDecoder") }
     @Synchronized override fun onVideoDecoderInitialized(time: AnalyticsListener.EventTime, name: String, timestampMs: Long, durationMs: Long) { videoDecoder = CodecLabels.clean(name); Log.d("TNPlayerFormats", "Video decoder: $videoDecoder") }
     @Synchronized override fun onAudioInputFormatChanged(time: AnalyticsListener.EventTime, format: Format, evaluation: DecoderReuseEvaluation?) { audioFormat = format }
     @Synchronized override fun onVideoInputFormatChanged(time: AnalyticsListener.EventTime, format: Format, evaluation: DecoderReuseEvaluation?) { videoFormat = format }
-    @Synchronized fun report(): String = "Container: $container\nAudio decoder: $audioDecoder\nVideo decoder: $videoDecoder\n\n$trackReport\n\n${SoftwareDecoders.versions()}\n\n$lastMessage".take(24000)
+    @Synchronized fun report(): String = "Container: $container\nAudio decoder: $audioDecoder\nVideo decoder: $videoDecoder\nAudio output: ${if (audioAdvanced) "advanced" else "not yet advanced"}\n\n$trackReport\n\n${SoftwareDecoders.versions()}\n\n$lastMessage".take(24000)
 }
 
 /** Report the extractor that actually accepted the bytes, rather than guessing by filename. */

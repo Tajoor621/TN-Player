@@ -30,6 +30,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 /** FFmpeg audio decoder. */
+@androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
 /* package */ final class FfmpegAudioDecoder
     extends SimpleDecoder<DecoderInputBuffer, SimpleDecoderOutputBuffer, FfmpegDecoderException> {
 
@@ -46,6 +47,9 @@ import java.util.List;
 
   private long nativeContext; // May be reassigned on resetting the codec.
   private boolean hasOutputFormat;
+  // A damaged/unsupported stream must not discard buffers forever without an error.
+  private int consecutiveEmptyBuffers;
+  private long consecutiveEmptyInputBytes;
   private volatile int channelCount;
   private volatile int sampleRate;
 
@@ -101,6 +105,7 @@ import java.util.List;
   protected FfmpegDecoderException decode(
       DecoderInputBuffer inputBuffer, SimpleDecoderOutputBuffer outputBuffer, boolean reset) {
     if (reset) {
+      consecutiveEmptyBuffers = 0; consecutiveEmptyInputBytes = 0;
       nativeContext = ffmpegReset(nativeContext, extraData);
       if (nativeContext == 0) {
         return new FfmpegDecoderException("Error resetting (see logcat).");
@@ -114,17 +119,17 @@ import java.util.List;
             nativeContext, inputData, inputSize, outputBuffer, outputData, outputBufferSize);
     if (result == AUDIO_DECODER_ERROR_OTHER) {
       return new FfmpegDecoderException("Error decoding (see logcat).");
-    } else if (result == AUDIO_DECODER_ERROR_INVALID_DATA) {
-      // Treat invalid data errors as non-fatal to match the behavior of MediaCodec. No output will
-      // be produced for this buffer, so mark it as skipped to ensure that the audio sink's
-      // position is reset when more audio is produced.
-      outputBuffer.shouldBeSkipped = true;
-      return null;
-    } else if (result == 0) {
-      // There's no need to output empty buffers.
+    } else if (result == AUDIO_DECODER_ERROR_INVALID_DATA || result == 0) {
+      consecutiveEmptyBuffers++;
+      consecutiveEmptyInputBytes += inputSize;
+      if (consecutiveEmptyBuffers >= 128 || consecutiveEmptyInputBytes >= 4L * 1024 * 1024) {
+        return new FfmpegDecoderException("No playable audio output from " + codecName + " after repeated input.");
+      }
+      // Preserve tolerance for occasional corrupt packets and ordinary decoder priming.
       outputBuffer.shouldBeSkipped = true;
       return null;
     }
+    consecutiveEmptyBuffers = 0; consecutiveEmptyInputBytes = 0;
     if (!hasOutputFormat) {
       channelCount = ffmpegGetChannelCount(nativeContext);
       sampleRate = ffmpegGetSampleRate(nativeContext);
