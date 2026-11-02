@@ -18,9 +18,12 @@ not committed or packaged. Fixture verification is not playback validation.
 
 New Kotlin policy tests cover idle-release conditions, software/tunnel exclusion
 and unknown/current OS wake-lock parsing. Instrumentation is opt-in only and the
-long session is skipped by ordinary CI. Current-source compile/JVM/lint evidence
-will be recorded with the source integration; earlier APK evidence below does
-not cover these changes. **Device TTFF, seek, drops, CPU, 30-minute release and
+long session is skipped by ordinary CI. Source-only CI run [41438006368](https://github.com/Tajoor621/TN-Player/actions/runs/41438006368)
+passed application/test Kotlin compilation, JVM tests and lint at
+`c8bce7eeac1c90a9d66717452292e34a31e5d677`; native/APK/emulator jobs were skipped.
+Final review adds cache-database closure, reused-decoder drop-counter baselines
+and two Robolectric metric regression tests; subsequent source-only CI covers
+those changes. Earlier APK evidence below does not cover this performance work. **Device TTFF, seek, drops, CPU, 30-minute release and
 regressions are pending**, as is final optimized-release validation. See
 [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 

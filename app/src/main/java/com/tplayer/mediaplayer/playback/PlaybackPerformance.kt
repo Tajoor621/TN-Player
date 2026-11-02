@@ -20,20 +20,21 @@ class PlaybackPerformance : AnalyticsListener {
     private var seekSerial = 0
     private var video: Format? = null
     private var counters: DecoderCounters? = null
+    private var droppedAtBegin = 0
     private var audioInits = 0; private var audioReleases = 0
     private var videoInits = 0; private var videoReleases = 0
     var onStarted: (() -> Unit)? = null
     var hasStarted = false; private set
     private fun started() { PlaybackWorkGate.started(); if (!hasStarted) { hasStarted = true; onStarted?.invoke() } }
     override fun onMediaItemTransition(time: AnalyticsListener.EventTime, item: androidx.media3.common.MediaItem?, reason: Int) { hasStarted = false }
-    fun begin(id: String) { expectedId = id; startMs = SystemClock.elapsedRealtime(); cpuStart = Process.getElapsedCpuTime(); firstFrameMs = -1; seekStartMs = -1; seekMs = -1; seekSerial = 0; hasStarted = false; video = null; counters = null }
+    fun begin(id: String) { counters?.ensureUpdated(); droppedAtBegin = counters?.droppedBufferCount ?: 0; expectedId = id; startMs = SystemClock.elapsedRealtime(); cpuStart = Process.getElapsedCpuTime(); firstFrameMs = -1; seekStartMs = -1; seekMs = -1; seekSerial = 0; hasStarted = false; video = null }
     fun seek(): Int { seekStartMs = SystemClock.elapsedRealtime(); seekMs = -1; return ++seekSerial }
     private fun matches(time: AnalyticsListener.EventTime): Boolean {
         val timeline = time.timeline
         return !timeline.isEmpty && time.windowIndex in 0 until timeline.windowCount &&
             timeline.getWindow(time.windowIndex, androidx.media3.common.Timeline.Window()).mediaItem.mediaId == expectedId
     }
-    override fun onVideoEnabled(time: AnalyticsListener.EventTime, decoderCounters: DecoderCounters) { counters = decoderCounters }
+    override fun onVideoEnabled(time: AnalyticsListener.EventTime, decoderCounters: DecoderCounters) { counters = decoderCounters; droppedAtBegin = 0 }
     override fun onVideoInputFormatChanged(time: AnalyticsListener.EventTime, format: Format, evaluation: DecoderReuseEvaluation?) { if (matches(time)) video = format }
     override fun onRenderedFirstFrame(time: AnalyticsListener.EventTime, output: Any, renderTimeMs: Long) {
         started()
@@ -53,7 +54,7 @@ class PlaybackPerformance : AnalyticsListener {
         return Bundle().apply {
             putLong("ttff_ms", firstFrameMs); putLong("seek_ms", seekMs); putInt("seek_serial", seekSerial)
             putLong("wall_ms", wall); putLong("cpu_ms", cpu); putDouble("cpu_percent_one_core", if (wall > 0) cpu * 100.0 / wall else 0.0)
-            putInt("dropped_frames", counters?.droppedBufferCount ?: 0)
+            putInt("dropped_frames", ((counters?.droppedBufferCount ?: 0) - droppedAtBegin).coerceAtLeast(0))
             putInt("audio_inits", audioInits); putInt("audio_releases", audioReleases)
             putInt("video_inits", videoInits); putInt("video_releases", videoReleases)
             putInt("active_audio", audioInits - audioReleases); putInt("active_video", videoInits - videoReleases)

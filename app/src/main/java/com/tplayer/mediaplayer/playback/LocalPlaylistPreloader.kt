@@ -21,6 +21,7 @@ class LocalPlaylistPreloader(context: Context) {
     private val upstream = DefaultDataSource.Factory(this.context)
     @Volatile private var cache: SimpleCache? = null
     @Volatile private var writer: CacheWriter? = null
+    private var database: StandaloneDatabaseProvider? = null
     @Volatile private var enabled = false
     private var job: Job? = null
     private val cacheLock = Mutex()
@@ -60,16 +61,16 @@ class LocalPlaylistPreloader(context: Context) {
             try {
                 previous?.cancelAndJoin(); ensureActive()
                 cacheLock.withLock {
-                // Construct/initialize the disk cache off the main and playback threads, only
-                // after current playback has started. The current first open bypasses an unready cache.
-                val value = cache ?: SimpleCache(File(context.cacheDir, "next-media"), LeastRecentlyUsedCacheEvictor(8L * 1024 * 1024), StandaloneDatabaseProvider(context)).also { cache = it }
-                ensureActive()
-                // Invalidate this next item's old bytes: a URI may have been edited since last play.
-                val spec = DataSpec.Builder().setUri(uri!!).setLength(1024L * 1024).build()
-                value.removeResource(keyFactory.buildCacheKey(spec))
-                val task = CacheWriter(cached(value).createDataSource(), spec, ByteArray(32 * 1024), null)
-                writer = task
-                try { ensureActive(); task.cache(); ensureActive(); ready = id } finally { if (writer === task) writer = null }
+                    // Construct/initialize the disk cache off the main and playback threads, only
+                    // after current playback has started. The current first open bypasses an unready cache.
+                    val value = cache ?: SimpleCache(File(context.cacheDir, "next-media"), LeastRecentlyUsedCacheEvictor(8L * 1024 * 1024), (database ?: StandaloneDatabaseProvider(context).also { database = it })).also { cache = it }
+                    ensureActive()
+                    // Invalidate this next item's old bytes: a URI may have been edited since last play.
+                    val spec = DataSpec.Builder().setUri(uri!!).setLength(1024L * 1024).build()
+                    value.removeResource(keyFactory.buildCacheKey(spec))
+                    val task = CacheWriter(cached(value).createDataSource(), spec, ByteArray(32 * 1024), null)
+                    writer = task
+                    try { ensureActive(); task.cache(); ensureActive(); ready = id } finally { if (writer === task) writer = null }
                 }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { /* Optional warming never changes current playback or shows an error. */ }
@@ -79,6 +80,6 @@ class LocalPlaylistPreloader(context: Context) {
     fun close() {
         enabled = false; ready = null; writer?.cancel()
         val previous = job; job = null; target = null
-        scope.launch { try { previous?.cancelAndJoin(); cacheLock.withLock { cache?.release(); cache = null } } finally { scope.cancel() } }
+        scope.launch { try { previous?.cancelAndJoin(); cacheLock.withLock { try { cache?.release() } finally { cache = null; database?.close(); database = null } } } finally { scope.cancel() } }
     }
 }

@@ -94,7 +94,7 @@ class MediaPlaybackService : MediaSessionService() {
             } else save()
         }
         override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
-            if (benchmark?.active != true && !restoring && oldPosition.mediaItem != null && oldPosition.mediaItem?.mediaId != newPosition.mediaItem?.mediaId) {
+            if (benchmark?.active != true && oldPosition.mediaItem?.mediaId?.startsWith("benchmark-") != true && !restoring && oldPosition.mediaItem != null && oldPosition.mediaItem?.mediaId != newPosition.mediaItem?.mediaId) {
                 val item = oldPosition.mediaItem!!
                 persistence.recordHistory(History(item.mediaId, item.mediaMetadata.title?.toString() ?: "Media", oldPosition.positionMs, 0, mimeType = item.mediaMetadata.extras?.getString("mime").orEmpty()))
             }
@@ -291,6 +291,7 @@ class MediaPlaybackService : MediaSessionService() {
         val player = session?.player ?: return
         val item = player.currentMediaItem
         if (item == null) { persistence.save(null); return }
+        if (item.mediaId.startsWith("benchmark-")) return
         val position = player.currentPosition.coerceAtLeast(0)
         persistence.recordHistory(History(item.mediaId, item.mediaMetadata.title?.toString() ?: "Media", position,
             player.duration.takeIf { it != C.TIME_UNSET } ?: 0, mimeType = item.localConfiguration?.mimeType ?: item.mediaMetadata.extras?.getString("mime").orEmpty()))
