@@ -22,8 +22,12 @@ long session is skipped by ordinary CI. Source-only CI run [41438006368](https:/
 passed application/test Kotlin compilation, JVM tests and lint at
 `c8bce7eeac1c90a9d66717452292e34a31e5d677`; native/APK/emulator jobs were skipped.
 Final review adds cache-database closure, reused-decoder drop-counter baselines
-and two Robolectric metric regression tests; subsequent source-only CI covers
-those changes. Earlier APK evidence below does not cover this performance work. **Device TTFF, seek, drops, CPU, 30-minute release and
+and two Robolectric metric regression tests. Source-only run
+[41439163304](https://github.com/Tajoor621/TN-Player/actions/runs/41439163304) at
+`5620a051d9bc4dc00d349f846b812f9e9a592f24` passed **66 JVM tests (0 failures /
+0 errors), lint (0 errors / 88 warnings), application/instrumentation Kotlin
+compilation and the zero-APK output audit**. The final CSV-only follow-up keeps
+explicit failure text from being overwritten by an empty engine error. Earlier APK evidence below does not cover this performance work. **Device TTFF, seek, drops, CPU, 30-minute release and
 regressions are pending**, as is final optimized-release validation. See
 [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 

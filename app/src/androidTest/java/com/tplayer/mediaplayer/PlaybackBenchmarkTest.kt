@@ -63,6 +63,7 @@ class PlaybackBenchmarkTest {
                 "pss_kb" to memory.totalPss, "fd_count" to (File("/proc/self/fd").list()?.size ?: -1),
                 "elapsed_s" to elapsed, "wake_locks" to (locks?.toString() ?: "unknown"))
             metrics.keySet().forEach { key -> @Suppress("DEPRECATION") values[key] = metrics.get(key) }
+            values["error"] = error.ifEmpty { metrics.getString("error").orEmpty() }
             ref?.keys()?.forEach { key -> values[if (key == "name") "file" else key] = ref.get(key) }
             output.appendText(columns.joinToString(",") { quote(values[it]) } + "\n")
         }

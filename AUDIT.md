@@ -15,8 +15,9 @@ specifications and generation/probe checks are present; no large media is in git
 No new native dependency/license is introduced. Cached bytes/CPU usage and
 reprepare latency are tradeoffs requiring matched physical-device measurements.
 
-Source-only compile/JVM/lint passed at `c8bce7e`; final-review counter/cache tests
-run in the same APK-free workflow. Remaining release gates: physical 4K/10-bit HDR frame and
+Source-only compilation, 66 JVM tests and lint (0 errors / 88 warnings) passed
+at `5620a05`, including the final-review counter/cache code. The output audit
+confirmed 0 APKs. Remaining release gates: physical 4K/10-bit HDR frame and
 seek measurements, the 30-minute cleanup run, optimized-release runtime check and
 APK-size delta. The owner has deferred APK builds until two further feature
 prompts after this one. The harness is source implementation, not evidence of
