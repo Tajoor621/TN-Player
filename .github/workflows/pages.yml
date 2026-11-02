@@ -1,8 +1,11 @@
 name: Build APK and publish verified Pages
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      publish_apk:
+        description: 'Publish only after final full Android validation (build_apk=true)'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -10,6 +13,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   package:
+    if: inputs.publish_apk
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -29,9 +33,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          run_id=$(gh run list --workflow android.yml --commit "$GITHUB_SHA" --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+          run_id=$(gh run list --workflow android.yml --commit "$GITHUB_SHA" --branch main --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')
           test -n "$run_id" && test "$run_id" != "null"
           gh run watch "$run_id" --exit-status --interval 10
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100" > "$RUNNER_TEMP/tn-android-jobs.json"
+          python3 - <<'PYVALIDATE'
+          import json,os,pathlib
+          jobs=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'tn-android-jobs.json').read_text())['jobs']
+          states={job['name']:job['conclusion'] for job in jobs}
+          required=['source-review','native-codecs','build','emulator (28)','emulator (34)']
+          assert all(states.get(name)=='success' for name in required), 'Run Android checks manually with build_apk=true and wait for all jobs first.'
+          PYVALIDATE
           gh run download "$run_id" --name native-codecs --dir .native/dist
           bash scripts/install-native-codecs.sh
       - name: Verify and build current branded APK
@@ -49,7 +61,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          run_id=$(gh run list --workflow android.yml --commit "$GITHUB_SHA" --limit 1 --json databaseId --jq '.[0].databaseId')
+          run_id=$(gh run list --workflow android.yml --commit "$GITHUB_SHA" --branch main --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')
           test -n "$run_id" && test "$run_id" != "null"
           gh run watch "$run_id" --exit-status --interval 10
       - name: Publish APK into the configured main/root source
@@ -61,8 +73,9 @@ jobs:
           mkdir -p downloads
           cp _site/downloads/* downloads/
           cp _site/build-info.json build-info.json
+          cp _site/index.html index.html
           touch .nojekyll
-          git add downloads build-info.json .nojekyll
+          git add downloads build-info.json .nojekyll index.html
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "Publish tested APK from $GITHUB_SHA [skip ci]"
           git push origin HEAD:main
           gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"

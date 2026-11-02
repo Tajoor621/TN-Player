@@ -1,46 +1,52 @@
-# TN-Player — supplied icon and professional audit delivery
+# TN-Player — decoder source integration, final APK deferred
 
-Validated application source: [`18c0426e2e683cb0add4bec86607d78e018677ce`](https://github.com/Tajoor621/TN-Player/commit/18c0426e2e683cb0add4bec86607d78e018677ce), integrated into `main` on 18 October 2026.
+On **2 November 2026**, the owner requested repository integration now and deferred the final APK build until three additional feature prompts are integrated. See [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md). Normal pushes now perform source/script checks only. APK/device validation and publication are explicit manual operations with false-by-default inputs. No new decoder APK has been published to Pages.
 
-## Implemented and checked
+## Playback changes integrated
 
-- Supplied gold/cyan artwork preserved unchanged; separate emblem adaptation for launcher legibility. Density icons, adaptive and themed icons, toolbar, settings/about, widget, shortcuts, website and README use the current identity. Provenance and reproduction instructions: [branding](branding/README.md).
-- Atomic authenticated-encrypted recent timed-caption sessions preserve source association, text, offset and speed across finishing the player and process death. Up to ten sessions / 32 MB are retained. Restoration neither opens media nor starts playback. Failed encryption preserves the old committed record; corruption is reported without a plaintext fallback.
-- Subtitle speed correction: 50–200%, 0.1% increments; visible cues, navigation and adjusted-SRT export use the same transformation. Embedded-track switching explicitly removes the external association after confirmation. WebVTT metadata handling and malformed-timing rejection have regression tests.
-- Gesture side presets, double-tap seek/play-pause choice, bounded caption gesture adjustment and optional clock/battery/remaining-time display. Preferences survive backup round trips; touch-exploration suppression remains enabled.
-- Bounded stream and playlist inputs reject oversized requests before Android intent delivery. Original media and subtitle files are retained.
+Hardware-first defaults remain in the single service-owned Media3 player. Pinned source-built FFmpeg provides AC3/EAC3/DTS/TrueHD audio; libgav1 and libvpx provide separate AV1/VP9 video fallback. A finite recovery policy remaps the failed track group's platform capabilities to the software renderer, retaining the same player, queue, position and play/pause intent. Unsupported/corrupt/no-output tracks generate non-blocking codec-named notices. More → More → Decoder diagnostics and TNPlayerFormats logs report detected extractor/container, tracks, codec strings and selected decoders without source URLs or titles.
 
-## Evidence
+The [formats and license document](docs/FORMATS.md) records the current hardware/software/unsupported matrix, exact dependencies, source/relink distribution and limits. Stereo TrueHD layout and seek-reset fixes and the bounded empty-output guard are documented in [PATCHES.md](software-codecs/PATCHES.md). Earlier platform-only pipeline and requested report review are summarized in FORMATS.md.
 
-| Check | Result |
+## Pre-deferral evidence
+
+Application source tested: [`67d85a22c6fde055c7e7e3386ecb2d9ce40f83bc`](https://github.com/Tajoor621/TN-Player/commit/67d85a22c6fde055c7e7e3386ecb2d9ce40f83bc). Subsequent commits corrected the release test signing/log command and source-only workflow policy; they are not claimed to have received another full APK validation.
+
+| Check | Recorded result |
 | --- | --- |
-| [Feature branch CI](https://github.com/Tajoor621/TN-Player/actions/runs/39160566399) | Build, lint, debug/release APK and both emulator jobs passed (lint: 0 errors, 88 warnings) |
-| [Main CI](https://github.com/Tajoor621/TN-Player/actions/runs/39160944641) | All three jobs passed |
-| JVM/Robolectric | 56 tests, zero failures, zero ignored |
-| API 28 ordinary instrumentation | 15 reported, zero failures/errors, two recovery-only tests skipped in this suite; API 29/30-only MediaStore cases excluded |
-| API 34 ordinary instrumentation | 17 reported, zero failures/errors, two recovery-only tests skipped in this suite |
-| Separate process recovery | Preparation and post-force-stop cold restoration each passed on both OS versions; saved caption text/delay/rate checked after a new process |
-| [APK publication and verification](https://github.com/Tajoor621/TN-Player/actions/runs/39160944588) | Package and public checksum verification passed; full APK independently verified again from the workspace |
-| Local resource checks | All 33 resource XML files parsed; five launcher densities verified; source/master hashes match provenance manifest; `git diff --check` passed |
+| [Pre-deferral CI](https://github.com/Tajoor621/TN-Player/actions/runs/41427521942) | Native/build/API 28 jobs passed; API 34 ordinary tests passed, but its extra release-smoke infrastructure failed |
+| JVM/Robolectric | **61 tests**, zero failures, zero ignored |
+| App lint | **0 errors, 88 warnings**; native module lint passed after explicit unstable-API opt-in |
+| Build | `assembleDebug` and optimized `assembleRelease` passed |
+| API 28 ordinary instrumentation | **22 reported**, zero failures/errors; three separate-mode tests skipped |
+| API 34 ordinary instrumentation | **24 reported**, zero failures/errors; three separate-mode tests skipped |
+| Separate process recovery | Preparation and post-force-stop cold restore passed on both APIs |
+| Software audio | AC3, EAC3, DTS and stereo/six-channel TrueHD produced non-silent PCM and AudioTrack playback progress with platform decoders excluded; TrueHD seek checked |
+| Recovery/error handling | Initialization/runtime renderer-failure injection, unsupported Vorbis notice and corrupt EAC3 notice passed |
+| Software video | Native AV1 and VP9 displayed frames on a SurfaceView with platform decoders excluded |
+| Native build | All four ABIs built; only AC3/EAC3/DCA/TrueHD FFmpeg decoders enabled; shared libraries use 16 KB load alignment |
+| Optimized-release runtime | **Pending final validation.** Initial test expected a keystore at the wrong path; a later attempt built release successfully but ran after the emulator action had shut the device down. Source now uses a temporary matching test signature and runs the smoke test inside the emulator action. No further APK run is started during the owner's deferral. |
 
-JUnit XML is the source for the ordinary-suite counts. Recovery is exercised separately using explicit preparation and cold-restore invocations. The subtitle speed action is selected through its scrollable list in the test; rendering/timing assertions remain enabled.
+JUnit XML supplies the ordinary-suite counts. The two force-stop cases and one release-only case are skipped in the ordinary suite and run separately in their appropriate modes. Tests check actual PCM, position, frame display and named notices; codec availability alone is not counted as successful playback. Physical speaker audibility still requires a listening test on a target device.
 
-## Public APK
+## Measured verification-build sizes
 
-[Download TN-Player debug APK](https://tajoor621.github.io/TN-Player/downloads/TN-Player-1.0.0-debug.apk?build=18c0426)
+These measurements are from the completed pre-deferral build, not a newly published/final APK. [Machine-readable report](docs/codec-size-report-2026-11-02.json).
 
-- Package: `com.tplayer.mediaplayer`
-- Version: 1.0.0 / code 1
-- Source: `18c0426e2e683cb0add4bec86607d78e018677ce`
-- Bytes: 11,635,069
-- SHA-256: `09a591ff763ca33fa23eda4bf8d20d68f78c04a5fe40cee5f587efb4223dd604`
+| Artifact | Bytes |
+| --- | ---: |
+| Universal four-ABI debug APK | 19,229,539 |
+| Increase over prior published debug APK | 7,594,470 |
+| Optimized unsigned release APK | 11,333,383 |
+| ARM64 compressed native libraries in release | 1,680,432 |
+| ARM64 uncompressed native libraries | 3,640,672 |
 
-Debug signing can differ from older testing builds. Production signing and upgrade-install validation remain release work; no private signing key is committed.
+Four ABIs remain supported by the build. Only the requested FFmpeg audio decoders are enabled; encoders, executables, avformat demuxers/networking, GPL/nonfree/version3 components and Abseil are excluded. Native licenses and NDK runtime notices are packaged as assets. The matching full native source/relink archive is present in the CI native-codecs artifact and will accompany the final APK publication.
 
-## Remaining scope
+## Current public download
 
-The [18 October audit](AUDIT_2026-10-18.md) gives a provisional **7/10 engineering assessment**, with functional core/data safety weighted most heavily. It is not a benchmark or whole-product certification. Full native codec coverage, a secure vault/app lock, Cast/DLNA and authenticated shares, an app-owned download backend, PCM delay/boost, advanced subtitle coverage and physical-device performance/accessibility testing remain open. Stable production signing and current Play-target/toolchain migration are release blockers. Compile/target 34 and minimum SDK 21 are retained in this update.
+The public APK remains source `18c0426e2e683cb0add4bec86607d78e018677ce`, 11,635,069 bytes, SHA-256 `09a591ff763ca33fa23eda4bf8d20d68f78c04a5fe40cee5f587efb4223dd604`. It **does not contain these decoder additions**. Its earlier validation is preserved in [the 18 October delivery record](validation/history/supplied-icon-audit-2026-10-18.md).
 
-Timed imported text-caption sessions now persist; native ASS/SSA/TTML sidecar configurations do not gain persistence in this revision. JSON library backups exclude caption text and network secrets. Caption retention is bounded and is not a permanent archive. Force-stop restoration remains paused until the user explicitly resumes.
+## Remaining acceptance work
 
-The full feature matrix is in [FEATURE_STATUS.md](FEATURE_STATUS.md), with comparison limits in [MX_PLAYER_COMPARISON.md](MX_PLAYER_COMPARISON.md). Previous evidence is preserved in [MX comparison delivery](validation/history/mx-comparison-2026-10-17.md), [repository audit](validation/history/repository-audit-2026-10-17.md), [file/player controls](validation/history/file-controls-2026-10-17.md) and [folder browser](validation/history/folder-browser-2026-10-17.md). The dated reference gallery remains [here](validation/reference-ui/README.md); fresh screenshots are available in this revision's CI device-report artifacts.
+Integrate the owner's three additional feature prompts, then run the final complete APK/release/device/publication checks. Confirm physical speaker/headphone audibility on a device lacking the relevant hardware codecs. Qualify high-resolution/HDR, real DTS-HD/Atmos profiles, multichannel/passthrough and ARM/physical 16 KB devices; no universal-format or bit-perfect/Atmos-object-rendering claim is made. Stable production signing, wider Android/physical-device coverage and the other audit roadmap items remain outside this codec subset.

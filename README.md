@@ -1,5 +1,7 @@
 # TN-Player 1.0.0
 
+> **Development phase — 2 November 2026:** Decoder workflow is integrated as source. The owner has deferred the final APK build/publication until three additional feature prompts are integrated. Normal pushes perform source checks only; APK/device checks and publication require explicit manual inputs. See [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md) and [FORMATS.md](docs/FORMATS.md). The public APK remains the prior published build.
+
 <img src="branding/TN-Player-logo.png" width="112" alt="TN-Player gold headphones and cyan play icon">
 
 Native Android media-player core built from the TN-Player master specification.

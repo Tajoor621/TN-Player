@@ -7,6 +7,10 @@ if out.exists():shutil.rmtree(out)
 out.mkdir();(out/'downloads').mkdir()
 shutil.copyfile(root/'index.html',out/'index.html')
 shutil.copytree(root/'assets',out/'assets')
+html=(out/'index.html').read_text()
+credit='<p class="status">This software uses <a href="https://ffmpeg.org/">FFmpeg</a> under LGPL 2.1 or later, with Media3, libvpx and libgav1 decoder extensions. <a href="downloads/TN-Player-native-sources.tar.xz">Download corresponding native sources and relink materials</a>. See the <a href="https://github.com/Tajoor621/TN-Player/blob/main/docs/FORMATS.md">format and decoding-path matrix</a>.</p>'
+if 'TN-Player-native-sources.tar.xz' not in html:html=html.replace('</main>',credit+'\n</main>')
+(out/'index.html').write_text(html)
 apk=root/'app/build/outputs/apk/debug/app-debug.apk'
 if not apk.is_file():raise SystemExit('Build the debug APK before packaging Pages')
 name='TN-Player-1.0.0-debug.apk'

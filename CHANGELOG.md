@@ -1,5 +1,13 @@
 # TN-Player 1.0.0 reliability revision
 
+## 2 November 2026 — decoder source integration (APK deferred)
+
+- Add pinned source-built FFmpeg AC3/EAC3/DTS/TrueHD audio and libgav1 AV1/libvpx VP9 fallback to the existing service-owned Media3 player.
+- Add bounded track-group renderer recovery, codec-named non-blocking notices, corrupt/no-output guards and decoder/container diagnostics.
+- Correct stereo TrueHD channel-layout/seek handling; add stereo/six-channel PCM, fallback, unsupported/corrupt audio, AV1/VP9 frame and optimized-release test workflows.
+- Document native licenses, source/relink material and measured APK overhead.
+- Per owner instruction, integrate source while three further feature prompts are pending; disable automatic APK production/publication and retain explicit manual final-build controls. Existing public APK remains unchanged.
+
 - Keep Files navigation intact after cancelling the playlist chooser; refresh collection screens on return.
 - Retain folder navigation and transfer progress during rotation; keep a now-playing control bar available while browsing.
 - Add bounded MediaStore pages and background search instead of materializing the whole library.

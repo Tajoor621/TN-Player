@@ -4,13 +4,32 @@ on:
     branches-ignore: ['dependabot/**']
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_apk:
+        description: 'Build APKs and run device validation after the remaining feature prompts are integrated'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  source-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Check source and build-script syntax without producing APKs
+        run: |
+          git diff --check HEAD^
+          bash -n scripts/build-native-codecs.sh scripts/install-native-codecs.sh scripts/generate-codec-fixtures.sh scripts/release-codec-check.sh
+          python3 -m py_compile scripts/package-native-sources.py scripts/package-pages.py scripts/verify-pages.py scripts/codec-size-report.py
+          python3 -m json.tool software-codecs/native-lock.json >/dev/null
   native-codecs:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_apk
+    needs: source-review
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -109,9 +128,7 @@ jobs:
           arch: x86_64
           script: |
             bash ./scripts/device-validation.sh
-      - name: Check software codecs in the optimized release on Android 14
-        if: matrix.api == 34
-        run: bash scripts/release-codec-check.sh
+            if [ "${{ matrix.api }}" = "34" ]; then bash ./scripts/release-codec-check.sh; fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

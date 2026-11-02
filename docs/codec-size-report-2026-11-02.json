@@ -1,0 +1,85 @@
+{
+  "debug": {
+    "apk_bytes": 19229539,
+    "native_by_abi": {
+      "arm64-v8a": {
+        "compressed_bytes": 1759508,
+        "uncompressed_bytes": 3640672,
+        "libraries": [
+          "libffmpegJNI.so",
+          "libgav1JNI.so",
+          "libvpxV2JNI.so"
+        ]
+      },
+      "armeabi-v7a": {
+        "compressed_bytes": 1725500,
+        "uncompressed_bytes": 3318872,
+        "libraries": [
+          "libffmpegJNI.so",
+          "libgav1JNI.so",
+          "libvpxV2JNI.so"
+        ]
+      },
+      "x86": {
+        "compressed_bytes": 1876453,
+        "uncompressed_bytes": 4564420,
+        "libraries": [
+          "libffmpegJNI.so",
+          "libgav1JNI.so",
+          "libvpxV2JNI.so"
+        ]
+      },
+      "x86_64": {
+        "compressed_bytes": 1936652,
+        "uncompressed_bytes": 4526384,
+        "libraries": [
+          "libffmpegJNI.so",
+          "libgav1JNI.so",
+          "libvpxV2JNI.so"
+        ]
+      }
+    },
+    "increase_over_2026_10_18_debug_bytes": 7594470
+  },
+  "release": {
+    "apk_bytes": 11333383,
+    "native_by_abi": {
+      "arm64-v8a": {
+        "compressed_bytes": 1680432,
+        "uncompressed_bytes": 3640672,
+        "libraries": [
+          "libffmpegJNI.so",
+          "libgav1JNI.so",
+          "libvpxV2JNI.so"
+        ]
+      },
+      "armeabi-v7a": {
+        "compressed_bytes": 1647968,
+        "uncompressed_bytes": 3318872,
+        "libraries": [
+          "libffmpegJNI.so",
+          "libgav1JNI.so",
+          "libvpxV2JNI.so"
+        ]
+      },
+      "x86": {
+        "compressed_bytes": 1710530,
+        "uncompressed_bytes": 4564420,
+        "libraries": [
+          "libffmpegJNI.so",
+          "libgav1JNI.so",
+          "libvpxV2JNI.so"
+        ]
+      },
+      "x86_64": {
+        "compressed_bytes": 1780484,
+        "uncompressed_bytes": 4526384,
+        "libraries": [
+          "libffmpegJNI.so",
+          "libgav1JNI.so",
+          "libvpxV2JNI.so"
+        ]
+      }
+    }
+  }
+}
