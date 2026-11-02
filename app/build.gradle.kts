@@ -27,12 +27,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    packaging { jniLibs.useLegacyPackaging = true }
     buildFeatures { buildConfig = true }
     lint { abortOnError = true }
     testOptions { unitTests.isIncludeAndroidResources = true }
 }
 kapt { correctErrorTypes = true }
 dependencies {
+    implementation(project(":software-codecs"))
     implementation("com.github.bumptech.glide:glide:4.16.0")
     kapt("com.github.bumptech.glide:compiler:4.16.0")
     implementation("androidx.core:core-ktx:1.13.1")

@@ -25,6 +25,15 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
       - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
+      - name: Reuse the exact validated native codec build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id=$(gh run list --workflow android.yml --commit "$GITHUB_SHA" --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+          test -n "$run_id" && test "$run_id" != "null"
+          gh run watch "$run_id" --exit-status --interval 10
+          gh run download "$run_id" --name native-codecs --dir .native/dist
+          bash scripts/install-native-codecs.sh
       - name: Verify and build current branded APK
         run: bash ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace
       - name: Assemble landing page and matching APK

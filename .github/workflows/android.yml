@@ -10,10 +10,46 @@ concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  native-codecs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: 'ndk;27.2.12479018 cmake;3.22.1'
+      - run: sudo apt-get update -qq && sudo apt-get install -y yasm
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        id: native-cache
+        with:
+          path: .native/dist
+          key: native-linux-${{ hashFiles('software-codecs/**', 'scripts/*native*') }}
+      - name: Build pinned decoder libraries and corresponding source archive
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: bash scripts/build-native-codecs.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-codecs
+          path: .native/dist/
+          include-hidden-files: true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: failure()
+        with:
+          name: native-build-failure-logs
+          path: |
+            .native/build/**/config.log
+            .native/config/
+          include-hidden-files: true
   build:
+    needs: native-codecs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: native-codecs
+          path: .native/dist
+      - run: bash scripts/install-native-codecs.sh
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
@@ -39,6 +75,7 @@ jobs:
           path: |
             app/build/reports/
   emulator:
+    needs: native-codecs
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -47,6 +84,11 @@ jobs:
         api: [28, 34]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: native-codecs
+          path: .native/dist
+      - run: bash scripts/install-native-codecs.sh
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin

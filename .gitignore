@@ -7,3 +7,6 @@ local.properties
 google-services.json
 _site/
 __pycache__/
+
+.native/
+software-codecs/src/main/jniLibs/

@@ -1,0 +1,11 @@
+{
+  "media3": {"url":"https://github.com/androidx/media.git","commit":"c35a9d62baec57118ea898e271ac66819399649b","version":"1.4.1","license":"Apache-2.0"},
+  "ffmpeg": {"url":"https://github.com/FFmpeg/FFmpeg.git","commit":"34277e12e80031c7f89494ba543684bc1dd0be8f","version":"6.1.4","license":"LGPL-2.1-or-later"},
+  "libvpx": {"url":"https://chromium.googlesource.com/webm/libvpx","commit":"d168454ecd099805c675d4a98c66f4891373302a","version":"1.15.2","license":"BSD-3-Clause"},
+  "libgav1": {"url":"https://chromium.googlesource.com/codecs/libgav1","commit":"c05bf9be660cf170d7c26bd06bb42b3322180e58","version":"0.20.0","license":"Apache-2.0"},
+  "cpu_features": {"url":"https://github.com/google/cpu_features.git","commit":"ba4bffa86cbb5456bdb34426ad22b9551278e2c0","version":"0.9.0","license":"Apache-2.0"},
+  "ndk":"27.2.12479018",
+  "api":21,
+  "abis":["armeabi-v7a","arm64-v8a","x86","x86_64"],
+  "ffmpeg_decoders":["ac3","eac3","dca","truehd"]
+}

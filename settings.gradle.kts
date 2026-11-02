@@ -14,3 +14,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "TN-Player"
 include(":app")
+
+include(":software-codecs")
