@@ -9,7 +9,8 @@ import androidx.media3.common.*
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultRenderersFactory
-import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.*
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -24,6 +25,8 @@ import kotlinx.coroutines.*
 @UnstableApi
 class MediaPlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
+    private val diagnostics = PlaybackDiagnostics()
+    private var recovery: PlaybackRecovery? = null
     private val effects by lazy { AudioEffects(Settings(this)) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val handler = Handler(Looper.getMainLooper())
@@ -101,16 +104,20 @@ class MediaPlaybackService : MediaSessionService() {
     }
     override fun onCreate() {
         super.onCreate()
-        val renderers = DefaultRenderersFactory(this).setEnableDecoderFallback(true).setMediaCodecSelector { mime, secure, tunneling ->
-            DecoderPreference.order(MediaCodecSelector.DEFAULT.getDecoderInfos(mime, secure, tunneling), Settings(this).decoderPreference,
-                { it.hardwareAccelerated }, { it.softwareOnly })
-        }
+        val renderers = TnRenderersFactory(this)
+        val selector = DefaultTrackSelector(this)
         val player = ExoPlayer.Builder(this, renderers)
+            .setTrackSelector(selector)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(this, DiagnosticExtractorsFactory(diagnostics)))
             .setSeekBackIncrementMs(Settings(this).seekMs).setSeekForwardIncrementMs(Settings(this).seekMs)
             .build().apply {
                 setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
                 setHandleAudioBecomingNoisy(true); setWakeMode(C.WAKE_MODE_LOCAL)
             }
+        player.addAnalyticsListener(diagnostics)
+        recovery = PlaybackRecovery(player, selector, { renderers.platformRenderers }, diagnostics) { message ->
+            android.widget.Toast.makeText(applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
+        }.also { player.addListener(it) }
         val activity = PendingIntent.getActivity(this, 0, Intent(this, PlayerActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         session = MediaSession.Builder(this, player).setSessionActivity(activity)
@@ -121,7 +128,7 @@ class MediaPlaybackService : MediaSessionService() {
                         .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
                             .add(SessionCommand("SET_LOOP", Bundle.EMPTY)).add(SessionCommand("SLEEP_TIMER", Bundle.EMPTY))
                             .add(SessionCommand("AUDIO_EFFECTS_STATE", Bundle.EMPTY)).add(SessionCommand("AUDIO_EFFECTS_SET", Bundle.EMPTY))
-                            .add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).add(SessionCommand("DECODER_PREFERENCE", Bundle.EMPTY)).add(SessionCommand("EXTERNAL_SUBTITLE", Bundle.EMPTY)).build()).build()
+                            .add(SessionCommand("PLAYBACK_DIAGNOSTICS", Bundle.EMPTY)).add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).add(SessionCommand("DECODER_PREFERENCE", Bundle.EMPTY)).add(SessionCommand("EXTERNAL_SUBTITLE", Bundle.EMPTY)).build()).build()
                 }
                 override fun onPlaybackResumption(session: MediaSession, controller: MediaSession.ControllerInfo): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
                     val result = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
@@ -135,6 +142,9 @@ class MediaPlaybackService : MediaSessionService() {
                 }
                 override fun onCustomCommand(session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle): ListenableFuture<SessionResult> {
                     when (customCommand.customAction) {
+                        "PLAYBACK_DIAGNOSTICS" -> {
+                            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS, Bundle().apply { putString("report", diagnostics.report()) }))
+                        }
                         "TOGGLE_PLAYBACK" -> {
                             val result = SettableFuture.create<SessionResult>()
                             scope.launch {
@@ -192,6 +202,7 @@ class MediaPlaybackService : MediaSessionService() {
                             val mode = args.getInt("mode", -1)
                             if (mode !in 0..2) return Futures.immediateFuture(SessionResult(SessionError.ERROR_BAD_VALUE))
                             Settings(this@MediaPlaybackService).decoderPreference = mode
+                            recovery?.reset()
                             if (player.mediaItemCount > 0 && player.playbackState != Player.STATE_IDLE) {
                                 val playing = player.playWhenReady
                                 player.stop(); player.prepare(); player.playWhenReady = playing
@@ -264,6 +275,7 @@ class MediaPlaybackService : MediaSessionService() {
     override fun onTaskRemoved(rootIntent: Intent?) { if (session?.player?.playWhenReady != true) stopSelf() }
     override fun onDestroy() {
         save(); handler.removeCallbacksAndMessages(null); historyRestore?.cancel()
+        recovery?.release(); recovery = null
         session?.run { player.removeListener(listener); player.release(); release() }; session = null
         effects.release(); PlaybackWidget.render(this, null); scope.cancel(); super.onDestroy()
     }

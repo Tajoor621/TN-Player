@@ -16,6 +16,13 @@ for attempt in range(30):
                 sha.update(chunk);size+=len(chunk)
         if sha.hexdigest()!=info['apk_sha256'] or size!=info['apk_bytes']:
             raise ValueError('Public APK differs from the build manifest')
+        source_sha=hashlib.sha256();source_size=0
+        with urllib.request.urlopen(base+'downloads/'+info['native_sources']+'?'+query,timeout=60) as response:
+            while chunk:=response.read(1024*1024):
+                source_sha.update(chunk);source_size+=len(chunk)
+        if source_sha.hexdigest()!=info['native_sources_sha256'] or source_size!=info['native_sources_bytes']:
+            raise ValueError('Public native source archive differs from the build manifest')
+        print('Verified corresponding native sources:',source_sha.hexdigest())
         print('Verified public site commit and full APK SHA-256:',expected,sha.hexdigest())
         break
     except (OSError,ValueError,KeyError) as error:

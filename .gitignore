@@ -10,3 +10,5 @@ __pycache__/
 
 .native/
 software-codecs/src/main/jniLibs/
+app/src/androidTest/assets/codecs/
+software-codecs/src/main/assets/native-notices/

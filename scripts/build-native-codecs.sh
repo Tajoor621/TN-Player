@@ -11,10 +11,13 @@ export PATH="$ANDROID_HOME/cmake/3.22.1/bin:$tools:$PATH"
 work="$root/.native"; sources="$work/sources"; dist="$work/dist"
 mkdir -p "$sources" "$dist/jniLibs" "$dist/notices" "$work/config"
 python3 - <<'PY'
-import json,subprocess,pathlib
+import json,subprocess,pathlib,os
 lock=json.loads(pathlib.Path('software-codecs/native-lock.json').read_text())
 for name in ['ffmpeg','libvpx','libgav1','cpu_features']:
  item=lock[name];p=pathlib.Path('.native/sources')/name
+ if os.environ.get('CODEC_SOURCE_MODE')=='local':
+  assert p.is_dir(),f'Extract corresponding sources first: {p}'
+  continue
  if not (p/'.git').exists():
   p.mkdir(exist_ok=True);subprocess.run(['git','init','-q',str(p)],check=True)
   subprocess.run(['git','-C',str(p),'remote','add','origin',item['url']],check=True)
@@ -32,6 +35,8 @@ for abi in armeabi-v7a arm64-v8a x86 x86_64; do
   esac
   prefix="$work/prefix/$abi"; build="$work/build/$abi"
   mkdir -p "$prefix" "$build/ffmpeg" "$build/vpx" "$dist/jniLibs/$abi" "$work/config/$abi"
+  ffmpeg_arch_options=()
+  if [[ "$abi" == x86* ]]; then ffmpeg_arch_options+=(--disable-asm); fi
   (
     cd "$build/ffmpeg"
     "$sources/ffmpeg/configure" --prefix="$prefix" --target-os=android --arch="$arch" --cpu="$cpu" \
@@ -42,7 +47,7 @@ for abi in armeabi-v7a arm64-v8a x86 x86_64; do
       --disable-avdevice --disable-avformat --disable-avfilter --disable-swscale --disable-postproc \
       --enable-swresample --enable-decoder=ac3,eac3,dca,truehd \
       --extra-cflags="-O2 -fPIC -ffunction-sections -fdata-sections" --extra-ldflags="-Wl,-z,max-page-size=16384" \
-      --disable-vulkan --disable-symver
+      --disable-vulkan --disable-symver "${ffmpeg_arch_options[@]}"
     make -j"$jobs"; make install
     cp config.h config_components.h ffbuild/config.mak "$work/config/$abi/"
     if grep -Eq '^#define CONFIG_(GPL|NONFREE|VERSION3) 1' config.h; then echo 'Unexpected license configuration' >&2; exit 1; fi
@@ -71,5 +76,8 @@ for abi in armeabi-v7a arm64-v8a x86 x86_64; do
   # Preserve the complete JNI translation unit for LGPL relinking in addition to source.
   find "$build/jni" -name '*ffmpeg_jni.cc.o' -exec cp '{}' "$work/config/$abi/ffmpeg_jni.cc.o" \;
 done
+mkdir -p "$sources/ndk_cpu_features"
+cp -R "$ndk/sources/android/cpufeatures/." "$sources/ndk_cpu_features/"
+bash scripts/generate-codec-fixtures.sh
 python3 scripts/package-native-sources.py
 bash scripts/install-native-codecs.sh

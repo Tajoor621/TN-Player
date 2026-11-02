@@ -18,12 +18,12 @@ jobs:
       - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
         with:
           packages: 'ndk;27.2.12479018 cmake;3.22.1'
-      - run: sudo apt-get update -qq && sudo apt-get install -y yasm
+      - run: sudo apt-get update -qq && sudo apt-get install -y yasm ffmpeg
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: native-cache
         with:
           path: .native/dist
-          key: native-linux-${{ hashFiles('software-codecs/**', 'scripts/*native*') }}
+          key: native-linux-${{ hashFiles('software-codecs/**', 'scripts/*native*', 'scripts/generate-codec-fixtures.sh') }}
       - name: Build pinned decoder libraries and corresponding source archive
         if: steps.native-cache.outputs.cache-hit != 'true'
         run: bash scripts/build-native-codecs.sh
@@ -60,6 +60,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
       - run: chmod +x gradlew
       - run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease --stacktrace
+      - run: python3 scripts/codec-size-report.py
       - name: Record resolved release dependencies
         run: |
           mkdir -p app/build/reports
@@ -108,6 +109,9 @@ jobs:
           arch: x86_64
           script: |
             bash ./scripts/device-validation.sh
+      - name: Check software codecs in the optimized release on Android 14
+        if: matrix.api == 34
+        run: bash scripts/release-codec-check.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

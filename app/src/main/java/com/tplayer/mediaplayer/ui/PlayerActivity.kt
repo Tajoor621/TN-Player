@@ -85,9 +85,6 @@ class PlayerActivity : AppCompatActivity() {
     private val dao by lazy { MediaDatabase.get(this).media() }
     private val settings by lazy { Settings(this) }
     private val listener = object : Player.Listener {
-        override fun onPlayerError(error: PlaybackException) {
-            info("Unable to play", "${error.errorCodeName}\n\nThis file may use an unsupported codec, be damaged, require DRM, or be unreachable. Try another source. Universal FFmpeg decoding is not included.")
-        }
         override fun onEvents(player: Player, events: Player.Events) {
             title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"
             if (resumeRequested && player.mediaItemCount > 0) { resumeRequested = false; startPlayback(player) }
@@ -465,7 +462,7 @@ class PlayerActivity : AppCompatActivity() {
         else player.seekTo(target.coerceAtMost(player.duration.takeIf { it > 0 } ?: Long.MAX_VALUE))
     }
     private fun decoderMenu() {
-        MaterialAlertDialogBuilder(this).setTitle("Decoder preference").setMessage("Uses codecs available on this device. A preference keeps compatible fallback decoders; it does not add FFmpeg or HW+. Applying briefly reinitializes playback at the current position.")
+        MaterialAlertDialogBuilder(this).setTitle("Decoder preference").setMessage("Uses codecs available on this device. Hardware is preferred by default. Compatible platform decoders are tried first; bundled FFmpeg audio and AV1/VP9 extensions provide fallback. Applying briefly reinitializes playback at the current position.")
             .setSingleChoiceItems(arrayOf("Automatic", "Prefer hardware codecs", "Prefer platform software codecs"), settings.decoderPreference) { dialog, mode ->
                 controller?.let { player -> sendCommand(player, "DECODER_PREFERENCE", Bundle().apply { putInt("mode", mode) }, "Decoder preference applied") }; dialog.dismiss()
             }.setNegativeButton("Cancel", null).show()
@@ -521,6 +518,15 @@ class PlayerActivity : AppCompatActivity() {
         }
         playerStatus.text = fields.joinToString(" · ")
     }
+    private fun decoderDiagnostics() {
+        val player = controller ?: return
+        val result = player.sendCustomCommand(SessionCommand("PLAYBACK_DIAGNOSTICS", Bundle.EMPTY), Bundle.EMPTY)
+        result.addListener({
+            if (controller !== player || isFinishing || isDestroyed) return@addListener
+            try { info("Decoder diagnostics", result.get().extras.getString("report") ?: "No format information available yet.") }
+            catch (_: Exception) { Toast.makeText(this, "Decoder diagnostics unavailable", Toast.LENGTH_SHORT).show() }
+        }, ContextCompat.getMainExecutor(this))
+    }
     private fun currentInformation() { controller?.let { player ->
         val item = player.currentMediaItem ?: return
         launchUi { info("File information", MediaDetails(this@PlayerActivity).describe(LibraryItem(item.mediaId, title.text.toString(), mimeType = player.mediaMetadata.extras?.getString("mime").orEmpty()), com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@PlayerActivity).historyFor(item.mediaId))) }
@@ -573,8 +579,8 @@ class PlayerActivity : AppCompatActivity() {
         } catch (_: Exception) { ui.screenshot = null; info("Screenshot", "This source cannot provide a frame. Protected video may prevent capture.") }
     }
     private fun advancedMenu() {
-        val choices = arrayOf("Playback speed", "Aspect ratio", "External subtitle", "Subtitle size", "Add/remove favorite", "Add bookmark", "Bookmarks", "Set A–B repeat", "Clear A–B repeat", "Loop / shuffle", "Sleep timer", "Rotate screen", "Lock controls", "Stop playback", "Subtitle style", "Audio enhancements", "Reset zoom", "Pin player · kids lock", "Decoder preference", "Gesture controls")
-        MaterialAlertDialogBuilder(this).setTitle("Playback controls").setItems(choices) { _, index -> when (index) { 17 -> kidsLock(); 18 -> decoderMenu(); 19 -> gestureMenu(); else -> control(index) } }.show()
+        val choices = arrayOf("Playback speed", "Aspect ratio", "External subtitle", "Subtitle size", "Add/remove favorite", "Add bookmark", "Bookmarks", "Set A–B repeat", "Clear A–B repeat", "Loop / shuffle", "Sleep timer", "Rotate screen", "Lock controls", "Stop playback", "Subtitle style", "Audio enhancements", "Reset zoom", "Pin player · kids lock", "Decoder preference", "Gesture controls", "Decoder diagnostics")
+        MaterialAlertDialogBuilder(this).setTitle("Playback controls").setItems(choices) { _, index -> when (index) { 17 -> kidsLock(); 18 -> decoderMenu(); 19 -> gestureMenu(); 20 -> decoderDiagnostics(); else -> control(index) } }.show()
     }
     private fun control(index: Int) {
         val player = controller ?: return

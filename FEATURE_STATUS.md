@@ -8,7 +8,7 @@
 | Application / multidex / debug checks | MultiDexApplication, StrictMode, WorkManager | Add DI only when feature boundaries need it |
 | Firebase crash/analytics/remote flags | Excluded; no telemetry by default | Add configured Firebase variant, consent persisted before SDK collection, Firebase Analytics (not a duplicate Google Analytics pipeline), consent withdrawal and deletion policy |
 | Image loading / thumbnails | Glide local video thumbnails and MediaStore album art; recycled-view cancellation; 16 MB memory/64 MB disk cache | Benchmark thumbnail throughput and removable-provider artwork |
-| Universal codecs / FFmpeg | Platform/Media3 decoders only | Build and audit an actively maintained native backend or LGPL-compatible FFmpeg decoder extension; package by ABI, verify 16 KB alignment and licenses; test actual codecs. FFmpeg audio extension alone is not universal video support |
+| Universal codecs / FFmpeg | Hardware-first Media3 plus source-built FFmpeg AC3/EAC3/DTS/TrueHD and separate libvpx VP9/libgav1 AV1 extensions; bounded runtime renderer recovery and diagnostics | Build and audit an actively maintained native backend or LGPL-compatible FFmpeg decoder extension; package by ABI, verify 16 KB alignment and licenses; test actual codecs. This subset is not universal video support; see docs/FORMATS.md |
 | Splash | Uses normal Android startup window | Add AndroidX SplashScreen with measured startup; do not use a redundant launcher Activity |
 | Activities | Main and Player implement working screens | Split by navigation feature when screens grow; avoid two engines or empty shell Activities |
 | External intents | VIEW audio/video; SEND and bounded SEND_MULTIPLE queues | Richer file MIME associations, validated app links only for owned domain |
@@ -69,3 +69,7 @@ See [MX_PLAYER_COMPARISON.md](MX_PLAYER_COMPARISON.md) for the source-based gap 
 ## 18 October audit delivery
 
 The latest icon integration and prioritized source review are in [AUDIT_2026-10-18.md](AUDIT_2026-10-18.md). Added local encrypted retention of up to ten recent timed-caption sessions (32 MB total budget), speed correction, selectable embedded-track switching, gesture presets and optional clock/battery/remaining-time overlays. Native ASS/SSA/TTML session persistence is still separate work; this is not a full product completion claim.
+
+## 2 November software decoder delivery
+
+See [docs/FORMATS.md](docs/FORMATS.md) for exact codecs/containers, hardware/software/unsupported paths, pinned dependencies, licenses, source/relink distribution and size/testing limits. Four FFmpeg audio decoders and separate AV1/VP9 native extensions are added; existing H.264/MP4 paths are retained. Automated JNI/PCM/recovery and release checks must pass before publication. Physical speaker audibility and a comprehensive format corpus remain separate acceptance work.
