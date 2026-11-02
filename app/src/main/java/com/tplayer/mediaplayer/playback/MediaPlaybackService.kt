@@ -8,8 +8,6 @@ import android.os.Looper
 import androidx.media3.common.*
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.DefaultRenderersFactory
-import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.*
 import com.google.common.util.concurrent.Futures
@@ -105,7 +103,7 @@ class MediaPlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val renderers = TnRenderersFactory(this)
-        val selector = DefaultTrackSelector(this)
+        val selector = RecoveryTrackSelector(this)
         val player = ExoPlayer.Builder(this, renderers)
             .setTrackSelector(selector)
             .setMediaSourceFactory(DefaultMediaSourceFactory(this, DiagnosticExtractorsFactory(diagnostics)))
@@ -115,7 +113,7 @@ class MediaPlaybackService : MediaSessionService() {
                 setHandleAudioBecomingNoisy(true); setWakeMode(C.WAKE_MODE_LOCAL)
             }
         player.addAnalyticsListener(diagnostics)
-        recovery = PlaybackRecovery(player, selector, { renderers.platformRenderers }, diagnostics) { message ->
+        recovery = PlaybackRecovery(player, selector, renderers, diagnostics) { message ->
             android.widget.Toast.makeText(applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
         }.also { player.addListener(it) }
         val activity = PendingIntent.getActivity(this, 0, Intent(this, PlayerActivity::class.java),

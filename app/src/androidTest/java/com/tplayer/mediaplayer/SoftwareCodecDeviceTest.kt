@@ -46,7 +46,7 @@ class SoftwareCodecDeviceTest {
         override fun isEnded() = false
         override fun render(positionUs: Long, elapsedRealtimeUs: Long) {
             throw createRendererException(IllegalStateException("Injected hardware decode failure"),
-                Format.Builder().setSampleMimeType(mime).setSampleRate(48000).setChannelCount(2).build(), PlaybackException.ERROR_CODE_DECODING_FAILED)
+                streamFormats.first(), PlaybackException.ERROR_CODE_DECODING_FAILED)
         }
     }
     private class ProbeFactory(context: Context, private val excluded: Set<String>, val probe: PcmProbe,
@@ -58,16 +58,16 @@ class SoftwareCodecDeviceTest {
             val base = super.createRenderers(handler, video, audio, text, metadata)
             if (failingMime == null) return base
             platformRenderers = platformRenderers.mapValues { it.value + 1 } + (C.TRACK_TYPE_AUDIO to 0)
-            return arrayOf<Renderer>(FailingPlatformAudio(failingMime)) + base
+            return arrayOf(guardPlatform(FailingPlatformAudio(failingMime))) + base
         }
     }
     private fun exerciseAudio(file: String, mime: String, failHardware: Boolean = false) {
         val probe = PcmProbe(); val messages = CopyOnWriteArrayList<String>(); val diagnostics = PlaybackDiagnostics()
         val factory = DevicePlayback.main { ProbeFactory(DevicePlayback.context, setOf(mime), probe, if (failHardware) mime else null) }
-        val selector = DevicePlayback.main { DefaultTrackSelector(DevicePlayback.context) }
+        val selector = DevicePlayback.main { RecoveryTrackSelector(DevicePlayback.context) }
         val player = DevicePlayback.main { ExoPlayer.Builder(DevicePlayback.context, factory).setTrackSelector(selector)
             .setMediaSourceFactory(DefaultMediaSourceFactory(DevicePlayback.context, DiagnosticExtractorsFactory(diagnostics))).build() }
-        val recovery = DevicePlayback.main { PlaybackRecovery(player, selector, { factory.platformRenderers }, diagnostics, notify = messages::add).also { player.addListener(it); player.addAnalyticsListener(diagnostics) } }
+        val recovery = DevicePlayback.main { PlaybackRecovery(player, selector, factory, diagnostics, notify = messages::add).also { player.addListener(it); player.addAnalyticsListener(diagnostics) } }
         try {
             DevicePlayback.main { player.setMediaItem(MediaItem.fromUri(DevicePlayback.fixture("codecs/$file"))); player.prepare(); player.play() }
             DevicePlayback.await("$file did not produce non-silent PCM and advance through AudioTrack: ${messages.joinToString()}") {
@@ -79,7 +79,7 @@ class SoftwareCodecDeviceTest {
             assertTrue(report, report.contains("MatroskaExtractor"))
             if (failHardware) {
                 assertEquals(1, messages.count { it.startsWith("Retrying") })
-                assertTrue(DevicePlayback.main { selector.parameters.getRendererDisabled(0) })
+                assertTrue(DevicePlayback.main { factory.usesSoftwareFor(requireNotNull(diagnostics.audioFormat)) })
             } else assertTrue(messages.toString(), messages.none { it.contains("not supported") || it.contains("could not") })
         } finally { DevicePlayback.main { recovery.release(); player.release() } }
     }
@@ -91,9 +91,9 @@ class SoftwareCodecDeviceTest {
     @Test fun unsupportedTrackReportsItsCodecWithoutCrashing() {
         val messages = CopyOnWriteArrayList<String>(); val diagnostics = PlaybackDiagnostics()
         val factory = DevicePlayback.main { ProbeFactory(DevicePlayback.context, setOf(MimeTypes.AUDIO_VORBIS), PcmProbe()) }
-        val selector = DevicePlayback.main { DefaultTrackSelector(DevicePlayback.context) }
+        val selector = DevicePlayback.main { RecoveryTrackSelector(DevicePlayback.context) }
         val player = DevicePlayback.main { ExoPlayer.Builder(DevicePlayback.context, factory).setTrackSelector(selector).build() }
-        val recovery = DevicePlayback.main { PlaybackRecovery(player, selector, { factory.platformRenderers }, diagnostics, notify = messages::add).also { player.addListener(it) } }
+        val recovery = DevicePlayback.main { PlaybackRecovery(player, selector, factory, diagnostics, notify = messages::add).also { player.addListener(it) } }
         try {
             DevicePlayback.main { player.setMediaItem(MediaItem.fromUri(DevicePlayback.fixture("codecs/unsupported.mka"))); player.prepare(); player.play() }
             DevicePlayback.await("Unsupported audio was silently omitted") { messages.contains("Vorbis audio is not supported on this device.") }

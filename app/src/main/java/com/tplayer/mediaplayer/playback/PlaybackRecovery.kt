@@ -5,11 +5,10 @@ import android.os.Handler
 import androidx.media3.common.*
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.ExoPlaybackException
-import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 
-/** Changes renderer selection on the owning player's thread; never creates a second player. */
-class PlaybackRecovery(private val player: ExoPlayer, private val selector: DefaultTrackSelector,
-    private val platformRenderers: () -> Map<Int, Int>, private val diagnostics: PlaybackDiagnostics,
+/** Changes renderer capabilities and selection on the owning player's thread; never creates a second player. */
+class PlaybackRecovery(private val player: ExoPlayer, private val selector: RecoveryTrackSelector,
+    private val renderers: TnRenderersFactory, private val diagnostics: PlaybackDiagnostics,
     private val softwareSupports: (Format) -> Boolean = SoftwareDecoders::supports,
     private val notify: (String) -> Unit) : Player.Listener {
     private val policy = DecoderFallbackPolicy()
@@ -21,9 +20,7 @@ class PlaybackRecovery(private val player: ExoPlayer, private val selector: Defa
     private fun notice(text: String) { diagnostics.message(text); if (notices.size < 16 && notices.add(text)) notify(text) }
     fun reset() {
         generation++; recovering = false; policy.reset(activeId); notices.clear()
-        val builder = selector.parameters.buildUpon()
-        platformRenderers().values.forEach { builder.setRendererDisabled(it, false) }
-        selector.parameters = builder.build()
+        renderers.clearSoftwareOverrides(); selector.refreshRendererChoices()
     }
     override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
         if (item?.mediaId != activeId) { activeId = item?.mediaId; reset(); diagnostics.reset() }
@@ -54,17 +51,22 @@ class PlaybackRecovery(private val player: ExoPlayer, private val selector: Defa
             PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED, PlaybackException.ERROR_CODE_DECODING_FAILED,
             PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED, PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES)
         val id = player.currentMediaItem?.mediaId
-        val index = platformRenderers()[type]
-        val isPlatform = failure?.type == ExoPlaybackException.TYPE_RENDERER && index != null && failure.rendererIndex == index && !selector.parameters.getRendererDisabled(index)
+        val index = renderers.platformRenderers[type]
+        val isPlatform = failure?.type == ExoPlaybackException.TYPE_RENDERER && index != null && failure.rendererIndex == index && format != null && !renderers.usesSoftwareFor(format)
         val key = "$type:${format?.id}:${format?.sampleMimeType}:${format?.codecs}:${format?.sampleRate}:${format?.channelCount}:${format?.width}:${format?.height}"
         if (id != null && format != null && policy.claim(id, key, decoderFailure, isPlatform, softwareSupports(format), format.drmInitData != null)) {
+            val formats = player.currentTracks.groups.filter { it.type == type && it.isSelected }
+                .flatMap { group -> (0 until group.length).map(group::getTrackFormat) }.ifEmpty { listOf(format) }
             val position = player.currentPosition.coerceAtLeast(0); val itemIndex = player.currentMediaItemIndex
             val playing = player.playWhenReady; val seekable = player.isCurrentMediaItemSeekable; val version = generation
             recovering = true
             notice("Retrying ${CodecLabels.name(format.sampleMimeType, format.codecs)} with software decoding.")
             handler.post {
                 if (version != generation || id != player.currentMediaItem?.mediaId) return@post
-                selector.parameters = selector.parameters.buildUpon().setRendererDisabled(index!!, true).build()
+                // Disabling a renderer alone does not remap a TrackGroup in Media3.
+                // Gate its failed group's capabilities, then invalidate selection so the
+                // matching software renderer actually receives that group.
+                renderers.forceSoftware(formats); selector.refreshRendererChoices()
                 if (seekable) player.seekTo(itemIndex, position)
                 player.prepare(); player.playWhenReady = playing
             }
