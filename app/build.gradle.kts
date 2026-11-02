@@ -13,6 +13,9 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         multiDexEnabled = true
+        val revision = providers.environmentVariable("GITHUB_SHA").orNull
+            ?.takeIf { it.matches(Regex("[0-9a-f]{40}")) } ?: "local-unknown"
+        buildConfigField("String", "SOURCE_REVISION", "\"$revision\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

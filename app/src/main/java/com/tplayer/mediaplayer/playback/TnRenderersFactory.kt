@@ -7,6 +7,8 @@ import androidx.media3.common.C
 import androidx.media3.common.Format
 import java.util.concurrent.ConcurrentHashMap
 import androidx.media3.exoplayer.*
+import androidx.media3.exoplayer.source.SampleStream
+import androidx.media3.exoplayer.source.MediaSource.MediaPeriodId
 import androidx.media3.exoplayer.audio.*
 import androidx.media3.exoplayer.video.*
 import androidx.media3.exoplayer.metadata.MetadataOutput
@@ -17,6 +19,10 @@ import com.tplayer.mediaplayer.data.Settings
 open class TnRenderersFactory(context: Context) : DefaultRenderersFactory(context) {
     var platformRenderers: Map<Int, Int> = emptyMap()
         protected set
+    private val tunneled = java.util.Collections.newSetFromMap(ConcurrentHashMap<Int, Boolean>())
+    val tunnelingActive: Boolean get() = tunneled.isNotEmpty()
+    @Volatile var tunnelingFailed = false; private set
+    fun clearTunnelingFailure() { tunnelingFailed = false }
     private data class TrackKey(val mime: String?, val id: String?, val codecs: String?)
     private val softwareFormats = java.util.Collections.newSetFromMap(ConcurrentHashMap<TrackKey, Boolean>())
     private fun key(format: Format) = TrackKey(format.sampleMimeType, format.id, format.codecs)
@@ -29,7 +35,21 @@ open class TnRenderersFactory(context: Context) : DefaultRenderersFactory(contex
             override fun supportsFormat(format: Format): Int = if (usesSoftwareFor(format))
                 RendererCapabilities.create(C.FORMAT_UNSUPPORTED_SUBTYPE) else original.supportsFormat(format)
         }
-        return object : Renderer by renderer { override fun getCapabilities(): RendererCapabilities = capabilities }
+        return object : Renderer by renderer {
+            override fun getCapabilities(): RendererCapabilities = capabilities
+            override fun enable(configuration: RendererConfiguration, formats: Array<Format>, stream: SampleStream,
+                positionUs: Long, joining: Boolean, mayRenderStartOfStream: Boolean, startPositionUs: Long,
+                offsetUs: Long, mediaPeriodId: MediaPeriodId) {
+                if (configuration.tunneling) tunneled.add(renderer.trackType) else tunneled.remove(renderer.trackType)
+                try { renderer.enable(configuration, formats, stream, positionUs, joining, mayRenderStartOfStream, startPositionUs, offsetUs, mediaPeriodId) }
+                catch (e: Exception) { if (configuration.tunneling) tunnelingFailed = true; tunneled.remove(renderer.trackType); throw e }
+            }
+            override fun render(positionUs: Long, elapsedRealtimeUs: Long) {
+                try { renderer.render(positionUs, elapsedRealtimeUs) }
+                catch (e: Exception) { if (tunneled.contains(renderer.trackType)) tunnelingFailed = true; throw e }
+            }
+            override fun disable() { try { renderer.disable() } finally { tunneled.remove(renderer.trackType) } }
+        }
     }
     init {
         setExtensionRendererMode(EXTENSION_RENDERER_MODE_ON)

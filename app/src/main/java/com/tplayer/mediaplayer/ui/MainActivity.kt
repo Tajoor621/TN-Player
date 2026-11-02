@@ -121,8 +121,9 @@ class MainActivity : AppCompatActivity() {
     }
     private val openFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
-            retain(it, false)
+            com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
             launchUi {
+                withContext(Dispatchers.IO) { retain(it, false) }
                 val name = withContext(Dispatchers.IO) {
                     contentResolver.query(it, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
                         if (cursor.moveToFirst()) cursor.getString(0) else null
@@ -278,6 +279,7 @@ class MainActivity : AppCompatActivity() {
         } catch (_: SecurityException) { contentResolver.unregisterContentObserver(mediaObserver) }
     }
     override fun onStop() {
+        if (screen in setOf(Screen.VIDEOS, Screen.MUSIC)) job?.cancel()
         mediaHandler.removeCallbacks(refreshLibrary)
         if (observingMedia) { contentResolver.unregisterContentObserver(mediaObserver); observingMedia = false }
         super.onStop()
@@ -415,6 +417,7 @@ class MainActivity : AppCompatActivity() {
             job = launchUi {
                 try {
                     if (reset && query.isNotBlank()) delay(250)
+                    com.tplayer.mediaplayer.playback.PlaybackWorkGate.awaitPlaybackStart()
                     // Local history cannot be blocked by an unavailable network-secret key.
                     val history = MediaDatabase.get(this@MainActivity).raw().history().filter { it.uri.startsWith("content:") || it.uri.startsWith("file:") }
                     val page = MediaCatalog(this@MainActivity).page(video, display, current, query, settings.hidden, history, offset)
@@ -565,6 +568,8 @@ class MainActivity : AppCompatActivity() {
         } }; dialog.show()
     }
     private fun play(item: LibraryItem) {
+        com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
+        if (screen in setOf(Screen.VIDEOS, Screen.MUSIC)) job?.cancel()
         val uri = Uri.parse(item.uri)
         val intent = Intent(this, PlayerActivity::class.java).setData(uri).putExtra("title", item.title.take(1024)).putExtra("mime", item.mimeType.take(128)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         startActivity(intent)
@@ -785,6 +790,9 @@ class MainActivity : AppCompatActivity() {
                 setOnCheckedChangeListener { _, enabled -> change(enabled) }
             })
         }
+        toggle("Tunneled playback · compatible hardware, next file", settings.tunneledPlayback) { settings.tunneledPlayback = it }
+        toggle("Preload next local playlist item · 1 MB, next play", settings.preloadNext) { settings.preloadNext = it }
+        toggle("Release paused decoders after 10 s in background", settings.releasePausedInBackground) { settings.releasePausedInBackground = it }
         toggle("Resume unfinished media", settings.resume) { settings.resume = it }
         toggle("Auto picture-in-picture for videos", settings.autoPip) { settings.autoPip = it }
         toggle("Show hidden files in chosen folders", settings.hidden) { settings.hidden = it }

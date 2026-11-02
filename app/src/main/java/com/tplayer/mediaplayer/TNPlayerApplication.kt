@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit
 class TNPlayerApplication : MultiDexApplication() {
     override fun onCreate() {
         super.onCreate()
+        registerActivityLifecycleCallbacks(com.tplayer.mediaplayer.playback.AppVisibility)
         AppCompatDelegate.setDefaultNightMode(Settings(this).theme)
         if (BuildConfig.DEBUG) {
             StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder().detectNetwork().penaltyLog().build())

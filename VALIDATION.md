@@ -1,5 +1,27 @@
 # TN-Player — decoder source integration, final APK deferred
 
+## Performance integration — 2 November 2026
+
+The performance source workflow is feature prompt **1 of 3**. No APK build,
+instrumented device execution, optimized-release performance measurement or Pages
+publication is authorized during this phase. Source compilation/JVM tests/lint
+are permitted and the source workflow rejects APK-producing tasks in its graph.
+
+Local checks: `git diff --check`, benchmark Bash/Python syntax and **9 synthetic
+report-parser tests passed**. Offline FFmpeg generation and ffprobe verification
+passed for all three 15-second references: 1080p H.264/8-bit BT.709, 3840×2160
+HEVC/8-bit BT.709 and 1080p HEVC Main10/BT.2020 PQ. Large generated media is ignored,
+not committed or packaged. Fixture verification is not playback validation.
+
+New Kotlin policy tests cover idle-release conditions, software/tunnel exclusion
+and unknown/current OS wake-lock parsing. Instrumentation is opt-in only and the
+long session is skipped by ordinary CI. Current-source compile/JVM/lint evidence
+will be recorded with the source integration; earlier APK evidence below does
+not cover these changes. **Device TTFF, seek, drops, CPU, 30-minute release and
+regressions are pending**, as is final optimized-release validation. See
+[docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+
+
 On **2 November 2026**, the owner requested repository integration now and deferred the final APK build until three additional feature prompts are integrated. See [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md). Normal pushes now perform source/script checks only. APK/device validation and publication are explicit manual operations with false-by-default inputs. No new decoder APK has been published to Pages.
 
 ## Playback changes integrated

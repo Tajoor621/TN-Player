@@ -250,6 +250,7 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
     private suspend fun consumeSource(source: Intent) {
+        if (source.data != null || source.hasExtra("queue") || source.hasExtra(Intent.EXTRA_STREAM)) com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
         val player = controller ?: return
         val queue = source.getStringArrayListExtra("queue")
         val titles = source.getStringArrayListExtra("titles")

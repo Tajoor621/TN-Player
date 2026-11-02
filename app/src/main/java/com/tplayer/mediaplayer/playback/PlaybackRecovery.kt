@@ -10,17 +10,21 @@ import androidx.media3.exoplayer.ExoPlaybackException
 class PlaybackRecovery(private val player: ExoPlayer, private val selector: RecoveryTrackSelector,
     private val renderers: TnRenderersFactory, private val diagnostics: PlaybackDiagnostics,
     private val softwareSupports: (Format) -> Boolean = SoftwareDecoders::supports,
+    private val tunnelingRequested: () -> Boolean = { false },
     private val notify: (String) -> Unit) : Player.Listener {
     private val policy = DecoderFallbackPolicy()
     private val handler = Handler(player.applicationLooper)
     private var activeId: String? = null
     private var recovering = false
     private var generation = 0
+    private var tunnelRetried = false
     private val notices = linkedSetOf<String>()
     private fun notice(text: String) { diagnostics.message(text); if (notices.size < 16 && notices.add(text)) notify(text) }
     fun reset() {
         generation++; recovering = false; policy.reset(activeId); notices.clear()
-        renderers.clearSoftwareOverrides(); selector.refreshRendererChoices()
+        renderers.clearSoftwareOverrides(); renderers.clearTunnelingFailure(); tunnelRetried = false
+        selector.setParameters(selector.buildUponParameters().setTunnelingEnabled(PlaybackPowerPolicy.allowTunneling(tunnelingRequested(), false)))
+        selector.refreshRendererChoices()
     }
     override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
         if (item?.mediaId != activeId) { activeId = item?.mediaId; reset(); diagnostics.reset(item?.localConfiguration?.uri?.toString() ?: item?.mediaId) }
@@ -58,6 +62,22 @@ class PlaybackRecovery(private val player: ExoPlayer, private val selector: Reco
         val id = player.currentMediaItem?.mediaId
         val index = renderers.platformRenderers[type]
         val isPlatform = failure?.type == ExoPlaybackException.TYPE_RENDERER && index != null && failure.rendererIndex == index && format != null && !renderers.usesSoftwareFor(format)
+        // A failed tunnel first gets one normal hardware attempt for this file. Selection already
+        // excludes unsupported tunnel pairs; runtime failures are device/codec specific.
+        val tunnelFailure = decoderFailure || error.errorCode in setOf(PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED, PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED)
+        if (id != null && tunnelFailure && isPlatform && !tunnelRetried && selector.parameters.tunnelingEnabled &&
+            (renderers.tunnelingActive || renderers.tunnelingFailed)) {
+            tunnelRetried = true; recovering = true
+            val position = player.currentPosition; val playing = player.playWhenReady; val version = generation
+            notice("Tunneled playback unavailable for this file; retrying normal playback.")
+            handler.post {
+                if (generation != version || player.currentMediaItem?.mediaId != id) return@post
+                selector.setParameters(selector.buildUponParameters().setTunnelingEnabled(false))
+                if (player.isCurrentMediaItemSeekable) player.seekTo(position)
+                player.prepare(); player.playWhenReady = playing
+            }
+            return
+        }
         val key = "$type:${format?.id}:${format?.sampleMimeType}:${format?.codecs}:${format?.sampleRate}:${format?.channelCount}:${format?.width}:${format?.height}"
         if (id != null && format != null && policy.claim(id, key, decoderFailure, isPlatform, softwareSupports(format), format.drmInitData != null)) {
             val formats = player.currentTracks.groups.filter { it.type == type && it.isSelected }
@@ -71,7 +91,9 @@ class PlaybackRecovery(private val player: ExoPlayer, private val selector: Reco
                 // Disabling a renderer alone does not remap a TrackGroup in Media3.
                 // Gate its failed group's capabilities, then invalidate selection so the
                 // matching software renderer actually receives that group.
-                renderers.forceSoftware(formats); selector.refreshRendererChoices()
+                renderers.forceSoftware(formats)
+                selector.setParameters(selector.buildUponParameters().setTunnelingEnabled(PlaybackPowerPolicy.allowTunneling(tunnelingRequested(), true)))
+                selector.refreshRendererChoices()
                 if (seekable) player.seekTo(itemIndex, position)
                 player.prepare(); player.playWhenReady = playing
             }

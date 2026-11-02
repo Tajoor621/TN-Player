@@ -18,3 +18,10 @@
 - Extend regression coverage for navigation, Room migration, encryption/tampering, retention, checkpoints and failed/cancelled transfers. Add Android playback/PiP/Keystore and external process-recovery test sources.
 
 See VALIDATION.md for executed checks and remaining limitations. This revision preserves versionName 1.0.0, versionCode 1 and the requested SDK levels. It is a debug testing build, not a signed production release.
+
+## 2 November 2026 — performance source workflow (1/3)
+
+- Add off-by-default compatible tunneling, local next-item warming and paused-background decoder release.
+- Defer library work until playback starts; preserve existing hardware-first software fallback.
+- Add offline production-engine CSV benchmarking, reference generation/verification, a no-build device runner and honest pending-results documentation.
+- Keep APK builds/publication deferred; source-only CI now compiles Kotlin and runs JVM tests/lint with an APK-task guard.

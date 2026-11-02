@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "references": [
+    {"name": "h264-1080p.mp4", "codec": "h264", "width": 1920, "height": 1080, "bit_depth": 8, "transfer": "bt709"},
+    {"name": "hevc-4k.mp4", "codec": "hevc", "width": 3840, "height": 2160, "bit_depth": 8, "transfer": "bt709"},
+    {"name": "hevc-hdr10.mp4", "codec": "hevc", "width": 1920, "height": 1080, "bit_depth": 10, "transfer": "smpte2084"}
+  ]
+}

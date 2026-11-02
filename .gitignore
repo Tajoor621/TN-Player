@@ -12,3 +12,6 @@ __pycache__/
 software-codecs/src/main/jniLibs/
 app/src/androidTest/assets/codecs/
 software-codecs/src/main/assets/native-notices/
+
+test-assets/benchmarks/media/
+benchmark-results/

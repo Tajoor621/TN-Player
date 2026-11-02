@@ -24,9 +24,32 @@ jobs:
       - name: Check source and build-script syntax without producing APKs
         run: |
           git diff --check HEAD^
-          bash -n scripts/build-native-codecs.sh scripts/install-native-codecs.sh scripts/generate-codec-fixtures.sh scripts/release-codec-check.sh
-          python3 -m py_compile scripts/package-native-sources.py scripts/package-pages.py scripts/verify-pages.py scripts/codec-size-report.py
+          bash -n scripts/build-native-codecs.sh scripts/install-native-codecs.sh scripts/generate-codec-fixtures.sh scripts/release-codec-check.sh scripts/benchmark.sh
+          python3 -m py_compile scripts/package-native-sources.py scripts/package-pages.py scripts/verify-pages.py scripts/codec-size-report.py scripts/generate-benchmark-fixtures.py scripts/benchmark_report.py scripts/test_benchmark_report.py
+          python3 -m unittest discover -s scripts -p test_benchmark_report.py -v
           python3 -m json.tool software-codecs/native-lock.json >/dev/null
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+      - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947
+      - name: Compile source and tests without producing APKs
+        run: |
+          tasks=(:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest :app:lintDebug)
+          bash ./gradlew "${tasks[@]}" --dry-run > /tmp/tn-source-tasks.txt
+          if grep -Eq '^:app:(package|assemble|install)(Debug|Release)(AndroidTest)?( |$)' /tmp/tn-source-tasks.txt; then
+            echo 'Unexpected APK-producing task in source checks; refusing during build deferral.' >&2
+            exit 1
+          fi
+          bash ./gradlew "${tasks[@]}" --stacktrace
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: source-review-reports
+          path: app/build/reports/
   native-codecs:
     if: github.event_name == 'workflow_dispatch' && inputs.build_apk
     needs: source-review

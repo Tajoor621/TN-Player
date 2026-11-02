@@ -1,5 +1,24 @@
 # Master specification: implementation status and solutions
 
+## Performance workflow — 2 November 2026 (feature prompt 1/3)
+
+Playback setup is `MediaPlaybackService.onCreate`: `TnRenderersFactory`,
+`RecoveryTrackSelector`, one ExoPlayer/MediaSession and `PlaybackRecovery`.
+Platform hardware is first; the existing pinned native extensions provide finite
+per-file software recovery. This work adds capability-selected opt-in tunneling
+with one non-tunneled retry, bounded local next-item byte warming after first
+output, startup scan deferral and opt-in 10-second paused-background cleanup.
+All new settings default off and are included in settings backup/restore.
+
+The debug-only manual `PlaybackBenchmarkTest` uses the production service and
+PlayerView, checks three hashed offline references (including 4K HEVC and 10-bit
+PQ), exports CSV and measures a 30-minute background/paused-release run.
+`scripts/benchmark.sh` runs preinstalled matching APKs without building them.
+No performance or leak-free acceptance has passed yet: see
+[measurement contract and pending results](docs/BENCHMARKS.md). Host fixture
+validation and parser checks are distinct from device measurements.
+
+
 “Implemented” means source exists. Build/test results are recorded separately in VALIDATION.md. Device-dependent playback behavior still requires the physical-device matrix. No placeholder button is presented as a completed premium feature.
 
 | Requirement | Current implementation | Remaining work / concrete solution |

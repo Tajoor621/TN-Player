@@ -1,5 +1,28 @@
 # TN-Player repository audit — 17 October 2026
 
+## Performance follow-up — 2 November 2026
+
+Reviewed playback ownership and renderer/decoder selection before this change:
+`MediaPlaybackService` constructs the only ExoPlayer, `TnRenderersFactory` orders
+platform hardware before source-built extensions, `RecoveryTrackSelector` remaps
+failed formats and `PlaybackRecovery` retries a finite number of times per file.
+The three requested root status/validation/audit documents were read first.
+
+Source changes add opt-in compatible tunneling plus normal-renderer retry,
+bounded IO-only local warming, library-query startup deferral, paused-background
+resource cleanup and a manual same-engine CSV benchmark. Three offline reference
+specifications and generation/probe checks are present; no large media is in git.
+No new native dependency/license is introduced. Cached bytes/CPU usage and
+reprepare latency are tradeoffs requiring matched physical-device measurements.
+
+Remaining release gates: source compile/JVM/lint, physical 4K/10-bit HDR frame and
+seek measurements, the 30-minute cleanup run, optimized-release runtime check and
+APK-size delta. The owner has deferred APK builds until two further feature
+prompts after this one. The harness is source implementation, not evidence of
+improved speed, lower battery use or universal leak freedom. No 10/10 rating is
+supported yet. See [BENCHMARKS.md](docs/BENCHMARKS.md).
+
+
 ## Assessment
 
 TN-Player is a working native Android testing build with a single Media3 playback service, Room collections, local/SAF browsing, foreground playback, PiP, resume, ZIP operations and useful player controls. It is not a production-complete implementation of the original universal-player specification. The principal remaining release blockers are distribution/toolchain modernization, stable production signing, physical-device testing, dependency/license review and unmeasured performance. A numerical “10/10” would not be supported by this evidence.

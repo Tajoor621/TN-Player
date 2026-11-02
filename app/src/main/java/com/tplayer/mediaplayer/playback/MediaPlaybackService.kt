@@ -13,6 +13,7 @@ import androidx.media3.session.*
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.tplayer.mediaplayer.BuildConfig
 import com.tplayer.mediaplayer.data.History
 import com.tplayer.mediaplayer.data.MediaDatabase
 import com.tplayer.mediaplayer.data.Settings
@@ -25,6 +26,9 @@ class MediaPlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
     private val diagnostics = PlaybackDiagnostics()
     private var recovery: PlaybackRecovery? = null
+    private val performance = PlaybackPerformance()
+    private var power: PlaybackPowerController? = null
+    private var benchmark: PlaybackBenchmarkBridge? = null
     private val effects by lazy { AudioEffects(Settings(this)) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val handler = Handler(Looper.getMainLooper())
@@ -64,6 +68,7 @@ class MediaPlaybackService : MediaSessionService() {
         override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) { PlaybackWidget.render(this@MediaPlaybackService, session?.player) }
 
         override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+            if (benchmark?.active == true) return
             val player = session?.player ?: return
             val version = ++transition
             historyRestore?.cancel(); preparingHistory = false
@@ -88,7 +93,7 @@ class MediaPlaybackService : MediaSessionService() {
             } else save()
         }
         override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
-            if (!restoring && oldPosition.mediaItem != null && oldPosition.mediaItem?.mediaId != newPosition.mediaItem?.mediaId) {
+            if (benchmark?.active != true && !restoring && oldPosition.mediaItem != null && oldPosition.mediaItem?.mediaId != newPosition.mediaItem?.mediaId) {
                 val item = oldPosition.mediaItem!!
                 persistence.recordHistory(History(item.mediaId, item.mediaMetadata.title?.toString() ?: "Media", oldPosition.positionMs, 0, mimeType = item.mediaMetadata.extras?.getString("mime").orEmpty()))
             }
@@ -102,20 +107,26 @@ class MediaPlaybackService : MediaSessionService() {
     }
     override fun onCreate() {
         super.onCreate()
+        val tuning = PlaybackTuning(Settings(this))
         val renderers = TnRenderersFactory(this)
         val selector = RecoveryTrackSelector(this)
+        selector.setParameters(selector.buildUponParameters().setTunnelingEnabled(Settings(this).tunneledPlayback))
+        val preloader = LocalPlaylistPreloader(this)
         val player = ExoPlayer.Builder(this, renderers)
             .setTrackSelector(selector)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(this, DiagnosticExtractorsFactory(diagnostics)))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(preloader.factory, DiagnosticExtractorsFactory(diagnostics)))
             .setSeekBackIncrementMs(Settings(this).seekMs).setSeekForwardIncrementMs(Settings(this).seekMs)
             .build().apply {
                 setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
                 setHandleAudioBecomingNoisy(true); setWakeMode(C.WAKE_MODE_LOCAL)
             }
         player.addAnalyticsListener(diagnostics)
-        recovery = PlaybackRecovery(player, selector, renderers, diagnostics) { message ->
+        player.addAnalyticsListener(performance)
+        power = PlaybackPowerController(player, tuning, performance, preloader).also { player.addListener(it) }
+        recovery = PlaybackRecovery(player, selector, renderers, diagnostics, tunnelingRequested = { tuning.tunnel }) { message ->
             android.widget.Toast.makeText(applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
         }.also { player.addListener(it) }
+        benchmark = PlaybackBenchmarkBridge(this, player, selector, renderers, performance, power!!, recovery!!, tuning)
         val activity = PendingIntent.getActivity(this, 0, Intent(this, PlayerActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         session = MediaSession.Builder(this, player).setSessionActivity(activity)
@@ -126,6 +137,9 @@ class MediaPlaybackService : MediaSessionService() {
                         .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
                             .add(SessionCommand("SET_LOOP", Bundle.EMPTY)).add(SessionCommand("SLEEP_TIMER", Bundle.EMPTY))
                             .add(SessionCommand("AUDIO_EFFECTS_STATE", Bundle.EMPTY)).add(SessionCommand("AUDIO_EFFECTS_SET", Bundle.EMPTY))
+                            .apply { if (BuildConfig.DEBUG && controller.packageName == packageName) {
+                                listOf("BENCHMARK_BEGIN", "BENCHMARK_OPEN", "BENCHMARK_SEEK", "BENCHMARK_SNAPSHOT", "BENCHMARK_END").forEach { add(SessionCommand(it, Bundle.EMPTY)) }
+                            } }
                             .add(SessionCommand("PLAYBACK_DIAGNOSTICS", Bundle.EMPTY)).add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).add(SessionCommand("DECODER_PREFERENCE", Bundle.EMPTY)).add(SessionCommand("EXTERNAL_SUBTITLE", Bundle.EMPTY)).build()).build()
                 }
                 override fun onPlaybackResumption(session: MediaSession, controller: MediaSession.ControllerInfo): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
@@ -139,9 +153,24 @@ class MediaPlaybackService : MediaSessionService() {
                     return result
                 }
                 override fun onCustomCommand(session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle): ListenableFuture<SessionResult> {
+                    if (customCommand.customAction.startsWith("BENCHMARK_")) {
+                        if (!BuildConfig.DEBUG || controller.packageName != packageName) return Futures.immediateFuture(SessionResult(SessionError.ERROR_PERMISSION_DENIED))
+                        val result = SettableFuture.create<SessionResult>()
+                        scope.launch {
+                            try {
+                                while (restoring) delay(20)
+                                if (customCommand.customAction == "BENCHMARK_BEGIN") {
+                                    save(); historyRestore?.cancel(); preparingHistory = false
+                                }
+                                result.set(benchmark!!.command(customCommand.customAction, args))
+                            } catch (e: CancellationException) { result.cancel(false); throw e }
+                            catch (e: Exception) { result.set(SessionResult(SessionError.ERROR_BAD_VALUE, Bundle().apply { putString("error", e.message) })) }
+                        }
+                        return result
+                    }
                     when (customCommand.customAction) {
                         "PLAYBACK_DIAGNOSTICS" -> {
-                            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS, Bundle().apply { putString("report", diagnostics.report()) }))
+                            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS, Bundle().apply { putString("report", diagnostics.report() + "\nTunneling requested: ${Settings(this@MediaPlaybackService).tunneledPlayback}; active: ${renderers.tunnelingActive}\nNext-file byte preload: ${Settings(this@MediaPlaybackService).preloadNext}") }))
                         }
                         "TOGGLE_PLAYBACK" -> {
                             val result = SettableFuture.create<SessionResult>()
@@ -255,7 +284,7 @@ class MediaPlaybackService : MediaSessionService() {
         }
     }
     private fun save() {
-        if (restoring || preparingHistory) return
+        if (restoring || preparingHistory || benchmark?.active == true) return
         val player = session?.player ?: return
         val item = player.currentMediaItem
         if (item == null) { persistence.save(null); return }
@@ -273,8 +302,10 @@ class MediaPlaybackService : MediaSessionService() {
     override fun onTaskRemoved(rootIntent: Intent?) { if (session?.player?.playWhenReady != true) stopSelf() }
     override fun onDestroy() {
         save(); handler.removeCallbacksAndMessages(null); historyRestore?.cancel()
+        benchmark?.restoreOptionsOnDestroy()
         recovery?.release(); recovery = null
         session?.run { player.removeListener(listener); player.release(); release() }; session = null
+        power?.release(); power = null
         effects.release(); PlaybackWidget.render(this, null); scope.cancel(); super.onDestroy()
     }
 }
