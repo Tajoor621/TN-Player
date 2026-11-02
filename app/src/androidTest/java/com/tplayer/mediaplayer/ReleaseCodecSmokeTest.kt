@@ -41,7 +41,7 @@ class ReleaseCodecSmokeTest {
                     var passed = false
                     while (SystemClock.elapsedRealtime() < deadline) {
                         val state = manager.getActiveSessions(null).firstOrNull { it.packageName == context.packageName }?.playbackState
-                        val decoder = shell("logcat -d -s TNPlayerFormats:D '*:S'")
+                        val decoder = shell("logcat -d -s TNPlayerFormats:D *:S")
                         if (state?.state == PlaybackState.STATE_PLAYING && decoder.contains("Audio decoder: ffmpeg", ignoreCase = true)) { passed = true; break }
                         Thread.sleep(100)
                     }
