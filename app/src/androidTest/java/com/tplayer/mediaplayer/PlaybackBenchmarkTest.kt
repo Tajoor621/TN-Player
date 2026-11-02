@@ -36,6 +36,7 @@ class PlaybackBenchmarkTest {
     @Test fun measureReferencesAndBackgroundRelease() {
         assumeTrue(args.getString("benchmark") == "true")
         check(com.tplayer.mediaplayer.data.Settings(DevicePlayback.context).backgroundPlayback) { "Enable Background playback before running this workload" }
+        check(com.tplayer.mediaplayer.data.Settings(DevicePlayback.context).decoderPreference == 0) { "Choose the Automatic decoder preference before benchmarking" }
         val seconds = args.getString("long_session_seconds", "1800").toLong()
         require(seconds in 10..7200)
         val manifest = JSONObject(File(root, "input/manifest.json").readText()).getJSONArray("references")

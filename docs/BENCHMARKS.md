@@ -28,7 +28,8 @@ Device model: pending. Android version: pending. APK source revision: pending.
 2. Generate offline references: `python3 scripts/generate-benchmark-fixtures.py`.
    See [reference specification](../test-assets/benchmarks/README.md). Files and
    results are gitignored and never packaged in the APK. No download is used.
-3. Pause existing playback; enable the existing Background playback setting;
+3. Pause existing playback; clear A-B repeat/sleep timers; select Automatic
+   decoders and record any enabled audio effects; enable Background playback;
    connect/unlock a physical device, keep it at stable temperature and record
    battery/charging/power-saver/thermal state with the run. Disable networking
    manually if verifying offline operation; the harness opens file URIs only.

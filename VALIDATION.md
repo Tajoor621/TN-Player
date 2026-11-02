@@ -6,6 +6,9 @@ The performance source workflow is feature prompt **1 of 3**. No APK build,
 instrumented device execution, optimized-release performance measurement or Pages
 publication is authorized during this phase. Source compilation/JVM tests/lint
 are permitted and the source workflow rejects APK-producing tasks in its graph.
+Only this compile-only path excludes `:software-codecs:verifyNativeCodecs` because
+JNI binaries are not needed to type-check source. The full APK/native build keeps
+its mandatory verification unchanged.
 
 Local checks: `git diff --check`, benchmark Bash/Python syntax and **9 synthetic
 report-parser tests passed**. Offline FFmpeg generation and ffprobe verification

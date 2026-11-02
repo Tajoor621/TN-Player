@@ -41,7 +41,8 @@ class MediaPlaybackService : MediaSessionService() {
     private var previousId: String? = null
     private var loopA = -1L
     private var loopB = -1L
-    private val sleep = Runnable { session?.player?.pause() }
+    private var sleepDeadline = 0L
+    private val sleep = Runnable { sleepDeadline = 0; session?.player?.pause() }
     private val loopTicker = object : Runnable {
         override fun run() {
             val player = session?.player ?: return
@@ -160,6 +161,7 @@ class MediaPlaybackService : MediaSessionService() {
                             try {
                                 while (restoring) delay(20)
                                 if (customCommand.customAction == "BENCHMARK_BEGIN") {
+                                    check(!PlaybackPolicy.validLoop(loopA, loopB) && sleepDeadline <= android.os.SystemClock.elapsedRealtime()) { "Clear A-B repeat and sleep timer before benchmarking" }
                                     save(); historyRestore?.cancel(); preparingHistory = false
                                 }
                                 result.set(benchmark!!.command(customCommand.customAction, args))
@@ -257,6 +259,7 @@ class MediaPlaybackService : MediaSessionService() {
                             val minutes = args.getLong("minutes", 0)
                             if (minutes !in 0L..240L) return Futures.immediateFuture(SessionResult(SessionError.ERROR_BAD_VALUE))
                             handler.removeCallbacks(sleep)
+                            sleepDeadline = if (minutes > 0) android.os.SystemClock.elapsedRealtime() + minutes * 60000 else 0
                             if (minutes > 0) handler.postDelayed(sleep, minutes * 60000)
                         }
                         else -> return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))

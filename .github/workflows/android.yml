@@ -39,12 +39,12 @@ jobs:
       - name: Compile source and tests without producing APKs
         run: |
           tasks=(:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest :app:lintDebug)
-          bash ./gradlew "${tasks[@]}" --dry-run > /tmp/tn-source-tasks.txt
+          bash ./gradlew "${tasks[@]}" -x :software-codecs:verifyNativeCodecs --dry-run > /tmp/tn-source-tasks.txt
           if grep -Eq '^:app:(package|assemble|install)(Debug|Release)(AndroidTest)?( |$)' /tmp/tn-source-tasks.txt; then
             echo 'Unexpected APK-producing task in source checks; refusing during build deferral.' >&2
             exit 1
           fi
-          bash ./gradlew "${tasks[@]}" --stacktrace
+          bash ./gradlew "${tasks[@]}" -x :software-codecs:verifyNativeCodecs --stacktrace
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
