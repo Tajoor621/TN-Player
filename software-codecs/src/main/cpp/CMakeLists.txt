@@ -12,6 +12,8 @@ endforeach()
 add_library(ffmpegJNI SHARED ffmpeg/ffmpeg_jni.cc)
 target_include_directories(ffmpegJNI PRIVATE "${CODEC_PREFIX}/include")
 target_link_libraries(ffmpegJNI swresample avcodec avutil android log m)
+# Bind FFmpeg AArch64 assembly table references locally (same as upstream module).
+target_link_options(ffmpegJNI PRIVATE "-Wl,-Bsymbolic")
 add_library(vpx STATIC IMPORTED)
 set_target_properties(vpx PROPERTIES IMPORTED_LOCATION "${CODEC_PREFIX}/lib/libvpx.a")
 add_library(ndk_cpu STATIC "${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c")
