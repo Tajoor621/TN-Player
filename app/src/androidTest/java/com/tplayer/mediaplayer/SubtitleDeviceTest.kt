@@ -91,4 +91,26 @@ class SubtitleDeviceTest {
             }
         } finally { scenario.close(); DevicePlayback.stop(controller); com.tplayer.mediaplayer.subtitle.CaptionRepository.get(DevicePlayback.context).remove(DevicePlayback.fixture("video-fixture.mp4").toString()); source.delete() }
     }
+    @Test fun nativeOverlongCaptionDoesNotExtendVideoPlayback() {
+        val file = File(DevicePlayback.context.cacheDir, "native-end-bound.ttml").apply {
+            writeText("<tt xmlns=\"http://www.w3.org/ns/ttml\"><body><div><p begin=\"00:00:00.000\" end=\"00:03:00.000\">Long caption</p></div></body></tt>")
+        }
+        val uri = DevicePlayback.fixture("video-fixture.mp4")
+        val scenario = DevicePlayback.launch(uri, "video/mp4")
+        val controller = DevicePlayback.controller()
+        try {
+            val caption = androidx.media3.common.MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(file))
+                .setMimeType(androidx.media3.common.MimeTypes.APPLICATION_TTML).setLanguage("en")
+                .setSelectionFlags(androidx.media3.common.C.SELECTION_FLAG_DEFAULT).build()
+            DevicePlayback.main {
+                controller.setMediaItem(androidx.media3.common.MediaItem.Builder().setUri(uri).setMediaId(uri.toString() + "#native-end-test").setSubtitleConfigurations(listOf(caption)).build())
+                controller.prepare(); controller.pause()
+            }
+            DevicePlayback.await("Native subtitle track was not selected") { DevicePlayback.main { controller.currentTracks.isTypeSelected(androidx.media3.common.C.TRACK_TYPE_TEXT) && controller.playbackState == Player.STATE_READY } }
+            DevicePlayback.main { controller.seekTo(88000); controller.play() }
+            DevicePlayback.await("Overlong native caption kept the video playing", 15) { DevicePlayback.main { controller.playbackState == Player.STATE_ENDED } }
+            assertTrue(DevicePlayback.main { controller.currentPosition <= 91000 })
+        } finally { scenario.close(); DevicePlayback.stop(controller); file.delete() }
+    }
+
 }

@@ -107,3 +107,5 @@ Use the final Android workflow for normal instrumented tests; do not dispatch it
 while the owner's build deferral remains in force.
 
 Initial source validation: [41626695699](https://github.com/Tajoor621/TN-Player/actions/runs/41626695699) passed 87 JVM tests and application/instrumentation compilation, with 0 lint errors and 0 APKs. Follow-up retains exact-ms subtitle entry, adds a pending-edit/read-race test, and moves new labels into resources to remove the ten added translation warnings. Device evidence is still pending.
+
+Follow-up source validation: [41627966767](https://github.com/Tajoor621/TN-Player/actions/runs/41627966767) at `60420fc` passed 88 JVM tests, compilation and lint (0 errors / 88 warnings), with 0 APKs. Final review preserves Media3's per-period subtitle end bound through the scheduler and adds caption-mode routing / overlong-native-caption tests. The native instrumented check remains deferred along with gesture captures.

@@ -17,9 +17,10 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import com.tplayer.mediaplayer.data.Settings
 
 open class TnRenderersFactory(context: Context) : DefaultRenderersFactory(context) {
+    val subtitleTimeline = java.util.concurrent.atomic.AtomicReference(androidx.media3.common.Timeline.EMPTY)
     val subtitleDelayMs = java.util.concurrent.atomic.AtomicLong(0)
     override fun buildTextRenderers(context: Context, output: TextOutput, outputLooper: android.os.Looper, extensionRendererMode: Int, out: java.util.ArrayList<Renderer>) {
-        out.add(SubtitleTimingRenderer(output, outputLooper, subtitleDelayMs))
+        out.add(SubtitleTimingRenderer(output, outputLooper, subtitleDelayMs, subtitleTimeline))
     }
     var platformRenderers: Map<Int, Int> = emptyMap()
         protected set

@@ -4,6 +4,8 @@
 
 Initial gesture source CI [41626695699](https://github.com/Tajoor621/TN-Player/actions/runs/41626695699) at `0d4786811da2edcc91675d97f33bc14fac4cb904` passed **87 JVM tests**, application and instrumentation Kotlin compilation, lint **0 errors / 98 warnings**, and the **0 APK** audit. The ten added warnings are new label translation hints; the follow-up replaces those labels with resources. It also retains exact-ms entry and tests pending-read/edit ordering. Physical screenshots/device execution remain deferred.
 
+Follow-up CI [41627966767](https://github.com/Tajoor621/TN-Player/actions/runs/41627966767) at `60420fc66e1f31f3eb8d9151483e9374b221cb60` passed **88 JVM tests**, Kotlin compilation, lint **0 errors / 88 warnings**, and **0 APKs**. Resource-backed labels removed all ten new warnings. Final source review forwards Media3's subtitle stream-end bound through the text scheduler and adds a subtitle-mode routing unit test plus an overlong-native-caption device test. Actual device execution remains deferred.
+
 Read FEATURE_STATUS.md and AUDIT.md before changes. Existing UI is
 `ui/PlayerActivity.kt` (Views/Material/Media3 PlayerView); the previous
 `ui/PlayerGestures.kt` handled two-finger swipes and limited presets.

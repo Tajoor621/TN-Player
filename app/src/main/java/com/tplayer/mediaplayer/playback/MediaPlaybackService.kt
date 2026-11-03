@@ -106,7 +106,7 @@ class MediaPlaybackService : MediaSessionService() {
         override fun onPlaybackStateChanged(playbackState: Int) { save() }
         override fun onRepeatModeChanged(repeatMode: Int) { save() }
         override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) { save() }
-        override fun onTimelineChanged(timeline: Timeline, reason: Int) { save() }
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) { renderersFactory?.subtitleTimeline?.set(timeline); save() }
     }
     override fun onCreate() {
         super.onCreate()
