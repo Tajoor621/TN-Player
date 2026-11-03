@@ -2,9 +2,16 @@ package com.tplayer.mediaplayer.data
 
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
+import com.tplayer.mediaplayer.ui.GestureSlot
+import com.tplayer.mediaplayer.ui.GestureAction
+import com.tplayer.mediaplayer.ui.GesturePolicy
 
 class Settings(context: Context) {
     private val prefs = context.getSharedPreferences("tplayer", Context.MODE_PRIVATE)
+    fun gestureAction(slot: GestureSlot): GestureAction = GesturePolicy.resolve(slot,
+        prefs.getString("gesture_${slot.name}", null),
+        if (prefs.contains("gestureVolumeRight")) gestureVolumeRight else null, doubleTapPlayPause)
+    fun setGestureAction(slot: GestureSlot, action: GestureAction) { prefs.edit().putString("gesture_${slot.name}", action.name).apply() }
     var theme: Int
         get() = prefs.getInt("theme", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         set(value) { prefs.edit().putInt("theme", value).apply() }
@@ -147,14 +154,14 @@ class Settings(context: Context) {
         "minimumSeconds" to libraryDisplay.minimumSeconds,
         "backgroundPlayback" to backgroundPlayback, "videoDisplay" to videoDisplay, "showPlayerShortcuts" to showPlayerShortcuts,
         "mirror" to mirror, "verticalFlip" to verticalFlip, "playerNight" to playerNight, "playerOrientation" to playerOrientation,
-        "playerShortcuts" to playerShortcuts.joinToString(",") { it.name })
+        "playerShortcuts" to playerShortcuts.joinToString(",") { it.name }) + GestureSlot.values().associate { "gesture_${it.name}" to gestureAction(it).name }
     fun restoreValues(values: Map<String, Any>) {
         val editor = prefs.edit()
         for ((key, value) in values) when (value) {
             is Boolean -> editor.putBoolean(key, value)
             is Long -> editor.putLong(key, value)
             is Int -> editor.putInt(key, value)
-            is String -> if (key == "playerShortcuts") editor.putString(key, value)
+            is String -> if (key == "playerShortcuts" || GestureSlot.values().any { key == "gesture_${it.name}" }) editor.putString(key, value)
         }
         check(editor.commit()) { "Collections restored, but preferences could not be saved." }
     }

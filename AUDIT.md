@@ -1,5 +1,26 @@
 # TN-Player repository audit — 17 October 2026
 
+## Gesture controls workflow — 3 November 2026 (feature prompt 2/3)
+
+Read FEATURE_STATUS.md and AUDIT.md before changes. Existing UI is
+`ui/PlayerActivity.kt` (Views/Material/Media3 PlayerView); the previous
+`ui/PlayerGestures.kt` handled two-finger swipes and limited presets.
+
+The update routes video gestures before child dispatch, preserves transport
+buttons and OS edges, adds independent persistent assignments for five slots,
+held 2×/speed restoration, bounded zoom/pan/reset, per-file subtitle controls and
+long-press-only unlock. Existing service-owned sleep/A–B tools are retained.
+Native text timing is isolated from A/V; decoder history/lookahead limitations
+and system gesture conflicts are explicit in [docs/GESTURES.md](docs/GESTURES.md).
+
+Mapping/settings/lock/hold/subtitle unit tests and a real-player double-tap device
+test are added. A manual preinstalled-build capture runner records each gesture;
+**screenshots and instrumented execution are deferred**, not represented by test
+source. Source-only Kotlin/JVM/lint checks run without APK packaging. No new
+dependency, native library, permission, toolkit or player engine is introduced.
+Feature count is 2/3; one owner feature prompt remains before final APK validation.
+
+
 ## Benchmark evidence follow-up — 3 November 2026
 
 A report could previously accept a single late background sample. Continuous

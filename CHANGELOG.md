@@ -32,3 +32,11 @@ See VALIDATION.md for executed checks and remaining limitations. This revision p
 - Add optional same-device/build/reference baseline comparison, with explicit single-observation and zero-baseline limits.
 - Export OS build/position/playing state; normalize benchmark-only audio/video selections and restore the original parameters.
 - Expand host parser/CLI tests to 24. Keep APK, device and publication work deferred; feature count remains 1 of 3.
+
+## 3 November 2026 — gesture controls workflow (2/3)
+
+- Add one-finger brightness/volume/seek, independent persistent gesture assignments, held 2× speed and a visible speed badge.
+- Add bounded pinch/pan/two-finger reset and subtitle gesture mode with per-file encrypted position/size/sync state.
+- Route lock touches before children; require a held Unlock target and restore transient speed on lifecycle cancellation.
+- Keep service-owned sleep/A–B controls, native UI, hardware-first decoding and the APK/device/publication deferral.
+- Add mapping/persistence/lock/scheduler tests, real-player double-tap instrumentation and a no-build screenshot capture runner. Device evidence remains pending.

@@ -24,7 +24,7 @@ jobs:
       - name: Check source and build-script syntax without producing APKs
         run: |
           git diff --check HEAD^
-          bash -n scripts/build-native-codecs.sh scripts/install-native-codecs.sh scripts/generate-codec-fixtures.sh scripts/release-codec-check.sh scripts/benchmark.sh
+          bash -n scripts/build-native-codecs.sh scripts/install-native-codecs.sh scripts/generate-codec-fixtures.sh scripts/release-codec-check.sh scripts/benchmark.sh scripts/capture-player-gestures.sh
           python3 -m py_compile scripts/package-native-sources.py scripts/package-pages.py scripts/verify-pages.py scripts/codec-size-report.py scripts/generate-benchmark-fixtures.py scripts/benchmark_report.py scripts/test_benchmark_report.py
           python3 -m unittest discover -s scripts -p test_benchmark_report.py -v
           python3 -m json.tool software-codecs/native-lock.json >/dev/null

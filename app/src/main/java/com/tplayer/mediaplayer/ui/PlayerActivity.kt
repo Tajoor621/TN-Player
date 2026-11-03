@@ -35,6 +35,8 @@ import java.io.File
 class PlayerUiState : ViewModel() {
     var screenshot: android.graphics.Bitmap? = null
     var captions: ExternalCaptions? = null
+    var subtitlePreferences: SubtitlePreferences? = null
+    var subtitlePreferencesId: String? = null
     var subtitleGestures = false
     var subtitleExport: String? = null
     var pendingSubtitle: Uri? = null
@@ -42,6 +44,8 @@ class PlayerUiState : ViewModel() {
 }
 class PlayerActivity : AppCompatActivity() {
     private lateinit var video: PlayerView
+    private lateinit var speedBadge: TextView
+    private val subtitlePreferences by lazy { SubtitlePreferenceRepository.get(this) }
     private lateinit var gestures: PlayerGestures
     private lateinit var externalCaption: TextView
     private lateinit var playerStatus: TextView
@@ -88,9 +92,11 @@ class PlayerActivity : AppCompatActivity() {
         override fun onEvents(player: Player, events: Player.Events) {
             title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"
             if (resumeRequested && player.mediaItemCount > 0) { resumeRequested = false; startPlayback(player) }
-            renderCaptions(); updateAwake(); updatePip()
+            renderCaptions(); updateSpeed(); updateAwake(); updatePip()
         }
         override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+            gestures.cancel()
+            if (ui.subtitlePreferencesId != item?.mediaId) { ui.subtitlePreferencesId = null; ui.subtitlePreferences = null }
             loopA = null
             if (ui.captions?.mediaId != item?.mediaId) ui.captions = null
             controller?.let { restoreCaptions(it) }
@@ -128,7 +134,7 @@ class PlayerActivity : AppCompatActivity() {
         pinRequested = savedInstanceState?.getBoolean("pinRequested") ?: false
         applyOrientation()
         resumeRequested = savedInstanceState?.getBoolean("resumeRequested") ?: false
-        val frame = FrameLayout(this)
+        val frame = PlayerGestureFrame(this)
         video = (layoutInflater.inflate(R.layout.player_surface, frame, false) as PlayerView).apply {
             setShowSubtitleButton(true); setShowNextButton(true); setShowPreviousButton(true)
             setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
@@ -153,22 +159,32 @@ class PlayerActivity : AppCompatActivity() {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         frame.addView(gestureOverlay, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
-        gestures = PlayerGestures(this, video, gestureOverlay, { controller },
-            { settings.gestures && !locked && !inPip() }, { settings.seekMs }, { settings.mirror to settings.verticalFlip },
-            { ui.subtitleGestures }, { delta -> jumpCaption(delta) },
-            { value -> settings.subtitlePosition = value; applySubtitleStyle() },
-            { value -> settings.subtitleSize = value; applySubtitleStyle() }, { settings.subtitlePosition }, { settings.subtitleSize }, { settings.gestureVolumeRight }, { settings.doubleTapPlayPause })
+        gestureOverlay.tag = "gesture-feedback"
+        gestures = PlayerGestures(this, frame, video, gestureOverlay, { controller },
+            { settings.gestures && !inPip() }, { locked }, { if (::unlock.isInitialized) unlock else null }, { setLocked(false) },
+            { ui.subtitleGestures }, { value -> updateSubtitleStyle(position = value) }, { value -> updateSubtitleStyle(scale = value) },
+            { currentSubtitlePreferences().position }, { currentSubtitlePreferences().scale }, { persistSubtitlePreferences() },
+            { settings.mirror to settings.verticalFlip })
+        speedBadge = TextView(this).apply {
+            tag = "playback-speed"; setTextColor(-1); setBackgroundColor(0xA0000000.toInt()); textSize = 14f
+            setPadding(dp(8), dp(4), dp(8), dp(4)); text = "1×"
+            contentDescription = "Current playback speed 1×"
+        }
+        frame.addView(speedBadge, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = dp(120); marginStart = dp(24) })
         buildChrome(frame)
         setContentView(frame)
         applyFullscreen()
         video.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
             chromeVisibility = visibility; updateChrome()
         })
-        video.setOnLongClickListener {
-            if (locked) setLocked(false)
-            true
-        }
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (locked) Toast.makeText(this@PlayerActivity, "Hold Unlock to restore controls", Toast.LENGTH_SHORT).show()
+                else { isEnabled = false; onBackPressedDispatcher.onBackPressed() }
+            }
+        })
     }
+
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean("pinRequested", pinRequested); outState.putBoolean("fullscreen", fullscreen); outState.putBoolean("consumed", pendingIntent == null); outState.putBoolean("locked", locked); outState.putBoolean("resumeRequested", resumeRequested)
         super.onSaveInstanceState(outState)
@@ -204,6 +220,7 @@ class PlayerActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
     override fun onStop() {
+        gestures.cancel(); persistSubtitlePreferences()
         inputJob?.cancel(); subtitleJob?.cancel(); restoreCaptionJob?.cancel(); video.removeCallbacks(captionTicker)
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (!settings.backgroundPlayback && !isChangingConfigurations && !inPip()) controller?.pause()
@@ -212,16 +229,56 @@ class PlayerActivity : AppCompatActivity() {
         future?.let { MediaController.releaseFuture(it) }; future = null
         super.onStop()
     }
+    private fun currentSubtitlePreferences() = ui.subtitlePreferences ?: SubtitlePreferences(
+        position = settings.subtitlePosition, scale = intArrayOf(65, 100, 140)[settings.subtitleSize])
     private fun restoreCaptions(player: MediaController) {
         val id = player.currentMediaItem?.mediaId ?: return
+        if (ui.subtitlePreferencesId == id) return
         restoreCaptionJob?.cancel()
-        if (ui.captions?.mediaId == id) return
         restoreCaptionJob = launchUi {
             val saved = withContext(Dispatchers.IO) { captionStore.read(id) }
-            if (controller === player && player.currentMediaItem?.mediaId == id && ui.captions == null) {
-                ui.captions = saved; renderCaptions()
+            val preferences = subtitlePreferences.read(id) ?: SubtitlePreferences(delayMs = saved?.delayMs ?: 0, position = settings.subtitlePosition, scale = intArrayOf(65, 100, 140)[settings.subtitleSize])
+            if (controller === player && player.currentMediaItem?.mediaId == id) {
+                ui.subtitlePreferencesId = id; ui.subtitlePreferences = preferences
+                ui.captions = saved?.copy(delayMs = preferences.delayMs)
+                applyNativeSubtitleDelay(); applySubtitleStyle()
             }
         }
+    }
+    private fun persistSubtitlePreferences() {
+        val id = ui.subtitlePreferencesId ?: return
+        val value = ui.subtitlePreferences ?: return
+        val saved = subtitlePreferences.save(id, value)
+        lifecycleScope.launch { saved.await().exceptionOrNull()?.let {
+            Toast.makeText(this@PlayerActivity, "Subtitle preferences could not be saved", Toast.LENGTH_LONG).show()
+        } }
+    }
+    private fun updateSubtitleStyle(position: Int = currentSubtitlePreferences().position, scale: Int = currentSubtitlePreferences().scale) {
+        if (ui.subtitlePreferencesId != controller?.currentMediaItem?.mediaId) return
+        ui.subtitlePreferences = currentSubtitlePreferences().copy(position = position, scale = scale)
+        applySubtitleStyle()
+    }
+    private fun applyNativeSubtitleDelay() {
+        val p = controller ?: return
+        val id = ui.subtitlePreferencesId ?: return
+        p.sendCustomCommand(SessionCommand("SUBTITLE_DELAY", Bundle.EMPTY), Bundle().apply {
+            putString("mediaId", id); putLong("delay_ms", if (ui.captions?.mediaId == id) 0 else currentSubtitlePreferences().delayMs)
+        })
+    }
+    private fun adjustSubtitleDelay(delta: Long) {
+        if (ui.subtitlePreferencesId != controller?.currentMediaItem?.mediaId) return
+        val value = (currentSubtitlePreferences().delayMs + delta).coerceIn(-GestureThresholds.SUBTITLE_MAX_DELAY_MS, GestureThresholds.SUBTITLE_MAX_DELAY_MS)
+        ui.subtitlePreferences = currentSubtitlePreferences().copy(delayMs = value)
+        ui.captions?.takeIf { it.mediaId == ui.subtitlePreferencesId }?.let { publishCaptions(it.copy(delayMs = value)) }
+        applyNativeSubtitleDelay(); persistSubtitlePreferences()
+        gestures.say("Subtitle delay ${"%+.1f".format(value / 1000.0)} s")
+    }
+    private fun updateSpeed() {
+        if (!::speedBadge.isInitialized) return
+        val speed = controller?.playbackParameters?.speed ?: 1f
+        speedBadge.text = "${java.math.BigDecimal(speed.toString()).stripTrailingZeros().toPlainString()}×" + if (ui.subtitleGestures) " · Subtitle gestures" else ""
+        speedBadge.contentDescription = "Current playback speed ${speedBadge.text}"
+        speedBadge.visibility = if (inPip()) View.GONE else View.VISIBLE
     }
     private suspend fun persistCaptions(captions: ExternalCaptions) {
         try { withContext(NonCancellable + Dispatchers.IO) { captionStore.save(captions) } }
@@ -331,8 +388,11 @@ class PlayerActivity : AppCompatActivity() {
             bottom.addView(chromeButton(label, action).apply { layoutParams = LinearLayout.LayoutParams(0, dp(48), 1f) })
         }
         frame.addView(bottom, FrameLayout.LayoutParams(-1, dp(48), Gravity.BOTTOM))
-        unlock = chromeButton("Unlock") { setLocked(false) }.apply { visibility = View.GONE; contentDescription = "Unlock player controls" }
-        frame.addView(unlock, FrameLayout.LayoutParams(dp(88), dp(48), Gravity.BOTTOM or Gravity.END))
+        unlock = chromeButton("Hold Unlock") { Toast.makeText(this, "Hold Unlock to restore controls", Toast.LENGTH_SHORT).show() }.apply {
+            visibility = View.GONE; contentDescription = "Hold to unlock player controls"; tag = "hold-unlock"
+            setOnLongClickListener { setLocked(false); true }
+        }
+        frame.addView(unlock, FrameLayout.LayoutParams(dp(110), dp(56), Gravity.BOTTOM or Gravity.END).apply { bottomMargin = dp(32); marginEnd = dp(24) })
         video.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_controller)?.setPadding(0, 0, 0, dp(52))
         applyDisplay()
     }
@@ -357,7 +417,8 @@ class PlayerActivity : AppCompatActivity() {
             try { stopLockTask() } catch (_: Exception) { }
             pinRequested = false
         }
-        locked = value; video.useController = !value
+        gestures.cancel(); locked = value; video.useController = !value
+        if (value) { video.hideController(); updatePip() }
         if (!value) { updatePip(); chromeVisibility = View.VISIBLE; video.showController() }
         updateChrome()
     }
@@ -396,7 +457,7 @@ class PlayerActivity : AppCompatActivity() {
             PlayerTool("Display Settings", R.drawable.hub_settings) { displayMenu() },
             PlayerTool("Information", R.drawable.player_info) { currentInformation() },
             PlayerTool("Share", R.drawable.player_share) { shareCurrent() },
-            PlayerTool("Tutorial", R.drawable.hub_help) { info("Player guide", "Rotate chooses portrait, landscape or your device setting. Full screen hides system bars; swipe from an edge to reveal them. Lock hides controls; use Unlock or long-press the video to restore them. Two-finger swipes adjust seek/volume/brightness; pinch zooms. Subtitle tools add external caption timing, previous/next cue seeking and a separate two-finger subtitle gesture mode. Pin player in More offers Android screen pinning. Tools includes track selection, queue, per-file details and custom shortcuts. Resume and last-played history are saved locally.") },
+            PlayerTool("Tutorial", R.drawable.hub_help) { info("Player guide", "Rotate chooses portrait, landscape or your device setting. Full screen hides system bars; swipe from an edge to reveal them. Lock blocks touch controls; hold the visible Unlock button to restore them. Swipe left/right to preview seeking, up/down on the left for brightness or right for volume. Double-tap either side to seek 10 seconds; hold the playing video for 2× speed. Pinch zooms, drag pans while zoomed; two-finger double-tap resets zoom. Subtitle tools add external caption timing, previous/next cue seeking and a separate subtitle gesture mode. Pin player in More offers Android screen pinning. Tools includes track selection, queue, per-file details and custom shortcuts. Resume and last-played history are saved locally.") },
             PlayerTool("More", R.drawable.hub_settings) { advancedMenu() }
         ), settings.videoDisplay, settings.showPlayerShortcuts,
             { settings.videoDisplay = it; applyDisplay(); updatePip() }, { settings.showPlayerShortcuts = it; renderShortcuts() }, { customizeShortcuts() })
@@ -419,7 +480,7 @@ class PlayerActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this).setTitle("Subtitle").setItems(options) { _, index -> when (index) {
             0 -> trackDialog(C.TRACK_TYPE_TEXT); 1 -> control(2); 2 -> control(14)
             3 -> subtitleTiming(); 4 -> jumpCaption(-1); 5 -> jumpCaption(1)
-            6 -> { ui.subtitleGestures = !ui.subtitleGestures; info("Subtitle gestures", if (ui.subtitleGestures) "Use two fingers: swipe horizontally to the previous/next external caption, vertically to move captions, or pinch to change text size. Normal video zoom returns when subtitle gestures are off. Embedded or styled captions may define their own position." else "Video seek, brightness, volume, zoom and pan gestures restored.") }
+            6 -> { gestures.cancel(); ui.subtitleGestures = !ui.subtitleGestures; updateSpeed(); info("Subtitle gestures", if (ui.subtitleGestures) "Swipe vertically to move subtitles; pinch to change text size. Subtitle timing offers ±0.1 s buttons, remembered for this file. Turn this mode off for video brightness/volume and zoom/pan. System edges remain reserved for Android." else "Video seek, brightness, volume, zoom and pan gestures restored.") }
             7 -> removeExternalCaptions()
             9 -> {
                 val captions = ui.captions?.takeIf { it.mediaId == controller?.currentMediaItem?.mediaId }
@@ -434,15 +495,15 @@ class PlayerActivity : AppCompatActivity() {
         } }.show()
     }
     private fun subtitleTiming() {
-        val captions = ui.captions?.takeIf { it.mediaId == controller?.currentMediaItem?.mediaId }
-        if (captions == null) { info("Subtitle timing", "Load a timed text subtitle first. Embedded, ASS/SSA and TTML tracks use native timing."); return }
-        val input = EditText(this).apply { inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_SIGNED; setText(captions.delayMs.toString()); hint = "Milliseconds; positive means later" }
-        val dialog = MaterialAlertDialogBuilder(this).setTitle("Subtitle delay (ms)").setMessage("Positive displays later; negative displays earlier. Range: −600000 to 600000 ms. Original files are kept.").setView(input).setNegativeButton("Cancel", null).setPositiveButton("Apply", null).create()
-        dialog.setOnShowListener { dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val delayMs = input.text.toString().toLongOrNull()
-            if (delayMs == null || delayMs !in -600000L..600000L) input.error = "Enter milliseconds within ±600000"
-            else { publishCaptions(captions.copy(delayMs = delayMs)); dialog.dismiss() }
-        } }; dialog.show()
+        if (ui.subtitlePreferencesId != controller?.currentMediaItem?.mediaId) { info("Subtitle timing", "Wait for this file's saved preferences to load."); return }
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), dp(8)) }
+        val label = TextView(this)
+        fun refresh() { label.text = "Delay ${"%+.1f".format(currentSubtitlePreferences().delayMs / 1000.0)} s · positive means later" }
+        refresh(); box.addView(label)
+        box.addView(button("−0.1 s · Earlier") { adjustSubtitleDelay(-GestureThresholds.SUBTITLE_SYNC_STEP_MS); refresh() }.apply { tag = "subtitle-earlier" })
+        box.addView(button("+0.1 s · Later") { adjustSubtitleDelay(GestureThresholds.SUBTITLE_SYNC_STEP_MS); refresh() }.apply { tag = "subtitle-later" })
+        box.addView(button("Reset delay") { adjustSubtitleDelay(-currentSubtitlePreferences().delayMs); refresh() })
+        MaterialAlertDialogBuilder(this).setTitle("Subtitle sync · this file").setView(box).setPositiveButton("Done", null).show()
     }
     private fun subtitleRate() {
         val captions = ui.captions?.takeIf { it.mediaId == controller?.currentMediaItem?.mediaId }
@@ -494,12 +555,8 @@ class PlayerActivity : AppCompatActivity() {
             when (index) { 0 -> orientationMenu(); 1 -> control(1); 2 -> shortcut(PlayerShortcut.NIGHT); 3 -> shortcut(PlayerShortcut.MIRROR); 4 -> shortcut(PlayerShortcut.FLIP); 5 -> control(16); 6 -> { settings.showPlayerClock = !settings.showPlayerClock; statusSecond = -1; renderStatus() }; 7 -> { settings.showPlayerBattery = !settings.showPlayerBattery; statusSecond = -1; renderStatus() }; 8 -> { settings.showRemainingTime = !settings.showRemainingTime; statusSecond = -1; renderStatus() } }
         }.show()
     }
-    private fun gestureMenu() {
-        MaterialAlertDialogBuilder(this).setTitle("Gesture controls").setItems(arrayOf("Two-finger sides", "Double-tap action")) { _, choice ->
-            if (choice == 0) MaterialAlertDialogBuilder(this).setTitle("Two-finger sides").setSingleChoiceItems(arrayOf("Volume left · brightness right", "Brightness left · volume right"), if (settings.gestureVolumeRight) 1 else 0) { dialog, index -> settings.gestureVolumeRight = index == 1; dialog.dismiss() }.show()
-            else MaterialAlertDialogBuilder(this).setTitle("Double-tap action").setSingleChoiceItems(arrayOf("Seek backward / forward", "Play / pause"), if (settings.doubleTapPlayPause) 1 else 0) { dialog, index -> settings.doubleTapPlayPause = index == 1; dialog.dismiss() }.show()
-        }.show()
-    }
+    private fun gestureMenu() { GestureSettings.show(this) { gestures.cancel() } }
+
     private fun renderStatus() {
         if (!::playerStatus.isInitialized) return
         val visible = !inPip() && (settings.showPlayerClock || settings.showPlayerBattery || settings.showRemainingTime)
@@ -587,10 +644,10 @@ class PlayerActivity : AppCompatActivity() {
         val player = controller ?: return
         when (index) {
             0 -> { val values = floatArrayOf(.25f, .5f, .75f, 1f, 1.25f, 1.5f, 2f, 3f, 4f)
-                MaterialAlertDialogBuilder(this).setTitle("Playback speed").setItems(values.map { "${it}×" }.toTypedArray()) { _, i -> player.setPlaybackSpeed(values[i]) }.show() }
+                MaterialAlertDialogBuilder(this).setTitle("Playback speed").setItems(values.map { "${it}×" }.toTypedArray()) { _, i -> player.setPlaybackSpeed(values[i]); updateSpeed() }.show() }
             1 -> MaterialAlertDialogBuilder(this).setTitle("Aspect ratio").setItems(arrayOf("Fit", "Fill / stretch", "Crop / zoom")) { _, i -> settings.aspectRatio = i; video.resizeMode = intArrayOf(AspectRatioFrameLayout.RESIZE_MODE_FIT, AspectRatioFrameLayout.RESIZE_MODE_FILL, AspectRatioFrameLayout.RESIZE_MODE_ZOOM)[i] }.show()
             2 -> subtitlePicker.launch(arrayOf("*/*"))
-            3 -> MaterialAlertDialogBuilder(this).setTitle("Subtitle size").setItems(arrayOf("Small", "Medium", "Large")) { _, i -> settings.subtitleSize = i; applySubtitleStyle() }.show()
+            3 -> MaterialAlertDialogBuilder(this).setTitle("Subtitle size").setItems(arrayOf("Small", "Medium", "Large")) { _, i -> settings.subtitleSize = i; updateSubtitleStyle(scale = intArrayOf(65, 100, 140)[i]); persistSubtitlePreferences() }.show()
             4 -> launchUi {
                 val item = player.currentMediaItem ?: return@launchUi
                 if (dao.isFavorite(item.mediaId)) { dao.removeFavorite(item.mediaId); Toast.makeText(this@PlayerActivity, "Favorite removed", Toast.LENGTH_SHORT).show() }
@@ -630,8 +687,10 @@ class PlayerActivity : AppCompatActivity() {
         renderCaptions()
         video.subtitleView?.apply {
             setApplyEmbeddedStyles(settings.embeddedSubtitleStyles)
-            setFractionalTextSize(floatArrayOf(.035f, .0533f, .075f)[settings.subtitleSize])
-            setBottomPaddingFraction(settings.subtitlePosition / 100f)
+            setFractionalTextSize(.0533f * currentSubtitlePreferences().scale / 100f)
+            setApplyEmbeddedFontSizes(false)
+            setBottomPaddingFraction(.08f)
+            translationY = -video.height * (currentSubtitlePreferences().position - GestureThresholds.SUBTITLE_DEFAULT_POSITION) / 100f
             setStyle(CaptionStyleCompat(settings.subtitleColor,
                 if (settings.subtitleBackground) 0xB0000000.toInt() else android.graphics.Color.TRANSPARENT,
                 android.graphics.Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_OUTLINE, android.graphics.Color.BLACK,
@@ -641,11 +700,11 @@ class PlayerActivity : AppCompatActivity() {
     private fun subtitleStyleMenu() {
         MaterialAlertDialogBuilder(this).setTitle("Subtitle style").setItems(arrayOf("Text size", "Text color", "Typeface", "Toggle background", "Position", if (settings.embeddedSubtitleStyles) "Embedded styles: on" else "Embedded styles: off")) { _, choice ->
             when (choice) {
-                0 -> MaterialAlertDialogBuilder(this).setTitle("Text size").setSingleChoiceItems(arrayOf("Small", "Medium", "Large"), settings.subtitleSize) { dialog, index -> settings.subtitleSize = index; applySubtitleStyle(); dialog.dismiss() }.show()
+                0 -> MaterialAlertDialogBuilder(this).setTitle("Text size").setSingleChoiceItems(arrayOf("Small", "Medium", "Large"), settings.subtitleSize) { dialog, index -> settings.subtitleSize = index; updateSubtitleStyle(scale = intArrayOf(65, 100, 140)[index]); persistSubtitlePreferences(); dialog.dismiss() }.show()
                 1 -> MaterialAlertDialogBuilder(this).setTitle("Text color").setItems(arrayOf("White", "Yellow", "Cyan")) { _, index -> settings.subtitleColor = intArrayOf(-1, -256, -16711681)[index]; applySubtitleStyle() }.show()
                 2 -> MaterialAlertDialogBuilder(this).setTitle("Typeface").setSingleChoiceItems(arrayOf("Sans", "Serif", "Monospace"), settings.subtitleFont) { dialog, index -> settings.subtitleFont = index; applySubtitleStyle(); dialog.dismiss() }.show()
                 3 -> { settings.subtitleBackground = !settings.subtitleBackground; applySubtitleStyle() }
-                4 -> MaterialAlertDialogBuilder(this).setTitle("Position").setItems(arrayOf("Low", "Raised", "High")) { _, index -> settings.subtitlePosition = intArrayOf(8, 16, 28)[index]; applySubtitleStyle() }.show()
+                4 -> MaterialAlertDialogBuilder(this).setTitle("Position").setItems(arrayOf("Low", "Raised", "High")) { _, index -> settings.subtitlePosition = intArrayOf(8, 16, 28)[index]; updateSubtitleStyle(position = settings.subtitlePosition); persistSubtitlePreferences() }.show()
                 5 -> { settings.embeddedSubtitleStyles = !settings.embeddedSubtitleStyles; applySubtitleStyle() }
             }
         }.show()
@@ -741,7 +800,9 @@ class PlayerActivity : AppCompatActivity() {
         // Avoid replacing native media sources for each delay edit and avoid duplicate embedded captions.
         if (ui.captions?.mediaId != captions.mediaId) replaceCaptions(player, item, emptyList())
         if (controller !== player || player.currentMediaItem?.mediaId != captions.mediaId) return
-        ui.captions = captions; ui.pendingSubtitle = null; renderCaptions(); persistCaptions(captions)
+        ui.captions = captions; ui.pendingSubtitle = null
+        if (ui.subtitlePreferencesId == captions.mediaId) ui.subtitlePreferences = currentSubtitlePreferences().copy(delayMs = captions.delayMs)
+        applyNativeSubtitleDelay(); renderCaptions(); persistCaptions(captions); persistSubtitlePreferences()
     }
     private fun renderCaptions() {
         if (!::externalCaption.isInitialized) return
@@ -749,18 +810,18 @@ class PlayerActivity : AppCompatActivity() {
         val captions = ui.captions?.takeIf { it.mediaId == player?.currentMediaItem?.mediaId }
         video.subtitleView?.visibility = if (captions == null) View.VISIBLE else View.GONE
         val plain = if (captions != null && player != null) captions.document.activeAt(player.currentPosition, captions.delayMs, captions.ratePermille).joinToString("<br>") { it.text.take(8192).replace("\n", "<br>") }.take(8192) else ""
-        val style = listOf(settings.subtitleColor, settings.subtitleFont, settings.subtitleSize, settings.subtitleBackground, settings.embeddedSubtitleStyles, video.height, resources.configuration.fontScale)
+        val style = listOf(settings.subtitleColor, settings.subtitleFont, currentSubtitlePreferences().scale, settings.subtitleBackground, settings.embeddedSubtitleStyles, video.height, resources.configuration.fontScale)
         if (lastCaptionHtml != plain || lastCaptionStyle != style) {
             val parsed = androidx.core.text.HtmlCompat.fromHtml(plain.take(8192), androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY).trimEnd()
             externalCaption.text = if (settings.embeddedSubtitleStyles) parsed else parsed.toString()
             externalCaption.setTextColor(settings.subtitleColor)
             externalCaption.typeface = arrayOf(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.SERIF, android.graphics.Typeface.MONOSPACE)[settings.subtitleFont]
-            externalCaption.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, video.height.coerceAtLeast(1) * floatArrayOf(.035f, .0533f, .075f)[settings.subtitleSize] * resources.configuration.fontScale)
+            externalCaption.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, video.height.coerceAtLeast(1) * .0533f * currentSubtitlePreferences().scale / 100f * resources.configuration.fontScale)
             externalCaption.setBackgroundColor(if (settings.subtitleBackground && parsed.isNotEmpty()) 0xB0000000.toInt() else android.graphics.Color.TRANSPARENT)
             lastCaptionHtml = plain; lastCaptionStyle = style
         }
         externalCaption.visibility = if (externalCaption.text.isEmpty() || captions == null) View.GONE else View.VISIBLE
-        val margin = (video.height * settings.subtitlePosition / 100) + if (::bottom.isInitialized && bottom.visibility == View.VISIBLE) dp(52) else 0
+        val margin = (video.height * currentSubtitlePreferences().position / 100) + if (::bottom.isInitialized && bottom.visibility == View.VISIBLE) dp(52) else 0
         val layout = externalCaption.layoutParams as FrameLayout.LayoutParams
         if (layout.bottomMargin != margin) { layout.bottomMargin = margin; externalCaption.layoutParams = layout }
     }
@@ -812,6 +873,11 @@ class PlayerActivity : AppCompatActivity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         video.useController = !isInPictureInPictureMode && !locked
         updateChrome()
+    }
+    override fun onDestroy() { gestures.release(); super.onDestroy() }
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (locked && event.keyCode !in setOf(KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_MUTE)) return true
+        return super.dispatchKeyEvent(event)
     }
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (locked && keyCode != KeyEvent.KEYCODE_VOLUME_UP && keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) return true

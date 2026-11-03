@@ -111,6 +111,14 @@ object BackupFormat {
         for ((key, range) in mapOf("decoderPreference" to 0..2, "theme" to -1..2, "subtitleSize" to 0..2, "subtitleFont" to 0..2, "subtitlePosition" to 0..35, "aspectRatio" to 0..2, "libraryMode" to 0..2, "librarySort" to 0..9, "minimumSeconds" to 0..3600, "playerOrientation" to 0..2)) {
             if (prefs.has(key)) { val number = prefs.getInt(key); require(number in range && (key != "theme" || number != 0)); values[key] = number }
         }
+        for (slot in com.tplayer.mediaplayer.ui.GestureSlot.values()) {
+            val key = "gesture_${slot.name}"
+            if (prefs.has(key)) {
+                val action = prefs.getString(key)
+                require(com.tplayer.mediaplayer.ui.GestureAction.values().any { it.name == action })
+                values[key] = action
+            }
+        }
         if (prefs.has("playerShortcuts")) {
             val keys = prefs.getString("playerShortcuts")
             require(keys.length <= 512 && keys.split(',').all { key -> key.isEmpty() || PlayerShortcut.values().any { it.name == key } })

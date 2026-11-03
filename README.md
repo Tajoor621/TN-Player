@@ -1,6 +1,6 @@
 # TN-Player 1.0.0
 
-> **Development phase — 2 November 2026:** Decoder workflow is integrated as source. The owner has deferred the final APK build/publication until three additional feature prompts are integrated. Performance prompt **1 of 3** is integrated; two feature prompts remain. Normal pushes run source/script checks, Kotlin compilation, JVM tests and lint with an APK-task guard; APK/device checks and publication require explicit manual inputs. See [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md), [FORMATS.md](docs/FORMATS.md) and [BENCHMARKS.md](docs/BENCHMARKS.md). The public APK remains the prior published build.
+> **Development phase — 2 November 2026:** Decoder workflow is integrated as source. The owner has deferred the final APK build/publication until three additional feature prompts are integrated. Performance and gesture prompts **2 of 3** are integrated; one feature prompt remains. Normal pushes run source/script checks, Kotlin compilation, JVM tests and lint with an APK-task guard; APK/device checks and publication require explicit manual inputs. See [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md), [FORMATS.md](docs/FORMATS.md) and [BENCHMARKS.md](docs/BENCHMARKS.md). The public APK remains the prior published build.
 
 <img src="branding/TN-Player-logo.png" width="112" alt="TN-Player gold headphones and cyan play icon">
 
@@ -133,3 +133,5 @@ manual offline benchmark uses the real service/PlayerView, exports CSV and
 checks three references plus 30-minute background cleanup. Device performance
 acceptance is pending. See [BENCHMARKS.md](docs/BENCHMARKS.md) for definitions,
 limitations and the no-APK-build runner `scripts/benchmark.sh`.
+
+Gesture controls and the deferred screenshot capture procedure are documented in [GESTURES.md](docs/GESTURES.md). The player keeps the existing native Views UI.

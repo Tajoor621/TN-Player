@@ -28,6 +28,7 @@ class MediaPlaybackService : MediaSessionService() {
     private var recovery: PlaybackRecovery? = null
     private val performance = PlaybackPerformance()
     private var power: PlaybackPowerController? = null
+    private var renderersFactory: TnRenderersFactory? = null
     private var benchmark: PlaybackBenchmarkBridge? = null
     private val effects by lazy { AudioEffects(Settings(this)) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -69,6 +70,7 @@ class MediaPlaybackService : MediaSessionService() {
         override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) { PlaybackWidget.render(this@MediaPlaybackService, session?.player) }
 
         override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+            if (item?.mediaId != previousId) renderersFactory?.subtitleDelayMs?.set(0)
             if (benchmark?.active == true) return
             val player = session?.player ?: return
             val version = ++transition
@@ -109,7 +111,7 @@ class MediaPlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val tuning = PlaybackTuning(Settings(this))
-        val renderers = TnRenderersFactory(this)
+        val renderers = TnRenderersFactory(this).also { renderersFactory = it }
         val selector = RecoveryTrackSelector(this)
         selector.setParameters(selector.buildUponParameters().setTunnelingEnabled(Settings(this).tunneledPlayback))
         val preloader = LocalPlaylistPreloader(this)
@@ -141,7 +143,7 @@ class MediaPlaybackService : MediaSessionService() {
                             .apply { if (BuildConfig.DEBUG && controller.packageName == packageName) {
                                 listOf("BENCHMARK_BEGIN", "BENCHMARK_OPEN", "BENCHMARK_SEEK", "BENCHMARK_SNAPSHOT", "BENCHMARK_END").forEach { add(SessionCommand(it, Bundle.EMPTY)) }
                             } }
-                            .add(SessionCommand("PLAYBACK_DIAGNOSTICS", Bundle.EMPTY)).add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).add(SessionCommand("DECODER_PREFERENCE", Bundle.EMPTY)).add(SessionCommand("EXTERNAL_SUBTITLE", Bundle.EMPTY)).build()).build()
+                            .add(SessionCommand("SUBTITLE_DELAY", Bundle.EMPTY)).add(SessionCommand("PLAYBACK_DIAGNOSTICS", Bundle.EMPTY)).add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).add(SessionCommand("DECODER_PREFERENCE", Bundle.EMPTY)).add(SessionCommand("EXTERNAL_SUBTITLE", Bundle.EMPTY)).build()).build()
                 }
                 override fun onPlaybackResumption(session: MediaSession, controller: MediaSession.ControllerInfo): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
                     val result = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
@@ -171,8 +173,14 @@ class MediaPlaybackService : MediaSessionService() {
                         return result
                     }
                     when (customCommand.customAction) {
+                        "SUBTITLE_DELAY" -> {
+                            if (controller.packageName != packageName || args.getString("mediaId") != player.currentMediaItem?.mediaId) return Futures.immediateFuture(SessionResult(SessionError.ERROR_BAD_VALUE))
+                            val delay = args.getLong("delay_ms")
+                            if (delay !in -com.tplayer.mediaplayer.ui.GestureThresholds.SUBTITLE_MAX_DELAY_MS..com.tplayer.mediaplayer.ui.GestureThresholds.SUBTITLE_MAX_DELAY_MS) return Futures.immediateFuture(SessionResult(SessionError.ERROR_BAD_VALUE))
+                            renderers.subtitleDelayMs.set(delay)
+                        }
                         "PLAYBACK_DIAGNOSTICS" -> {
-                            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS, Bundle().apply { putString("report", diagnostics.report() + "\nTunneling requested: ${Settings(this@MediaPlaybackService).tunneledPlayback}; active: ${renderers.tunnelingActive}\nNext-file byte preload: ${Settings(this@MediaPlaybackService).preloadNext}") }))
+                            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS, Bundle().apply { putString("source_revision", BuildConfig.SOURCE_REVISION); putString("report", diagnostics.report() + "\nTunneling requested: ${Settings(this@MediaPlaybackService).tunneledPlayback}; active: ${renderers.tunnelingActive}\nNext-file byte preload: ${Settings(this@MediaPlaybackService).preloadNext}") }))
                         }
                         "TOGGLE_PLAYBACK" -> {
                             val result = SettableFuture.create<SessionResult>()

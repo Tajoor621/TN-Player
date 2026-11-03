@@ -17,6 +17,10 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import com.tplayer.mediaplayer.data.Settings
 
 open class TnRenderersFactory(context: Context) : DefaultRenderersFactory(context) {
+    val subtitleDelayMs = java.util.concurrent.atomic.AtomicLong(0)
+    override fun buildTextRenderers(context: Context, output: TextOutput, outputLooper: android.os.Looper, extensionRendererMode: Int, out: java.util.ArrayList<Renderer>) {
+        out.add(SubtitleTimingRenderer(output, outputLooper, subtitleDelayMs))
+    }
     var platformRenderers: Map<Int, Int> = emptyMap()
         protected set
     private val tunneled = java.util.Collections.newSetFromMap(ConcurrentHashMap<Int, Boolean>())
