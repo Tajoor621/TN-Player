@@ -17,7 +17,7 @@ screenshots/recordings remain deferred under the owner's three-prompt instructio
 | Two-finger double-tap | Reset zoom/pan | Preserves mirror/vertical flip settings |
 | Long press while playing | 2× while held | Prior speed restored on up, cancel, second pointer, item change or Activity stop |
 | Subtitle mode: vertical swipe / pinch | Caption position / text size | Explicit mode prevents brightness/zoom conflicts; per-file state |
-| Subtitle timing: earlier / later | −0.1 s / +0.1 s per tap | Reset available; per-file delay saved locally |
+| Subtitle timing: earlier / later | −0.1 s / +0.1 s per tap | Reset and exact-ms entry available; per-file delay saved locally |
 | Lock button | Block all in-player touch controls | Hold the visible Unlock target for 550 ms; a tap cannot unlock |
 | Sleep timer / A–B repeat | Existing service-owned tools | Tools → More; timer Off/15/30/60 min; B ≥ A+0.5 s on seekable media |
 
@@ -50,7 +50,9 @@ serialized/coalesced; ordered reads see pending edits. Imported caption document
 retain their existing separate ten-session limit. Sources/subtitle files are not
 modified. Global style is the fallback for a file with no saved state. Position is
 0–40%, text scale 50–200%; styles with fixed coordinates may clip when moved.
-Bitmap captions retain their bitmap resolution rather than acquiring a text font.
+Native embedded font sizes are preserved until the user pinches or selects a size
+for that file. Bitmap captions retain their bitmap resolution rather than
+acquiring a text font.
 
 Timed imports apply delay to their cue lookup. Embedded/native Media3 text uses
 a text-only scheduler: decode ahead for negative offsets and retain bounded cue
@@ -103,3 +105,5 @@ seeking without enabling the screenshot gallery. Screenshots must be reviewed on
 the actual device; test source or generated mockups are not runtime evidence.
 Use the final Android workflow for normal instrumented tests; do not dispatch it
 while the owner's build deferral remains in force.
+
+Initial source validation: [41626695699](https://github.com/Tajoor621/TN-Player/actions/runs/41626695699) passed 87 JVM tests and application/instrumentation compilation, with 0 lint errors and 0 APKs. Follow-up retains exact-ms subtitle entry, adds a pending-edit/read-race test, and moves new labels into resources to remove the ten added translation warnings. Device evidence is still pending.

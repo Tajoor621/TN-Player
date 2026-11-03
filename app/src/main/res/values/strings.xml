@@ -1,1 +1,9 @@
-<resources><string name="app_name">TN-Player</string><string name="tagline">Universal Media Player - Play Everything, Control Everything</string></resources>
+<resources><string name="app_name">TN-Player</string><string name="tagline">Universal Media Player - Play Everything, Control Everything</string>
+<string name="gesture_enable">Enable player gestures</string>
+<string name="gesture_settings_guide">Tap an assignment to change it. Swipe actions vary continuously; tap actions use one step. Hold the video for 2× speed; release to restore it. Two-finger double-tap resets zoom. Subtitle mode keeps caption gestures separate. Start away from navigation edges.</string>
+<string name="gesture_assignment">%1$s: %2$s</string>
+<string name="gesture_reset">Reset gesture assignments</string>
+<string name="player_speed_badge">%1$s×</string>
+<string name="player_speed_subtitle_badge">%1$s× · Subtitle gestures</string>
+<string name="player_subtitle_delay">This file · Delay %1$s s · positive means later</string>
+</resources>

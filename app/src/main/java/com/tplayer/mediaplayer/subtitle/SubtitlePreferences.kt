@@ -13,7 +13,7 @@ import java.io.File
 
 /** Small per-file control state, independently retained from the ten imported-caption documents. */
 data class SubtitlePreferences(val delayMs: Long = 0, val position: Int = T.SUBTITLE_DEFAULT_POSITION,
-    val scale: Int = T.SUBTITLE_DEFAULT_SCALE) {
+    val scale: Int = T.SUBTITLE_DEFAULT_SCALE, val overrideNativeFont: Boolean = false) {
     fun valid() = delayMs in -T.SUBTITLE_MAX_DELAY_MS..T.SUBTITLE_MAX_DELAY_MS &&
         position in 0..T.SUBTITLE_MAX_POSITION && scale in T.SUBTITLE_MIN_SCALE..T.SUBTITLE_MAX_SCALE
 }
@@ -30,12 +30,12 @@ class SubtitlePreferenceFiles(private val directory: File, private val codec: Se
         val bytes = file.openRead().use { it.readBytesBounded(MAX_BYTES) }
         val json = JSONObject(codec.decrypt(bytes.toString(Charsets.UTF_8), "subtitle-preferences:${file.baseFile.name}"))
         require(json.getInt("schema") == 1 && json.getString("id") == id)
-        return SubtitlePreferences(json.getLong("delay"), json.getInt("position"), json.getInt("scale")).also { require(it.valid()) }
+        return SubtitlePreferences(json.getLong("delay"), json.getInt("position"), json.getInt("scale"), json.optBoolean("overrideFont", false)).also { require(it.valid()) }
     }
     @Synchronized fun save(id: String, state: SubtitlePreferences) {
         require(state.valid()); check(directory.mkdirs() || directory.isDirectory)
         val file = file(id)
-        val text = JSONObject().put("schema", 1).put("id", id).put("delay", state.delayMs).put("position", state.position).put("scale", state.scale).toString()
+        val text = JSONObject().put("schema", 1).put("id", id).put("delay", state.delayMs).put("position", state.position).put("scale", state.scale).put("overrideFont", state.overrideNativeFont).toString()
         val bytes = codec.encrypt(text, "subtitle-preferences:${file.baseFile.name}").toByteArray(Charsets.UTF_8)
         require(bytes.size <= MAX_BYTES)
         val output = file.startWrite()
@@ -57,7 +57,11 @@ class SubtitlePreferenceRepository(private val files: SubtitlePreferenceFiles) {
     private var revision = 0L
     fun save(id: String, state: SubtitlePreferences): Deferred<Result<Unit>> {
         require(state.valid())
-        val version = synchronized(pending) { val next = ++revision; pending[id] = next to state; next }
+        val version = synchronized(pending) {
+            if (id !in pending && pending.size >= SubtitlePreferenceFiles.MAX_RECORDS)
+                return CompletableDeferred(Result.failure(IllegalStateException("Too many pending subtitle preferences")))
+            val next = ++revision; pending[id] = next to state; next
+        }
         return scope.async {
             runCatching { mutex.withLock {
                 if (synchronized(pending) { pending[id]?.first } != version) return@withLock
@@ -68,7 +72,11 @@ class SubtitlePreferenceRepository(private val files: SubtitlePreferenceFiles) {
         }
     }
     suspend fun read(id: String): SubtitlePreferences? = withContext(Dispatchers.IO) { mutex.withLock {
-        synchronized(pending) { pending[id]?.second } ?: files.read(id)
+        val cached = synchronized(pending) { pending[id]?.second }
+        if (cached != null) cached else {
+            val stored = files.read(id)
+            synchronized(pending) { pending[id]?.second } ?: stored
+        }
     } }
     companion object {
         @Volatile private var instance: SubtitlePreferenceRepository? = null

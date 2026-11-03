@@ -9,12 +9,12 @@ This is an independent implementation of functional behavior. No MX Player sourc
 | --- | --- | --- |
 | Hardware acceleration / HW+ | Media3 uses Android's MediaCodec decoders; new Automatic / prefer hardware / prefer platform software control | MX's proprietary HW+ and universal software decoding are not implemented; codec availability depends on device |
 | Multi-core decoding | Platform decoder implementation; compatible fallback candidates remain available | No bundled multi-core software video decoder or performance equivalence claim |
-| Pinch zoom, zoom and pan | Existing two-finger video gestures, zoom reset, mirror and flip | Texture surface/device dependent; gestures disabled during TalkBack touch exploration |
-| Subtitle gestures | New explicit Subtitle gestures mode: two-finger horizontal swipe navigates external captions, vertical swipe moves text, pinch changes text size | Timed external imports only for cue navigation; native captions may define their own position; three text-size levels; turn mode off for video gestures |
+| Pinch zoom, zoom and pan | Pinch, bounded pan and two-finger double-tap reset; mirror/flip preserved | Texture surface/device dependent; gestures disabled during TalkBack touch exploration |
+| Subtitle gestures | Explicit subtitle mode: vertical swipe moves text, pinch changes text size; per-file controls and ±0.1 s sync | Timed external imports only for cue navigation; size 50–200% and position 0–40%; turn mode off for video gestures. See docs/GESTURES.md for native cue availability limits |
 | Privacy Folder | Not included | Requires reviewed encrypted media storage, authentication, import/export recovery and tests; hiding names is not encryption |
 | Kids lock | Existing control lock plus new Android screen-pinning action | User must approve Android's pinning UI; Android controls escape/emergency behavior; not a parental-control password |
 | SRT / WebVTT | External load, normalized timed cues, delay ±10 minutes, previous/next cue seek, adjusted-SRT export and removal | UTF-8 and BOM-marked UTF-16; WebVTT cue positioning/styling is not retained by normalization |
-| SSA / ASS | New external loading through Media3's native renderer | Media3 styling subset with an embedded-styles toggle; no full libass fonts/animation guarantee; native timing, no new cue-navigation/delay controls |
+| SSA / ASS | New external loading through Media3's native renderer | Media3 styling subset with an embedded-styles toggle; no full libass fonts/animation guarantee; text-only native delay scheduling with bounded history/lookahead; no cue navigation for these tracks |
 | MicroDVD | New external `.sub` import | Explicit `{1}{1}25` (or `{0}{0}`) frame-rate header required; no guessed FPS or advanced styling |
 | SubViewer 2.0 | New `.sub` timed text import | Basic `hh:mm:ss.xx,hh:mm:ss.xx` timing and `[br]` line breaks |
 | MPL2 / PJS / TMPlayer | New `.mpl`, `.pjs`, timed `.txt` import | Plain text and line breaks; TMPlayer ends each cue at next start, final cue at +5 seconds |

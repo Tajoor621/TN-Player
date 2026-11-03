@@ -2,6 +2,8 @@
 
 ## Gesture controls workflow — 3 November 2026 (feature prompt 2/3)
 
+Initial gesture source CI [41626695699](https://github.com/Tajoor621/TN-Player/actions/runs/41626695699) at `0d4786811da2edcc91675d97f33bc14fac4cb904` passed **87 JVM tests**, application and instrumentation Kotlin compilation, lint **0 errors / 98 warnings**, and the **0 APK** audit. The ten added warnings are new label translation hints; the follow-up replaces those labels with resources. It also retains exact-ms entry and tests pending-read/edit ordering. Physical screenshots/device execution remain deferred.
+
 Read FEATURE_STATUS.md and AUDIT.md before changes. Existing UI is
 `ui/PlayerActivity.kt` (Views/Material/Media3 PlayerView); the previous
 `ui/PlayerGestures.kt` handled two-finger swipes and limited presets.

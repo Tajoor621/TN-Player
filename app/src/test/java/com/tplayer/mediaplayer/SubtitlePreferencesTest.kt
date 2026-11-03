@@ -2,6 +2,7 @@ package com.tplayer.mediaplayer
 
 import com.tplayer.mediaplayer.subtitle.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,7 +16,7 @@ class SubtitlePreferencesTest {
     @Test fun fileSpecificDelaySizeAndPositionSurviveNewStore() {
         val root = Files.createTempDirectory("subtitle-preferences").toFile(); val codec = testCodec()
         try {
-            val state = SubtitlePreferences(100, 22, 135)
+            val state = SubtitlePreferences(100, 22, 135, true)
             SubtitlePreferenceFiles(root, codec).save("content://file/one", state)
             assertEquals(state, SubtitlePreferenceFiles(root, codec).read("content://file/one"))
             assertNull(SubtitlePreferenceFiles(root, codec).read("content://file/two"))
@@ -31,6 +32,26 @@ class SubtitlePreferencesTest {
             assertEquals(5000L, repository.read("content://media")!!.delayMs)
             assertEquals(5000L, SubtitlePreferenceFiles(root, codec).read("content://media")!!.delayMs)
         } finally { root.deleteRecursively() }
+    }
+    @Test fun aReadInProgressSeesANewerPendingEdit() = runBlocking {
+        val root = Files.createTempDirectory("subtitle-read-race").toFile(); val codec = testCodec()
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        try {
+            SubtitlePreferenceFiles(root, codec).save("content://media", SubtitlePreferences())
+            val slow = object : com.tplayer.mediaplayer.security.SecretCodec by codec {
+                override fun decrypt(value: String, purpose: String): String {
+                    entered.countDown(); check(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    return codec.decrypt(value, purpose)
+                }
+            }
+            val repository = SubtitlePreferenceRepository(SubtitlePreferenceFiles(root, slow))
+            val reading = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).async { repository.read("content://media") }
+            check(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            val saving = repository.save("content://media", SubtitlePreferences(100))
+            release.countDown()
+            assertEquals(100L, reading.await()!!.delayMs)
+            assertTrue(saving.await().isSuccess)
+        } finally { release.countDown(); root.deleteRecursively() }
     }
     @Test fun invalidControlStateCannotOverwriteCommittedPreferences() {
         val root = Files.createTempDirectory("subtitle-invalid").toFile(); val codec = testCodec()

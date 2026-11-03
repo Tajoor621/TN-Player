@@ -37,6 +37,7 @@ class PlayerUiState : ViewModel() {
     var captions: ExternalCaptions? = null
     var subtitlePreferences: SubtitlePreferences? = null
     var subtitlePreferencesId: String? = null
+    var subtitlePreferencesDirty = false
     var subtitleGestures = false
     var subtitleExport: String? = null
     var pendingSubtitle: Uri? = null
@@ -162,7 +163,7 @@ class PlayerActivity : AppCompatActivity() {
         gestureOverlay.tag = "gesture-feedback"
         gestures = PlayerGestures(this, frame, video, gestureOverlay, { controller },
             { settings.gestures && !inPip() }, { locked }, { if (::unlock.isInitialized) unlock else null }, { setLocked(false) },
-            { ui.subtitleGestures }, { value -> updateSubtitleStyle(position = value) }, { value -> updateSubtitleStyle(scale = value) },
+            { ui.subtitleGestures }, { value -> updateSubtitleStyle(position = value) }, { value -> updateSubtitleStyle(scale = value, overrideFont = true) },
             { currentSubtitlePreferences().position }, { currentSubtitlePreferences().scale }, { persistSubtitlePreferences() },
             { settings.mirror to settings.verticalFlip })
         speedBadge = TextView(this).apply {
@@ -236,31 +237,38 @@ class PlayerActivity : AppCompatActivity() {
         if (ui.subtitlePreferencesId == id) return
         restoreCaptionJob?.cancel()
         restoreCaptionJob = launchUi {
-            val saved = withContext(Dispatchers.IO) { captionStore.read(id) }
-            val preferences = subtitlePreferences.read(id) ?: SubtitlePreferences(delayMs = saved?.delayMs ?: 0, position = settings.subtitlePosition, scale = intArrayOf(65, 100, 140)[settings.subtitleSize])
+            val savedResult = withContext(Dispatchers.IO) { runCatching { captionStore.read(id) } }
+            val preferencesResult = runCatching { subtitlePreferences.read(id) }.onFailure { if (it is CancellationException) throw it }
+            val saved = savedResult.getOrNull()
+            val preferences = preferencesResult.getOrNull() ?: SubtitlePreferences(delayMs = saved?.delayMs ?: 0, position = settings.subtitlePosition, scale = intArrayOf(65, 100, 140)[settings.subtitleSize])
             if (controller === player && player.currentMediaItem?.mediaId == id) {
-                ui.subtitlePreferencesId = id; ui.subtitlePreferences = preferences
+                ui.subtitlePreferencesId = id; ui.subtitlePreferences = preferences; ui.subtitlePreferencesDirty = false
+                if (savedResult.isFailure || preferencesResult.isFailure) Toast.makeText(this@PlayerActivity, "Saved subtitle state is unavailable; using defaults for this session", Toast.LENGTH_LONG).show()
                 ui.captions = saved?.copy(delayMs = preferences.delayMs)
                 applyNativeSubtitleDelay(); applySubtitleStyle()
             }
         }
     }
     private fun persistSubtitlePreferences() {
+        if (!ui.subtitlePreferencesDirty) return
         val id = ui.subtitlePreferencesId ?: return
         val value = ui.subtitlePreferences ?: return
         val saved = subtitlePreferences.save(id, value)
-        lifecycleScope.launch { saved.await().exceptionOrNull()?.let {
-            Toast.makeText(this@PlayerActivity, "Subtitle preferences could not be saved", Toast.LENGTH_LONG).show()
-        } }
+        lifecycleScope.launch {
+            val result = saved.await()
+            if (result.isSuccess && ui.subtitlePreferencesId == id && ui.subtitlePreferences == value) ui.subtitlePreferencesDirty = false
+            if (result.isFailure) Toast.makeText(this@PlayerActivity, "Subtitle preferences could not be saved", Toast.LENGTH_LONG).show()
+        }
     }
-    private fun updateSubtitleStyle(position: Int = currentSubtitlePreferences().position, scale: Int = currentSubtitlePreferences().scale) {
+    private fun updateSubtitleStyle(position: Int = currentSubtitlePreferences().position, scale: Int = currentSubtitlePreferences().scale, overrideFont: Boolean = currentSubtitlePreferences().overrideNativeFont) {
         if (ui.subtitlePreferencesId != controller?.currentMediaItem?.mediaId) return
-        ui.subtitlePreferences = currentSubtitlePreferences().copy(position = position, scale = scale)
+        ui.subtitlePreferences = currentSubtitlePreferences().copy(position = position, scale = scale, overrideNativeFont = overrideFont); ui.subtitlePreferencesDirty = true
         applySubtitleStyle()
     }
     private fun applyNativeSubtitleDelay() {
         val p = controller ?: return
         val id = ui.subtitlePreferencesId ?: return
+        if (id != p.currentMediaItem?.mediaId) return
         p.sendCustomCommand(SessionCommand("SUBTITLE_DELAY", Bundle.EMPTY), Bundle().apply {
             putString("mediaId", id); putLong("delay_ms", if (ui.captions?.mediaId == id) 0 else currentSubtitlePreferences().delayMs)
         })
@@ -268,7 +276,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun adjustSubtitleDelay(delta: Long) {
         if (ui.subtitlePreferencesId != controller?.currentMediaItem?.mediaId) return
         val value = (currentSubtitlePreferences().delayMs + delta).coerceIn(-GestureThresholds.SUBTITLE_MAX_DELAY_MS, GestureThresholds.SUBTITLE_MAX_DELAY_MS)
-        ui.subtitlePreferences = currentSubtitlePreferences().copy(delayMs = value)
+        ui.subtitlePreferences = currentSubtitlePreferences().copy(delayMs = value); ui.subtitlePreferencesDirty = true
         ui.captions?.takeIf { it.mediaId == ui.subtitlePreferencesId }?.let { publishCaptions(it.copy(delayMs = value)) }
         applyNativeSubtitleDelay(); persistSubtitlePreferences()
         gestures.say("Subtitle delay ${"%+.1f".format(value / 1000.0)} s")
@@ -276,7 +284,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun updateSpeed() {
         if (!::speedBadge.isInitialized) return
         val speed = controller?.playbackParameters?.speed ?: 1f
-        speedBadge.text = "${java.math.BigDecimal(speed.toString()).stripTrailingZeros().toPlainString()}×" + if (ui.subtitleGestures) " · Subtitle gestures" else ""
+        speedBadge.text = getString(if (ui.subtitleGestures) R.string.player_speed_subtitle_badge else R.string.player_speed_badge, java.math.BigDecimal(speed.toString()).stripTrailingZeros().toPlainString())
         speedBadge.contentDescription = "Current playback speed ${speedBadge.text}"
         speedBadge.visibility = if (inPip()) View.GONE else View.VISIBLE
     }
@@ -290,7 +298,7 @@ class PlayerActivity : AppCompatActivity() {
         subtitleJob?.cancel(); restoreCaptionJob?.cancel(); ui.pendingSubtitle = null; ui.captions = null; ui.subtitleGestures = false; renderCaptions()
         subtitleJob = launchUi {
             withContext(NonCancellable + Dispatchers.IO) { captionStore.remove(item.mediaId) }
-            if (controller === player && player.currentMediaItem?.mediaId == item.mediaId) replaceCaptions(player, item, emptyList())
+            if (controller === player && player.currentMediaItem?.mediaId == item.mediaId) { replaceCaptions(player, item, emptyList()); applyNativeSubtitleDelay() }
         }
     }
     private fun consumeIntent() {
@@ -498,13 +506,28 @@ class PlayerActivity : AppCompatActivity() {
         if (ui.subtitlePreferencesId != controller?.currentMediaItem?.mediaId) { info("Subtitle timing", "Wait for this file's saved preferences to load."); return }
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), dp(8)) }
         val label = TextView(this)
-        fun refresh() { label.text = "Delay ${"%+.1f".format(currentSubtitlePreferences().delayMs / 1000.0)} s · positive means later" }
+        val input = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
+            hint = "Exact delay in milliseconds"; contentDescription = "Exact subtitle delay in milliseconds"
+        }
+        fun refresh() {
+            label.text = getString(R.string.player_subtitle_delay, "%+.1f".format(currentSubtitlePreferences().delayMs / 1000.0))
+            input.setText(currentSubtitlePreferences().delayMs.toString())
+        }
         refresh(); box.addView(label)
         box.addView(button("−0.1 s · Earlier") { adjustSubtitleDelay(-GestureThresholds.SUBTITLE_SYNC_STEP_MS); refresh() }.apply { tag = "subtitle-earlier" })
         box.addView(button("+0.1 s · Later") { adjustSubtitleDelay(GestureThresholds.SUBTITLE_SYNC_STEP_MS); refresh() }.apply { tag = "subtitle-later" })
         box.addView(button("Reset delay") { adjustSubtitleDelay(-currentSubtitlePreferences().delayMs); refresh() })
-        MaterialAlertDialogBuilder(this).setTitle("Subtitle sync · this file").setView(box).setPositiveButton("Done", null).show()
+        box.addView(input)
+        val dialog = MaterialAlertDialogBuilder(this).setTitle("Subtitle delay (ms)").setView(box)
+            .setPositiveButton("Apply", null).setNegativeButton("Done", null).create()
+        dialog.setOnShowListener { dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val value = input.text.toString().toLongOrNull()
+            if (value == null || value !in -GestureThresholds.SUBTITLE_MAX_DELAY_MS..GestureThresholds.SUBTITLE_MAX_DELAY_MS) input.error = "Enter milliseconds within ±600000"
+            else { adjustSubtitleDelay(value - currentSubtitlePreferences().delayMs); dialog.dismiss() }
+        } }; dialog.show()
     }
+
     private fun subtitleRate() {
         val captions = ui.captions?.takeIf { it.mediaId == controller?.currentMediaItem?.mediaId }
         if (captions == null) { info("Subtitle speed", "Load a timed external text subtitle first."); return }
@@ -647,7 +670,7 @@ class PlayerActivity : AppCompatActivity() {
                 MaterialAlertDialogBuilder(this).setTitle("Playback speed").setItems(values.map { "${it}×" }.toTypedArray()) { _, i -> player.setPlaybackSpeed(values[i]); updateSpeed() }.show() }
             1 -> MaterialAlertDialogBuilder(this).setTitle("Aspect ratio").setItems(arrayOf("Fit", "Fill / stretch", "Crop / zoom")) { _, i -> settings.aspectRatio = i; video.resizeMode = intArrayOf(AspectRatioFrameLayout.RESIZE_MODE_FIT, AspectRatioFrameLayout.RESIZE_MODE_FILL, AspectRatioFrameLayout.RESIZE_MODE_ZOOM)[i] }.show()
             2 -> subtitlePicker.launch(arrayOf("*/*"))
-            3 -> MaterialAlertDialogBuilder(this).setTitle("Subtitle size").setItems(arrayOf("Small", "Medium", "Large")) { _, i -> settings.subtitleSize = i; updateSubtitleStyle(scale = intArrayOf(65, 100, 140)[i]); persistSubtitlePreferences() }.show()
+            3 -> MaterialAlertDialogBuilder(this).setTitle("Subtitle size").setItems(arrayOf("Small", "Medium", "Large")) { _, i -> settings.subtitleSize = i; updateSubtitleStyle(scale = intArrayOf(65, 100, 140)[i], overrideFont = true); persistSubtitlePreferences() }.show()
             4 -> launchUi {
                 val item = player.currentMediaItem ?: return@launchUi
                 if (dao.isFavorite(item.mediaId)) { dao.removeFavorite(item.mediaId); Toast.makeText(this@PlayerActivity, "Favorite removed", Toast.LENGTH_SHORT).show() }
@@ -688,7 +711,7 @@ class PlayerActivity : AppCompatActivity() {
         video.subtitleView?.apply {
             setApplyEmbeddedStyles(settings.embeddedSubtitleStyles)
             setFractionalTextSize(.0533f * currentSubtitlePreferences().scale / 100f)
-            setApplyEmbeddedFontSizes(false)
+            setApplyEmbeddedFontSizes(!currentSubtitlePreferences().overrideNativeFont)
             setBottomPaddingFraction(.08f)
             translationY = -video.height * (currentSubtitlePreferences().position - GestureThresholds.SUBTITLE_DEFAULT_POSITION) / 100f
             setStyle(CaptionStyleCompat(settings.subtitleColor,
@@ -700,7 +723,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun subtitleStyleMenu() {
         MaterialAlertDialogBuilder(this).setTitle("Subtitle style").setItems(arrayOf("Text size", "Text color", "Typeface", "Toggle background", "Position", if (settings.embeddedSubtitleStyles) "Embedded styles: on" else "Embedded styles: off")) { _, choice ->
             when (choice) {
-                0 -> MaterialAlertDialogBuilder(this).setTitle("Text size").setSingleChoiceItems(arrayOf("Small", "Medium", "Large"), settings.subtitleSize) { dialog, index -> settings.subtitleSize = index; updateSubtitleStyle(scale = intArrayOf(65, 100, 140)[index]); persistSubtitlePreferences(); dialog.dismiss() }.show()
+                0 -> MaterialAlertDialogBuilder(this).setTitle("Text size").setSingleChoiceItems(arrayOf("Small", "Medium", "Large"), settings.subtitleSize) { dialog, index -> settings.subtitleSize = index; updateSubtitleStyle(scale = intArrayOf(65, 100, 140)[index], overrideFont = true); persistSubtitlePreferences(); dialog.dismiss() }.show()
                 1 -> MaterialAlertDialogBuilder(this).setTitle("Text color").setItems(arrayOf("White", "Yellow", "Cyan")) { _, index -> settings.subtitleColor = intArrayOf(-1, -256, -16711681)[index]; applySubtitleStyle() }.show()
                 2 -> MaterialAlertDialogBuilder(this).setTitle("Typeface").setSingleChoiceItems(arrayOf("Sans", "Serif", "Monospace"), settings.subtitleFont) { dialog, index -> settings.subtitleFont = index; applySubtitleStyle(); dialog.dismiss() }.show()
                 3 -> { settings.subtitleBackground = !settings.subtitleBackground; applySubtitleStyle() }
@@ -767,10 +790,10 @@ class PlayerActivity : AppCompatActivity() {
                 if (controller !== player || player.currentMediaItem?.mediaId != item.mediaId) return@launchUi
                 val mime = if (imported.third in setOf("ass", "ssa")) MimeTypes.TEXT_SSA else MimeTypes.APPLICATION_TTML
                 val config = MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(file)).setMimeType(mime).setLanguage("und").setLabel(imported.first).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
-                replaceCaptions(player, item, listOf(config)); withContext(NonCancellable + Dispatchers.IO) { captionStore.remove(item.mediaId) }; ui.captions = null; ui.pendingSubtitle = null; renderCaptions()
+                replaceCaptions(player, item, listOf(config)); withContext(NonCancellable + Dispatchers.IO) { captionStore.remove(item.mediaId) }; ui.captions = null; ui.pendingSubtitle = null; applyNativeSubtitleDelay(); renderCaptions()
             } else {
                 val document = withContext(Dispatchers.Default) { SubtitleImport.parse(imported.second, imported.first) }
-                if (controller === player && player.currentMediaItem?.mediaId == item.mediaId) applyCaptions(player, item, ExternalCaptions(item.mediaId, imported.first, document))
+                if (controller === player && player.currentMediaItem?.mediaId == item.mediaId) applyCaptions(player, item, ExternalCaptions(item.mediaId, imported.first, document, delayMs = currentSubtitlePreferences().delayMs))
             }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { ui.pendingSubtitle = null; ui.pendingSubtitleMediaId = null; throw e }
@@ -801,7 +824,9 @@ class PlayerActivity : AppCompatActivity() {
         if (ui.captions?.mediaId != captions.mediaId) replaceCaptions(player, item, emptyList())
         if (controller !== player || player.currentMediaItem?.mediaId != captions.mediaId) return
         ui.captions = captions; ui.pendingSubtitle = null
-        if (ui.subtitlePreferencesId == captions.mediaId) ui.subtitlePreferences = currentSubtitlePreferences().copy(delayMs = captions.delayMs)
+        if (ui.subtitlePreferencesId == captions.mediaId && currentSubtitlePreferences().delayMs != captions.delayMs) {
+            ui.subtitlePreferences = currentSubtitlePreferences().copy(delayMs = captions.delayMs); ui.subtitlePreferencesDirty = true
+        }
         applyNativeSubtitleDelay(); renderCaptions(); persistCaptions(captions); persistSubtitlePreferences()
     }
     private fun renderCaptions() {
@@ -874,7 +899,7 @@ class PlayerActivity : AppCompatActivity() {
         video.useController = !isInPictureInPictureMode && !locked
         updateChrome()
     }
-    override fun onDestroy() { gestures.release(); super.onDestroy() }
+    override fun onDestroy() { if (::gestures.isInitialized) gestures.release(); super.onDestroy() }
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (locked && event.keyCode !in setOf(KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_MUTE)) return true
         return super.dispatchKeyEvent(event)
