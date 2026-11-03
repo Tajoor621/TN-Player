@@ -1,5 +1,25 @@
 # TN-Player — decoder source integration, final APK deferred
 
+## Remaining source workflow — 3 November 2026
+
+Closed a reporting gap that could accept one sample timestamped at 1,800 s as a
+continuous run. Acceptance now requires ordered samples no more than 30 s apart,
+advancing playback, valid CPU/timing fields, and cleanup after the final sample.
+CSV includes build fingerprint, position and playing state. Benchmark selection
+temporarily clears audio/video overrides and enables both renderers; prior
+selection parameters are restored. Video-display mode must be enabled first.
+
+Optional `--baseline CSV` compares only matching device/Android build/reference
+bytes. Single-observation deltas are labelled explicitly; missing/mismatched
+baseline evidence cannot produce a passing comparison. Invalid/nonfinite values,
+duplicate or gapped samples, unknown locks, stalled playback and incomplete runs
+have failure-path coverage. **24 synthetic host tests**, Python/Bash syntax and
+`git diff --check` passed locally. Current-source Kotlin/JVM/lint checks run in
+[the APK-free source-review job](https://github.com/Tajoor621/TN-Player/actions/workflows/android.yml).
+No device measurements, native builds, APKs or publication were performed for
+this follow-up. Feature count remains **1 of 3**, with two owner prompts pending.
+
+
 ## Performance integration — 2 November 2026
 
 The performance source workflow is feature prompt **1 of 3**. No APK build,

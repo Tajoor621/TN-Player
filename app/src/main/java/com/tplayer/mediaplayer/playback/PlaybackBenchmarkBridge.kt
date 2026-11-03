@@ -34,6 +34,10 @@ class PlaybackBenchmarkBridge(private val context: Context, private val player: 
             tuning.benchmark = PlaybackTuning.Options(args.getBoolean("tunnel"), args.getBoolean("preload"), true)
             player.stop(); player.volume = 0f; player.repeatMode = Player.REPEAT_MODE_OFF
             player.shuffleModeEnabled = false; player.playbackParameters = PlaybackParameters.DEFAULT
+            // Exercise both renderers even if the paused user session had disabled a track.
+            // The exact original selection parameters are restored on END.
+            selector.setParameters(selector.buildUponParameters().clearOverrides()
+                .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, false).setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, false).build())
             recovery.reset(); power.update()
         } else {
             check(active) { "Begin a benchmark first" }

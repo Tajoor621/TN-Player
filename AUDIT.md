@@ -1,5 +1,17 @@
 # TN-Player repository audit — 17 October 2026
 
+## Benchmark evidence follow-up — 3 November 2026
+
+A report could previously accept a single late background sample. Continuous
+sampling/progress and finite-metric checks now prevent that false acceptance.
+The runner/reporter supports a matched baseline CSV, checks OS build and file
+hashes and labels observed deltas without claiming statistical regressions.
+Benchmark-only track overrides are cleared temporarily so a paused user session
+cannot disable the audio/video workload. Twenty-four synthetic host tests pass;
+physical results and the final release gates remain deferred. No new dependency,
+permission or native library is added. Feature prompt count remains 1/3.
+
+
 ## Performance follow-up — 2 November 2026
 
 Reviewed playback ownership and renderer/decoder selection before this change:

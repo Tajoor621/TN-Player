@@ -25,3 +25,10 @@ See VALIDATION.md for executed checks and remaining limitations. This revision p
 - Defer library work until playback starts; preserve existing hardware-first software fallback.
 - Add offline production-engine CSV benchmarking, reference generation/verification, a no-build device runner and honest pending-results documentation.
 - Keep APK builds/publication deferred; source-only CI now compiles Kotlin and runs JVM tests/lint with an APK-task guard.
+
+## 3 November 2026 — complete benchmark reporting source follow-up
+
+- Require continuous background evidence, playback progress and finite metrics before accepting a 30-minute run.
+- Add optional same-device/build/reference baseline comparison, with explicit single-observation and zero-baseline limits.
+- Export OS build/position/playing state; normalize benchmark-only audio/video selections and restore the original parameters.
+- Expand host parser/CLI tests to 24. Keep APK, device and publication work deferred; feature count remains 1 of 3.

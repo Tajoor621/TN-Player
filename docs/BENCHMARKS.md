@@ -1,6 +1,6 @@
 # TN-Player playback benchmarks
 
-Status on 2 November 2026: **NOT RUN on a connected device. No measured speed,
+Status on 3 November 2026: **NOT RUN on a connected device. No measured speed,
 power or leak-free claim is made for this source change.** This is feature prompt
 1 of the owner's 3-prompt integration phase. APK builds, device execution and
 publication remain deferred. This environment has no Android SDK/adb/device.
@@ -29,7 +29,8 @@ Device model: pending. Android version: pending. APK source revision: pending.
    See [reference specification](../test-assets/benchmarks/README.md). Files and
    results are gitignored and never packaged in the APK. No download is used.
 3. Pause existing playback; clear A-B repeat/sleep timers; select Automatic
-   decoders and record any enabled audio effects; enable Background playback;
+   decoders and record any enabled audio effects; enable Background playback and
+   video display;
    connect/unlock a physical device, keep it at stable temperature and record
    battery/charging/power-saver/thermal state with the run. Disable networking
    manually if verifying offline operation; the harness opens file URIs only.
@@ -42,7 +43,15 @@ Device model: pending. Android version: pending. APK source revision: pending.
    benchmark tuning is hardware-first, tunnel/preload off, idle cleanup on.
    `--quick` is a 30-second harness smoke check and **never** satisfies the
    30-minute criterion; the runner intentionally returns nonzero for it.
-6. Keep original CSV, manifest, `host-ffmpeg.txt`, instrumentation output and this
+6. To compare with a prior CSV, add `--baseline benchmark-results/OLD/results.csv`.
+   The reporter matches device model, Android build fingerprint and exact
+   reference hashes/details; the operator must confirm the same physical device
+   was used. It shows baseline-to-current TTFF, seek, CPU and
+   dropped-frame values. Requested/active tunnel and preload settings are shown
+   for both runs. Missing or mismatched evidence is inconclusive and returns
+   failure. Percentage changes with a zero baseline are explicitly unavailable.
+   These are single observations, not statistical regression or speedup claims.
+7. Keep original CSV, manifest, `host-ffmpeg.txt`, instrumentation output and this
    report. Run baseline/candidate on the same physical device, identical hashes,
    settings, power/thermal conditions and multiple repeats. Compare TTFF/seek
    distributions and dropped frames before claiming improvement. A single
@@ -74,6 +83,11 @@ Device model: pending. Android version: pending. APK source revision: pending.
   plus current app-owned `ExoPlayer:WakeLock` entries in `dumpsys power` = 0.
   Unrecognized/permission-denied dumps are inconclusive, not zero. The test
   fails on stalled playback, missing frames, unmatched source or unknown locks.
+  Report acceptance also requires ordered samples starting within 30 s, no
+  interval longer than 30 s, at least 1,800 s of samples, playback progress and
+  finite, nonnegative CPU/timing fields. A lone late sample never proves a long
+  run. Release evidence must follow the final sample within 60 s. OS build
+  fingerprint, playing state and position are included in the CSV for inspection.
 - **Leak evidence limits:** PSS and FD counts accompany every sample; inspect
   trends and repeat with a profiler. Lifecycle counters plus OS wake locks can
   detect unreleased player resources, but cannot prove absence of all native,
@@ -82,7 +96,9 @@ Device model: pending. Android version: pending. APK source revision: pending.
 - The debug service accepts benchmark commands only from its own package. The
   harness rejects an actively playing user session, suppresses benchmark history
   and checkpoint writes, uses in-memory tuning overrides, and restores the prior
-  paused queue/options in `finally`. Process death keeps the previous persisted
+  paused queue/options in `finally`. Benchmark mode temporarily clears audio/video
+  selection overrides and enables both track types, restoring the exact prior
+  parameters afterwards; disabled user tracks cannot silently bypass the workload. Process death keeps the previous persisted
   queue and does not persist test tuning. Use a dedicated test device regardless.
 
 ## Changes and possible tradeoffs to measure
@@ -116,3 +132,10 @@ cache/database code is used transitively; decoder licenses remain documented in
 [FORMATS.md](FORMATS.md). APK-size delta for these Kotlin/script changes is pending
 the final authorized build. No observed regression can be reported without a
 matched device baseline; all tradeoffs above remain measurement questions.
+
+## Source follow-up — 3 November 2026
+
+The report validator now checks continuous evidence and finite measurements.
+The optional baseline comparison and partial-report preservation are covered by
+24 synthetic host tests. These tests do not create device results or demonstrate
+performance improvement. The APK/device/publication deferral is unchanged.

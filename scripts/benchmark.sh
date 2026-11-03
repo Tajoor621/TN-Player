@@ -6,15 +6,17 @@ assets="test-assets/benchmarks/media"
 seconds=1800
 tunnel=false
 preload=false
+baseline_args=()
 adb_args=()
 while (($#)); do
   case "$1" in
+    --baseline) baseline_args=(--baseline "${2:?Baseline CSV required}"); test -f "$2" || { echo "Baseline CSV not found" >&2; exit 2; }; shift 2 ;;
     --device) adb_args=(-s "${2:?Device serial required}"); shift 2 ;;
     --references) assets="${2:?Directory required}"; shift 2 ;;
     --quick) seconds=30; shift ;;
     --tunnel) tunnel=true; shift ;;
     --preload) preload=true; shift ;;
-    *) echo "Usage: $0 [--device SERIAL] [--references DIR] [--quick] [--tunnel] [--preload]" >&2; exit 2 ;;
+    *) echo "Usage: $0 [--device SERIAL] [--references DIR] [--quick] [--tunnel] [--preload] [--baseline CSV]" >&2; exit 2 ;;
   esac
 done
 command -v adb >/dev/null || { echo "adb is required; no APK was built." >&2; exit 2; }
@@ -47,7 +49,7 @@ collect() {
   status=$?
   trap - EXIT
   if adb "${adb_args[@]}" pull "$remote/results.csv" "$out/results.csv"; then
-    if ! python3 scripts/benchmark_report.py "$out/results.csv" --output docs/BENCHMARKS.md; then status=1; fi
+    if ! python3 scripts/benchmark_report.py "$out/results.csv" --output docs/BENCHMARKS.md "${baseline_args[@]}"; then status=1; fi
   else status=1; fi
   echo "Benchmark files: $out; summary: docs/BENCHMARKS.md"
   exit "$status"

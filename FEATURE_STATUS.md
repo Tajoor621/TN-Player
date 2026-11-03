@@ -16,7 +16,10 @@ PQ), exports CSV and measures a 30-minute background/paused-release run.
 `scripts/benchmark.sh` runs preinstalled matching APKs without building them.
 No performance or leak-free acceptance has passed yet: see
 [measurement contract and pending results](docs/BENCHMARKS.md). Host fixture
-validation and parser checks are distinct from device measurements.
+validation and parser checks are distinct from device measurements. The 3 November
+follow-up requires continuous progress samples and finite metrics; `--baseline CSV`
+compares matched device/build/file hashes without treating single observations as
+statistical proof. Twenty-four synthetic parser/CLI tests cover these paths.
 
 
 “Implemented” means source exists. Build/test results are recorded separately in VALIDATION.md. Device-dependent playback behavior still requires the physical-device matrix. No placeholder button is presented as a completed premium feature.

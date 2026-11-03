@@ -37,6 +37,7 @@ class PlaybackBenchmarkTest {
         assumeTrue(args.getString("benchmark") == "true")
         check(com.tplayer.mediaplayer.data.Settings(DevicePlayback.context).backgroundPlayback) { "Enable Background playback before running this workload" }
         check(com.tplayer.mediaplayer.data.Settings(DevicePlayback.context).decoderPreference == 0) { "Choose the Automatic decoder preference before benchmarking" }
+        check(com.tplayer.mediaplayer.data.Settings(DevicePlayback.context).videoDisplay) { "Enable video display before benchmarking" }
         val seconds = args.getString("long_session_seconds", "1800").toLong()
         require(seconds in 10..7200)
         val manifest = JSONObject(File(root, "input/manifest.json").readText()).getJSONArray("references")
@@ -53,13 +54,13 @@ class PlaybackBenchmarkTest {
         }
         val output = File(root, "results.csv")
         output.parentFile!!.mkdirs()
-        val columns = listOf("kind", "status", "error", "device", "android", "sdk", "source_revision", "file", "sha256", "size_bytes", "duration_s", "codec", "width", "height", "bit_depth", "transfer", "ttff_ms", "seek_ms", "dropped_frames", "cpu_ms", "wall_ms", "cpu_percent_one_core", "active_audio", "active_video", "audio_inits", "audio_releases", "video_inits", "video_releases", "tunnel_requested", "tunnel_active", "preload", "pss_kb", "fd_count", "wake_locks", "idle_stops", "elapsed_s", "video_mime", "video_codecs", "color_transfer")
+        val columns = listOf("kind", "status", "error", "device", "android", "sdk", "source_revision", "file", "sha256", "size_bytes", "duration_s", "codec", "width", "height", "bit_depth", "transfer", "ttff_ms", "seek_ms", "dropped_frames", "cpu_ms", "wall_ms", "cpu_percent_one_core", "active_audio", "active_video", "audio_inits", "audio_releases", "video_inits", "video_releases", "tunnel_requested", "tunnel_active", "preload", "pss_kb", "fd_count", "wake_locks", "idle_stops", "elapsed_s", "video_mime", "video_codecs", "color_transfer", "build_fingerprint", "position_ms", "playing", "state")
         fun quote(value: Any?) = "\"${value?.toString().orEmpty().replace("\"", "\"\"")}\""
         output.writeText(columns.joinToString(",", transform = ::quote) + "\n")
         fun row(kind: String, status: String, metrics: Bundle, ref: JSONObject? = null, error: String = "", elapsed: Long = 0, locks: Int? = null) {
             val memory = Debug.MemoryInfo().also(Debug::getMemoryInfo)
             val values = mutableMapOf<String, Any?>("kind" to kind, "status" to status, "error" to error,
-                "device" to "${Build.MANUFACTURER} ${Build.MODEL}", "android" to Build.VERSION.RELEASE, "sdk" to Build.VERSION.SDK_INT,
+                "device" to "${Build.MANUFACTURER} ${Build.MODEL}", "android" to Build.VERSION.RELEASE, "sdk" to Build.VERSION.SDK_INT, "build_fingerprint" to Build.FINGERPRINT,
                 "pss_kb" to memory.totalPss, "fd_count" to (File("/proc/self/fd").list()?.size ?: -1),
                 "elapsed_s" to elapsed, "wake_locks" to (locks?.toString() ?: "unknown"))
             metrics.keySet().forEach { key -> @Suppress("DEPRECATION") values[key] = metrics.get(key) }
