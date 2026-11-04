@@ -6,4 +6,11 @@
 <string name="player_speed_badge">%1$s×</string>
 <string name="player_speed_subtitle_badge">%1$s× · Subtitle gestures</string>
 <string name="player_subtitle_delay">This file · Delay %1$s s · positive means later</string>
+    <string name="library_search_all_folders">Search all folders</string>
+    <string name="library_continue_watching">Continue watching</string>
+    <string name="library_resume_item">%1$s · %2$s remaining</string>
+    <string name="library_rename_playlist">Rename playlist</string>
+    <string name="library_sort_this_folder">Sort this folder</string>
+    <string name="player_auto_matching_subtitles">Use matching subtitle file automatically</string>
+    <string name="player_matching_subtitle_item">External: %1$s</string>
 </resources>

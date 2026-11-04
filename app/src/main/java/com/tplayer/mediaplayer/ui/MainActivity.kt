@@ -38,6 +38,7 @@ class BrowserState : ViewModel() {
     val parents = mutableListOf<DocumentFile>()
     var clipboard: Pair<DocumentFile, Boolean>? = null
     val searches = mutableMapOf<Screen, String>()
+    val searchAllFolders = mutableMapOf<Boolean, Boolean>()
     val mediaFolders = mutableMapOf<Boolean, IndexedFolder?>()
     var settingsDetails = false
     var pendingDownload: LibraryItem? = null
@@ -47,7 +48,9 @@ class BrowserState : ViewModel() {
 class MainActivity : AppCompatActivity() {
     private val settings by lazy { Settings(this) }
     private val mediaHandler = Handler(Looper.getMainLooper())
-    private val refreshLibrary = Runnable { if (screen == Screen.VIDEOS || screen == Screen.MUSIC) renderScreen() }
+    private var reloadMedia: (() -> Unit)? = null
+    private var continueJob: Job? = null
+    private val refreshLibrary = Runnable { if (screen == Screen.VIDEOS || screen == Screen.MUSIC) reloadMedia?.invoke() }
     private var observingMedia = false
     private val mediaObserver = object : android.database.ContentObserver(mediaHandler) {
         override fun onChange(selfChange: Boolean) {
@@ -295,7 +298,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private fun setup(title: String): LinearLayout {
-        job?.cancel(); content.removeAllViews(); searchHandler = null; selectAllHandler = null
+        job?.cancel(); continueJob?.cancel(); reloadMedia = null
+        content.removeAllViews(); searchHandler = null; selectAllHandler = null
         val selectionScope = "$screen:${if (screen == Screen.FILES) folder?.uri else browser.mediaFolders[screen == Screen.VIDEOS]}"
         browser.selection.scope(selectionScope)
         selectionCounter = null; selectionActions = null
@@ -345,7 +349,8 @@ class MainActivity : AppCompatActivity() {
             adapter = this@MainActivity.adapter
         }
         content.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
-        adapter.filter(browser.searches[screen].orEmpty()); updateSelection()
+        if (screen !in setOf(Screen.VIDEOS, Screen.MUSIC)) adapter.filter(browser.searches[screen].orEmpty())
+        updateSelection()
         search.doAfterTextChanged { value ->
             val query = value?.toString().orEmpty()
             browser.searches[screen] = query
@@ -361,13 +366,16 @@ class MainActivity : AppCompatActivity() {
         when (value) { 1, 2 -> showMedia(value == 1); 3 -> showFiles(); 4 -> showStreams(); 5 -> showSettings() }
     }
     private fun showMedia(video: Boolean) {
-        val display = settings.libraryDisplay
         val current = browser.mediaFolders[video]
+        val display = settings.libraryDisplayFor(current)
         val actions = setup(current?.name ?: if (display.mode == MediaViewMode.FILES) (if (video) "Videos" else "Music") else "Folders")
         actions.addView(button("View & layout") {
-            libraryViewDialog(settings.libraryDisplay, settings.hidden) { value, hidden ->
-                if (value.mode != settings.libraryDisplay.mode) browser.mediaFolders.clear()
-                settings.libraryDisplay = value; settings.hidden = hidden; showMedia(video)
+            libraryViewDialog(display, settings.hidden, folderOrder = current != null) { value, hidden ->
+                val global = settings.libraryDisplay
+                if (value.mode != global.mode) browser.mediaFolders.clear()
+                if (current != null && (value.sort != display.sort || value.descending != display.descending)) settings.saveFolderSort(current, value)
+                settings.libraryDisplay = if (current == null) value else value.copy(sort = global.sort, descending = global.descending)
+                settings.hidden = hidden; showMedia(video)
             }
         })
         if (current != null) actions.addView(button("Up") {
@@ -375,7 +383,7 @@ class MainActivity : AppCompatActivity() {
             browser.searches[screen] = ""; showMedia(video)
         })
         actions.addView(button("Open file") { openFile.launch(arrayOf("video/*", "audio/*")) })
-        actions.addView(button("Refresh") { showMedia(video) })
+        actions.addView(button("Refresh") { reloadMedia?.invoke() ?: showMedia(video) })
         actions.addView(button("Resume last") { startActivity(Intent(this, PlayerActivity::class.java).putExtra("resume", true)) })
         val quick = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val quickIcons = listOf(R.drawable.hub_music, R.drawable.hub_playlist, android.R.drawable.ic_menu_recent_history,
@@ -396,6 +404,7 @@ class MainActivity : AppCompatActivity() {
             })
         }
         content.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(quick) }, 2)
+        if (video && current == null) addContinueWatching()
         val required = if (Build.VERSION.SDK_INT >= 33) {
             if (video) Manifest.permission.READ_MEDIA_VIDEO else Manifest.permission.READ_MEDIA_AUDIO
         } else Manifest.permission.READ_EXTERNAL_STORAGE
@@ -408,7 +417,8 @@ class MainActivity : AppCompatActivity() {
         if (!hasFull && !hasPartial) { status.text = "Grant library access to see media folders and file counts, or open an individual file. Files → Choose folder also supports SD/USB and document providers."; return }
         val loaded = mutableListOf<LibraryItem>()
         var offset = 0
-        var query = browser.searches[screen].orEmpty()
+        var query = browser.searches[screen].orEmpty().trim()
+        var allFolders = browser.searchAllFolders[video] == true
         val more = button("Load more") {}
         actions.addView(more)
         fun load(reset: Boolean) {
@@ -420,23 +430,24 @@ class MainActivity : AppCompatActivity() {
                     com.tplayer.mediaplayer.playback.PlaybackWorkGate.awaitPlaybackStart()
                     // Local history cannot be blocked by an unavailable network-secret key.
                     val history = MediaDatabase.get(this@MainActivity).raw().history().filter { it.uri.startsWith("content:") || it.uri.startsWith("file:") }
-                    val page = MediaCatalog(this@MainActivity).page(video, display, current, query, settings.hidden, history, offset)
+                    val page = MediaCatalog(this@MainActivity).page(video, display, current, query, settings.hidden, history, offset, allFolders)
                     offset = page.nextOffset; loaded.addAll(page.entries.map { it.item(display) })
                     adapter.submit(loaded.toList()); updateSelection(); more.isEnabled = page.hasMore
-                    status.text = if (loaded.isEmpty()) "No matching accessible ${if (video) "video" else "audio"} media. Try Refresh, adjust filters or choose a folder in Files."
+                    status.text = if (loaded.isEmpty()) "0 results · No matching accessible ${if (video) "video" else "audio"} media. Try Refresh, adjust filters or choose a folder in Files."
                         else "${loaded.size} of ${page.total} · ${display.sort.label} ${if (display.descending) "↓" else "↑"}" +
-                            (current?.let { "\n${it.displayPath}" } ?: "") + if (hasPartial && !hasFull) " · Selected videos only" else ""
+                            (if (allFolders && query.isNotBlank()) "\n" + getString(R.string.library_search_all_folders) else current?.let { "\n${it.displayPath}" }.orEmpty()) + if (hasPartial && !hasFull) " · Selected videos only" else ""
                 } catch (e: CancellationException) { throw e }
                 catch (_: Exception) { status.text = "Library unavailable. Open a file or grant access again." }
             }
         }
         selectAllHandler = { launchUi {
-            if (current == null && display.mode != MediaViewMode.FILES) { info("Select files", "Open a media folder or choose Files view first."); return@launchUi }
+            val acrossFolders = allFolders && query.isNotBlank()
+            if (!acrossFolders && current == null && display.mode != MediaViewMode.FILES) { info("Select files", "Open a media folder or choose Files view first."); return@launchUi }
             val version = browser.selection.version; val snapshotQuery = query
             val picked = mutableListOf<LibraryItem>(); var next = 0
             val history = MediaDatabase.get(this@MainActivity).raw().history()
             do {
-                val page = MediaCatalog(this@MainActivity).page(video, display.copy(mode = MediaViewMode.FILES), current, snapshotQuery, settings.hidden, history, next)
+                val page = MediaCatalog(this@MainActivity).page(video, display.copy(mode = MediaViewMode.FILES), current, snapshotQuery, settings.hidden, history, next, acrossFolders)
                 picked += page.entries.filter { !it.directory }.map { it.item(display) }
                 require(picked.size <= FileSelection.LIMIT) { "More than 1,000 matching files. Narrow the search or choose a smaller folder." }
                 next = page.nextOffset
@@ -444,8 +455,43 @@ class MainActivity : AppCompatActivity() {
             if (browser.selection.version == version) { browser.selection.all(picked); adapter.refreshSelection(); updateSelection() }
         } }
         more.setOnClickListener { load(false) }
-        searchHandler = { value -> browser.selection.clear(); updateSelection(); query = value; load(true) }
+        searchHandler = { value -> browser.selection.clear(); updateSelection(); query = value.trim(); load(true) }
+        actions.addView(CheckBox(this).apply {
+            setText(R.string.library_search_all_folders); minHeight = dp(48); isChecked = allFolders
+            setOnCheckedChangeListener { _, checked ->
+                allFolders = checked; browser.searchAllFolders[video] = checked
+                browser.selection.clear(); updateSelection(); load(true)
+            }
+        })
+        reloadMedia = { load(true) }
         load(true)
+    }
+    private fun addContinueWatching() {
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val group = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = android.view.View.GONE
+            addView(TextView(this@MainActivity).apply {
+                setText(R.string.library_continue_watching); readable(); accessibilityHeadingCompat()
+            })
+            addView(HorizontalScrollView(this@MainActivity).apply { addView(row) })
+        }
+        content.addView(group, 1)
+        continueJob = launchUi {
+            val saved = withContext(Dispatchers.IO) {
+                ContinueWatching.select(MediaDatabase.get(this@MainActivity).raw().history())
+            }
+            saved.forEach { entry ->
+                val remaining = entry.duration - PlaybackPolicy.resumePosition(entry.position, entry.duration)
+                val label = getString(R.string.library_resume_item, entry.title, mediaTime(remaining))
+                val item = LibraryItem(entry.uri, entry.title, mimeType = entry.mimeType)
+                row.addView(button(label) { play(item, resumeHistory = true) }.apply {
+                    setAllCaps(false); maxWidth = dp(220); maxLines = 3
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                })
+            }
+            if (saved.isNotEmpty()) group.visibility = android.view.View.VISIBLE
+        }
     }
     private fun selectTab(value: Int) {
         findViewById<BottomNavigationView>(navigationId).selectedItemId = value
@@ -567,11 +613,12 @@ class MainActivity : AppCompatActivity() {
             launchUi { dao.saveStream(SavedStream(value, name, StreamFormat.values()[format.selectedItemPosition].mimeType)); dialog.dismiss(); play(LibraryItem(value, name, mimeType = StreamFormat.values()[format.selectedItemPosition].mimeType)); showStreams() }
         } }; dialog.show()
     }
-    private fun play(item: LibraryItem) {
+    private fun play(item: LibraryItem, resumeHistory: Boolean = false) {
         com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
         if (screen in setOf(Screen.VIDEOS, Screen.MUSIC)) job?.cancel()
         val uri = Uri.parse(item.uri)
         val intent = Intent(this, PlayerActivity::class.java).setData(uri).putExtra("title", item.title.take(1024)).putExtra("mime", item.mimeType.take(128)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        if (resumeHistory) intent.putExtra("resumeHistory", true)
         startActivity(intent)
     }
     private fun mediaOptions(item: LibraryItem) {
@@ -700,7 +747,13 @@ class MainActivity : AppCompatActivity() {
         screen = Screen.PLAYLIST; activePlaylist = id
         val actions = setup("Playlist")
         job = launchUi {
-            val items = dao.playlistItems(id); status.text = "${items.size} tracks"
+            val playlist = dao.playlists().firstOrNull { it.id == id } ?: return@launchUi
+            val items = dao.playlistItems(id); status.text = "${playlist.name} · ${items.size} tracks"
+            actions.addView(button(getString(R.string.library_rename_playlist)) {
+                input(getString(R.string.library_rename_playlist), playlist.name) { name ->
+                    launchUi { dao.renamePlaylist(id, name); if (activePlaylist == id) showPlaylist(id) }
+                }
+            })
             adapter.submit(items.map { LibraryItem(it.uri, it.title, mimeType = it.mimeType) })
             actions.addView(button("Play all") {
                 val uris = items.map { it.uri }; val titles = items.map { it.title.take(1024) }; val mimes = items.map { it.mimeType.take(128) }
@@ -793,6 +846,7 @@ class MainActivity : AppCompatActivity() {
         toggle("Tunneled playback · compatible hardware, next file", settings.tunneledPlayback) { settings.tunneledPlayback = it }
         toggle("Preload next local playlist item · 1 MB, next play", settings.preloadNext) { settings.preloadNext = it }
         toggle("Release paused decoders after 10 s in background", settings.releasePausedInBackground) { settings.releasePausedInBackground = it }
+        toggle(getString(R.string.player_auto_matching_subtitles), settings.autoMatchingSubtitles) { settings.autoMatchingSubtitles = it }
         toggle("Resume unfinished media", settings.resume) { settings.resume = it }
         toggle("Auto picture-in-picture for videos", settings.autoPip) { settings.autoPip = it }
         toggle("Show hidden files in chosen folders", settings.hidden) { settings.hidden = it }

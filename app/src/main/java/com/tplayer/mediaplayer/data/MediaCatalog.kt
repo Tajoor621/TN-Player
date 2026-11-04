@@ -124,10 +124,17 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
     }
 }
 
+internal fun catalogCollector(display: LibraryDisplay, folder: IndexedFolder?, query: String,
+    hidden: Boolean, offset: Int, allFolders: Boolean): CatalogCollector {
+    val global = allFolders && query.isNotBlank()
+    return CatalogCollector(if (global) display.copy(mode = MediaViewMode.FILES) else display,
+        if (global) null else folder, query, hidden, offset, 200)
+}
+
 class MediaCatalog(private val context: Context) {
     suspend fun page(video: Boolean, display: LibraryDisplay, folder: IndexedFolder?, query: String,
-        hidden: Boolean, history: List<History>, offset: Int = 0): CatalogPage = withContext(Dispatchers.IO) {
-        val collector = CatalogCollector(display, folder, query, hidden, offset, 200)
+        hidden: Boolean, history: List<History>, offset: Int = 0, allFolders: Boolean = false): CatalogPage = withContext(Dispatchers.IO) {
+        val collector = catalogCollector(display, folder, query, hidden, offset, allFolders)
         val collection = if (video) MediaStore.Video.Media.EXTERNAL_CONTENT_URI else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val projection = mutableListOf("_id", "_display_name", "duration", "_size", "mime_type", "date_modified")
         if (Build.VERSION.SDK_INT >= 29) projection += listOf("relative_path", "volume_name") else projection += "_data"
