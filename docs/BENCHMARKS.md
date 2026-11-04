@@ -1,9 +1,6 @@
 # TN-Player playback benchmarks
 
-Status on 3 November 2026: **NOT RUN on a connected device. No measured speed,
-power or leak-free claim is made for this source change.** This is feature prompt
-1 of the owner's 3-prompt integration phase. APK builds, device execution and
-publication remain deferred. This environment has no Android SDK/adb/device.
+Status on 3 November 2026: **No connected-device results recorded.** This harness was added in the first integrated feature prompt. See [the current source-only gate](../DEVELOPMENT_PHASE.md). No measured speed, power or leak-free claim is made.
 
 <!-- DEVICE_RESULTS_START -->
 Device model: pending. Android version: pending. APK source revision: pending.

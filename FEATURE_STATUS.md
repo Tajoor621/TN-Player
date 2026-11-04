@@ -18,7 +18,7 @@ test are added. A manual preinstalled-build capture runner records each gesture;
 **screenshots and instrumented execution are deferred**, not represented by test
 source. Source-only Kotlin/JVM/lint checks run without APK packaging. No new
 dependency, native library, permission, toolkit or player engine is introduced.
-Feature count is 2/3; one owner feature prompt remains before final APK validation.
+See [the current integration count and build gate](DEVELOPMENT_PHASE.md).
 
 
 ## Performance workflow — 2 November 2026 (feature prompt 1/3)
@@ -51,7 +51,7 @@ statistical proof. Twenty-four synthetic parser/CLI tests cover these paths.
 | Application / multidex / debug checks | MultiDexApplication, StrictMode, WorkManager | Add DI only when feature boundaries need it |
 | Firebase crash/analytics/remote flags | Excluded; no telemetry by default | Add configured Firebase variant, consent persisted before SDK collection, Firebase Analytics (not a duplicate Google Analytics pipeline), consent withdrawal and deletion policy |
 | Image loading / thumbnails | Glide local video thumbnails and MediaStore album art; recycled-view cancellation; 16 MB memory/64 MB disk cache | Benchmark thumbnail throughput and removable-provider artwork |
-| Universal codecs / FFmpeg | Hardware-first Media3 plus source-built FFmpeg AC3/EAC3/DTS/TrueHD and separate libvpx VP9/libgav1 AV1 extensions; bounded runtime renderer recovery and diagnostics | Build and audit an actively maintained native backend or LGPL-compatible FFmpeg decoder extension; package by ABI, verify 16 KB alignment and licenses; test actual codecs. This subset is not universal video support; see docs/FORMATS.md |
+| Universal codecs / FFmpeg | Hardware-first Media3 plus source-built FFmpeg AC3/EAC3/DTS/TrueHD and separate libvpx VP9/libgav1 AV1 extensions; bounded runtime renderer recovery and diagnostics | Four-ABI/16 KB verification and synthetic codec runs are recorded in [VALIDATION.md](VALIDATION.md#pre-deferral-evidence--2-november-2026). [Physical codec and release checks remain open](docs/FORMATS.md#build-size-and-evidence). |
 | Splash | Uses normal Android startup window | Add AndroidX SplashScreen with measured startup; do not use a redundant launcher Activity |
 | Activities | Main and Player implement working screens | Split by navigation feature when screens grow; avoid two engines or empty shell Activities |
 | External intents | VIEW audio/video; SEND and bounded SEND_MULTIPLE queues | Richer file MIME associations, validated app links only for owned domain |
@@ -61,7 +61,7 @@ statistical proof. Twenty-four synthetic parser/CLI tests cover these paths.
 | Seek, speed, loop, shuffle | Standard transport; 0.25–4×; repeat modes; playlists | Frame-accurate stepping requires decoder-specific implementation |
 | A–B repeat and sleep timer | Service-owned loop and pause timer | Test seekable/live sources; persistence across process death not provided |
 | Resume history | Room, ordered pending-history reads, checkpoint every 5 s, restarts near-completed files at 0 | Encrypted queue restoration implemented; abrupt termination may lose recent progress |
-| Tracks and subtitles | Media3 tracks; external SRT/VTT, MPL2, PJS, MicroDVD/SubViewer, TMPlayer; encrypted recent-caption restoration, timed-import delay/speed correction and cue navigation/export; external native SSA/ASS/TTML; subtitle gesture mode; persistent style | Text-only native cue scheduling now supports per-file delay with bounded history/lookahead; full libass styling, image sidecars, SAMI ruby and multi-external tracks remain; see MX_PLAYER_COMPARISON.md |
+| Tracks and subtitles | Media3 tracks; manually loaded external SRT/VTT, MPL2, PJS, MicroDVD/SubViewer, TMPlayer; encrypted recent-caption restoration, timed-import delay/speed correction and cue navigation/export; external native SSA/ASS/TTML; subtitle gesture mode; persistent style | Text-only native cue scheduling now supports per-file delay with bounded history/lookahead; full libass styling, image sidecars, SAMI ruby and multi-external tracks remain; see MX_PLAYER_COMPARISON.md |
 | Online subtitle lookup | Not implemented | Use official OpenSubtitles REST API with a provisioned client key, user auth where required, rate limits, consent and cache; do not add unverified Maven coordinates |
 | Video display | Persistent fit/fill/crop, rotation, pinch/pan 1–3× and window brightness gesture | Mirror/vertical flip/night display, explicit portrait/landscape/fullscreen and bounded PNG frame export implemented; add color-processing shaders and deinterlace pipeline |
 | Audio processing | Service-owned device-band-aware Equalizer, capability-gated BassBoost/Virtualizer and saved controls | Add custom PCM processor for delay/boost with limiter and clipping tests. Do not label a device's 5-band EQ as 10-band |
@@ -74,13 +74,13 @@ statistical proof. Twenty-four synthetic parser/CLI tests cover these paths.
 | Downloads | Android Download Manager for direct HTTPS media; lifecycle-scoped status/progress/reasons, retry and confirmed cancel/remove; completed playback/share/details | Migrate the system backend to app-owned HTTP/scheduled writes per Android security guidance; add Media3 offline adaptive cache/DRM handling |
 | Transfers / servers / Wi-Fi Direct | Not implemented | Design authenticated explicit sharing sessions, ephemeral credentials, foreground service only during transfers and tested connection lifecycles |
 | Cast | Not implemented | Add Cast SDK with receiver capability checks and separate DLNA discovery/control; local files require explicitly enabled authenticated LAN serving |
-| Cloud storage / sync | Not implemented | OAuth via provider SDK or Android document provider; encrypt secrets using Keystore; queue sync with conflict resolution and user opt-in |
+| Cloud storage / sync | Browse folders granted by installed Android document providers | [Direct cloud clients and sync remain open](#recommended-sequence-to-finish-the-full-product); the provider controls login, availability and offline access |
 | Themes | Light/dark/system and AMOLED with blue/cyan accent palette | User-supplied gold/cyan identity integrated across icons, widget, settings and web; add accent presets/scheduled theme and physical-device contrast QA |
 | Gestures / controls | One-finger swipes, five persistent assignments, held 2× restoration, zoom/pan/reset, long-hold unlock; disabled under touch exploration | Central thresholds, encrypted per-file subtitle controls and screenshot capture runner implemented; physical edge/TalkBack/lock and native-caption corpus validation remain |
 | TV and D-pad | Some standard focusable controls; no TV launcher claim | TV banner, Leanback UI, D-pad focus graph and emulator/physical TV certification |
 | Settings / privacy / help | Reference-style Me hub with working shortcuts, view/layout draft dialog, detailed settings, PiP options, themes, notifications and help | Add settings migration and test full large-font landscape layouts |
 | Database / credentials | Room collections with encrypted network URL payloads and opaque identifiers; Keystore-backed encrypted playback checkpoints; embedded credentials rejected | Add entities only with implemented clients; encrypt credentials with Keystore-backed storage and handle key invalidation |
-| App lock / vault | Not implemented | BiometricPrompt plus rate-limited credential fallback; encrypt every file with authenticated encryption and Keystore-wrapped keys; use FLAG_SECURE in vault screens |
+| App lock / private folder / vault | No PIN folder or encrypted vault on `main`; player control lock and Android screen pinning are separate | [PIN folder is under review](DEVELOPMENT_PHASE.md); [encrypted vault and app lock remain open](AUDIT.md#features-worth-building-next) |
 | Secure deletion | No guarantee made | Flash wear leveling, snapshots and providers prevent reliable overwrite; delete crypto keys for encrypted vault data and document limits |
 | Providers | Narrow FileProvider for app exports | Avoid exported DB/settings providers; add secured providers only if a real external integration requires them |
 | Widgets | Playback widget with title/progress and service-owned transport via immutable explicit PendingIntents | Add album-art and video/folder widget variants; physical launcher testing |
@@ -95,9 +95,9 @@ statistical proof. Twenty-four synthetic parser/CLI tests cover these paths.
 
 1. Validate this native core on Android 5/8/11/13/14 and a Samsung phone; fix playback, permission and lifecycle defects first.
 2. Improve large-library UX and file-operation progress/cancellation; expand backup migration, archive operations and provider fault testing.
-3. Build an audited native decoder backend, publish an honest codec/protocol matrix and add delay/DSP/subtitle rendering with fixture-based tests.
+3. Validate the existing native decoder extensions on physical hardware, and extend audio delay/DSP and subtitle format support with fixture-based tests.
 4. Add authenticated network shares, transfers, adaptive downloads and Cast/DLNA as separate clients with explicit lifecycle and credential handling.
-5. Build and review the encrypted vault, app lock, widgets, full gesture customization and TV UI.
+5. Build and review the encrypted vault, app lock, additional widgets and TV UI.
 6. Measure startup, seek latency, memory, thermal load and battery using representative hardware; complete signing and current distribution checks.
 
 Do not turn every declaration in an extracted third-party manifest into a required TN-Player component. Add only components that own actual behavior.

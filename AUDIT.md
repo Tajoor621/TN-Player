@@ -30,7 +30,7 @@ hashes and labels observed deltas without claiming statistical regressions.
 Benchmark-only track overrides are cleared temporarily so a paused user session
 cannot disable the audio/video workload. Twenty-four synthetic host tests pass;
 physical results and the final release gates remain deferred. No new dependency,
-permission or native library is added. Feature prompt count remains 1/3.
+permission or native library is added. This was a follow-up to the performance prompt; see [the current count](DEVELOPMENT_PHASE.md).
 
 
 ## Performance follow-up — 2 November 2026
@@ -52,8 +52,7 @@ Source-only compilation, 66 JVM tests and lint (0 errors / 88 warnings) passed
 at `5620a05`, including the final-review counter/cache code. The output audit
 confirmed 0 APKs. Remaining release gates: physical 4K/10-bit HDR frame and
 seek measurements, the 30-minute cleanup run, optimized-release runtime check and
-APK-size delta. The owner has deferred APK builds until two further feature
-prompts after this one. The harness is source implementation, not evidence of
+APK-size delta. See [the current build gate](DEVELOPMENT_PHASE.md). The harness is source implementation, not evidence of
 improved speed, lower battery use or universal leak freedom. No 10/10 rating is
 supported yet. See [BENCHMARKS.md](docs/BENCHMARKS.md).
 
@@ -87,14 +86,14 @@ Implementation and publication results are recorded in [VALIDATION.md](VALIDATIO
 | Release blocker | Modern Android/toolchain and dependency migration | Upgrade compile/target and the compatible AGP/Gradle/library set together; test edge-to-edge insets, Android 15/16 media focus/foreground behavior and permissions on API 35/36. Keep the API 21 requirement explicit when evaluating dependencies. Current target 34 is not a new Google Play phone-app submission target. |
 | Release blocker | Production signing and delivery | Owner-controlled signing outside the repository, monotonic version codes, signed release AAB/APK, upgrade-install tests retaining Room/preferences/grants, recovery/rotation plan and complete notices. Current debug signing may change between runners. |
 | High | Downloads backend replacement | Android's security guidance recommends an app-controlled HTTP client plus scheduler instead of DownloadManager. Keep legacy records readable while migrating to bounded streaming writes, HTTPS-only redirect validation, authenticated source storage, atomic finalization, network/storage fault tests and cancel/retry/process-recovery semantics. The current update improves legacy management; it does not replace the system backend. |
-| High | External share/import queues | Move content-provider name/type resolution off the main thread. Use a bounded, rotation-safe request model so a slow provider or a large shared queue cannot stall the UI or replay an intent. Add slow-provider and rotate-during-resolution tests. |
+| High | External share/import queues | Shared-file display-name lookup already runs off the UI thread. Add slow-provider and rotate-during-resolution tests for the bounded share queue. |
 | High | Large libraries and accessibility | Benchmark 50,000 files; preserve search/focus/selection during refresh, reduce whole-list rebinding, optimize repeated completed-download URI queries, test 200% fonts, TalkBack, RTL, keyboard and D-pad. Split MainActivity into feature controllers/screens before further large UI expansion. |
 | High | Provider/removable-media reliability | Test Samsung/My Files, DocumentsUI, SD, USB and installed cloud providers; revocation during copy/delete/ZIP, provider renames, read-only/slow storage and full disks. Implement recursive copy/move only with self-descendant guards and a recoverable manifest/journal. |
 | High | Measured performance | Establish cold-start, time-to-first-frame, seek latency, peak memory, thermal and battery results with named physical hardware and representative codecs. The original numerical targets have not been demonstrated. |
-| Feature | Universal codecs and advanced rendering | Audit a maintained native backend, ABI size/alignment, licenses and codec corpus. Add actual ASS/SSA/image subtitle support, subtitle/audio delay and tested PCM limiting. A platform decoder or FFmpeg audio extension does not establish universal video support. |
+| Feature | Universal codecs and advanced rendering | Audit a maintained native backend, ABI size/alignment, licenses and codec corpus. Native ASS/SSA loading and bounded subtitle delay exist. Extend styling fidelity and image sidecar support; add audio delay and tested PCM limiting. A platform decoder or FFmpeg audio extension does not establish universal video support. |
 | Feature | Network shares, Cast and offline adaptive media | Implement SMB/SFTP/WebDAV clients with encrypted credentials; Cast and DLNA as separate capability-tested paths; authenticated explicit LAN serving for local files. Media3 offline HLS/DASH needs a real cache/download lifecycle and DRM constraints. |
 | Feature | Encrypted vault and app lock | Threat model, BiometricPrompt and rate-limited fallback, authenticated file encryption, Keystore-wrapped keys, interrupted-import recovery, metadata protection and secure-screen handling. No fake vault or secure-overwrite guarantee. |
-| Feature | Customization and integrations | Gesture mapping presets, accent/scheduled themes, album-art and folder widgets, dynamic/pinned folder shortcuts and an intentional TV focus layout. Each should retain data on upgrade and have a focused device test. |
+| Feature | Customization and integrations | Five gesture slots are already configurable. Remaining work includes accent/scheduled themes, album-art and folder widgets, dynamic/pinned folder shortcuts and an intentional TV focus layout. Each should retain data on upgrade and have a focused device test. |
 
 ## Permissions, privacy and storage review
 
