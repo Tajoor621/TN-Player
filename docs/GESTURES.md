@@ -1,6 +1,6 @@
 # TN-Player gesture controls — source integration, 3 November 2026
 
-This is feature prompt **2 of 3**. Existing Views/Material/Media3 PlayerView are
+This was the second integrated feature prompt; see [current integration status](../DEVELOPMENT_PHASE.md). Existing Views/Material/Media3 PlayerView are
 retained. No Compose, second player, dependency, native library or permission is
 added. Source compilation/JVM tests/lint are allowed; APK/device builds and actual
 screenshots/recordings remain deferred under the owner's three-prompt instruction.
@@ -68,7 +68,7 @@ validation during the final phase; full libass fidelity is not claimed.
 ## System gesture conflicts
 
 - Starts within max(24 dp, reported system gesture/bar inset) of any edge pass to
-  Android/normal child handling. Start brightness/volume swipes inside that band.
+  Android/normal child handling. Start brightness/volume swipes farther toward the center, beyond that band.
 - Home, recents, status shade, back and OEM edge panels may cancel an in-progress
   gesture. Cancellation restores held speed and does not commit a seek. OEM
   unreported edge panels may need an even wider constant on that device.
@@ -108,4 +108,4 @@ while the owner's build deferral remains in force.
 
 Initial source validation: [41626695699](https://github.com/Tajoor621/TN-Player/actions/runs/41626695699) passed 87 JVM tests and application/instrumentation compilation, with 0 lint errors and 0 APKs. Follow-up retains exact-ms subtitle entry, adds a pending-edit/read-race test, and moves new labels into resources to remove the ten added translation warnings. Device evidence is still pending.
 
-Follow-up source validation: [41627966767](https://github.com/Tajoor621/TN-Player/actions/runs/41627966767) at `60420fc` passed 88 JVM tests, compilation and lint (0 errors / 88 warnings), with 0 APKs. Final review preserves Media3's per-period subtitle end bound through the scheduler and adds caption-mode routing / overlong-native-caption tests. The native instrumented check remains deferred along with gesture captures.
+Follow-up source validation: [41627966767](https://github.com/Tajoor621/TN-Player/actions/runs/41627966767) at `60420fc` passed 88 JVM tests, compilation and lint (0 errors / 88 warnings), with 0 APKs. Final review preserves Media3's per-period subtitle end bound through the scheduler and adds caption-mode routing / overlong-native-caption tests. The native instrumented check remains deferred along with gesture captures. See [final source CI and open acceptance work](../VALIDATION.md#remaining-acceptance-work).

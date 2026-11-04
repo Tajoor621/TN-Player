@@ -48,7 +48,7 @@ class FileDeleteModel(app: Application) : AndroidViewModel(app) {
                 try {
                     val sender = withContext(Dispatchers.IO) { MediaStore.createDeleteRequest(resolver, items.map { Uri.parse(it.uri) }).intentSender }
                     mutable.value = mutable.value.copy(sender = sender)
-                } catch (_: Exception) { finish("Android could not request deletion. Try Files → Choose folder for provider access.") }
+                } catch (_: Exception) { finish(context.getString(com.tplayer.mediaplayer.R.string.library_provider_delete_error)) }
             }
         } else if (Build.VERSION.SDK_INT <= 28 && items.any { Uri.parse(it.uri).authority == "media" } &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {

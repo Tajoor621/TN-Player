@@ -114,6 +114,24 @@ class Settings(context: Context) {
             .putBoolean("fieldDate", value.date).putBoolean("fieldPlayed", value.played)
             .putBoolean("fieldFrameRate", value.frameRate).putBoolean("fieldType", value.type)
             .putInt("minimumSeconds", value.minimumSeconds.coerceIn(0, 3600)).apply() }
+    fun libraryDisplayFor(folder: IndexedFolder?): LibraryDisplay {
+        val global = libraryDisplay
+        val order = folder?.let { FolderSort.decode(prefs.getString(FolderSort.key(it), null)) } ?: return global
+        return global.copy(sort = order.first, descending = order.second)
+    }
+    fun saveFolderSort(folder: IndexedFolder, display: LibraryDisplay) {
+        val key = FolderSort.key(folder)
+        val editor = prefs.edit()
+        val existing = prefs.all.keys.filter(FolderSort::validKey).sorted()
+        if (key !in existing && existing.size >= FolderSort.LIMIT) {
+            // Keep exports bounded, with a deterministic eviction order.
+            existing.take(existing.size - FolderSort.LIMIT + 1).forEach { editor.remove(it) }
+        }
+        editor.putString(key, FolderSort.encode(display)).apply()
+    }
+    var autoMatchingSubtitles: Boolean
+        get() = prefs.getBoolean("autoMatchingSubtitles", false)
+        set(value) { prefs.edit().putBoolean("autoMatchingSubtitles", value).apply() }
     var backgroundPlayback: Boolean
         get() = prefs.getBoolean("backgroundPlayback", true)
         set(value) { prefs.edit().putBoolean("backgroundPlayback", value).apply() }
@@ -140,7 +158,7 @@ class Settings(context: Context) {
             ?: setOf(PlayerShortcut.ROTATION, PlayerShortcut.SPEED, PlayerShortcut.BACKGROUND, PlayerShortcut.EQUALIZER, PlayerShortcut.AB)
         set(value) { prefs.edit().putString("playerShortcuts", PlayerShortcut.values().filter { it in value }.joinToString(",") { it.name }).apply() }
     fun backupValues(): Map<String, Any> = mapOf(
-        "tunneledPlayback" to tunneledPlayback, "preloadNext" to preloadNext, "releasePausedInBackground" to releasePausedInBackground, "decoderPreference" to decoderPreference, "theme" to theme, "gestureVolumeRight" to gestureVolumeRight, "doubleTapPlayPause" to doubleTapPlayPause, "showPlayerClock" to showPlayerClock, "showPlayerBattery" to showPlayerBattery, "showRemainingTime" to showRemainingTime, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
+        "autoMatchingSubtitles" to autoMatchingSubtitles, "tunneledPlayback" to tunneledPlayback, "preloadNext" to preloadNext, "releasePausedInBackground" to releasePausedInBackground, "decoderPreference" to decoderPreference, "theme" to theme, "gestureVolumeRight" to gestureVolumeRight, "doubleTapPlayPause" to doubleTapPlayPause, "showPlayerClock" to showPlayerClock, "showPlayerBattery" to showPlayerBattery, "showRemainingTime" to showRemainingTime, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
         "seekMs" to seekMs, "gestures" to gestures, "amoled" to amoled,
         "embeddedSubtitleStyles" to embeddedSubtitleStyles, "subtitleSize" to subtitleSize, "subtitleFont" to subtitleFont, "subtitleColor" to subtitleColor,
         "subtitleBackground" to subtitleBackground, "subtitlePosition" to subtitlePosition,
@@ -154,14 +172,28 @@ class Settings(context: Context) {
         "minimumSeconds" to libraryDisplay.minimumSeconds,
         "backgroundPlayback" to backgroundPlayback, "videoDisplay" to videoDisplay, "showPlayerShortcuts" to showPlayerShortcuts,
         "mirror" to mirror, "verticalFlip" to verticalFlip, "playerNight" to playerNight, "playerOrientation" to playerOrientation,
-        "playerShortcuts" to playerShortcuts.joinToString(",") { it.name }) + GestureSlot.values().associate { "gesture_${it.name}" to gestureAction(it).name }
+        "playerShortcuts" to playerShortcuts.joinToString(",") { it.name }) + GestureSlot.values().associate { "gesture_${it.name}" to gestureAction(it).name } +
+        prefs.all.entries.filter { FolderSort.validKey(it.key) && FolderSort.decode(it.value) != null }
+            .sortedBy { it.key }.take(FolderSort.LIMIT).associate { it.key to (it.value as String) }
     fun restoreValues(values: Map<String, Any>) {
         val editor = prefs.edit()
-        for ((key, value) in values) when (value) {
+        val imported = values.keys.filter { FolderSort.validKey(it) && FolderSort.decode(values[it]) != null }
+        require(imported.size <= FolderSort.LIMIT)
+        val retained = prefs.all.keys.filter { FolderSort.validKey(it) && it !in imported }.sorted()
+        retained.take((retained.size + imported.size - FolderSort.LIMIT).coerceAtLeast(0)).forEach { editor.remove(it) }
+        for ((key, value) in values) {
+            if (key.startsWith(FolderSort.PREFIX)) {
+                require(key in imported) { "Invalid folder sort preference." }
+                editor.putString(key, value as String)
+                continue
+            }
+            if (key == "autoMatchingSubtitles") require(value is Boolean)
+            when (value) {
             is Boolean -> editor.putBoolean(key, value)
             is Long -> editor.putLong(key, value)
             is Int -> editor.putInt(key, value)
             is String -> if (key == "playerShortcuts" || GestureSlot.values().any { key == "gesture_${it.name}" }) editor.putString(key, value)
+        }
         }
         check(editor.commit()) { "Collections restored, but preferences could not be saved." }
     }

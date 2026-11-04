@@ -58,4 +58,19 @@ class DatabaseTest {
         assertNull(dao.historyFor("content://media/audio/0"))
     }
 
+
+    @Test fun playlistRenameRejectsBlankAndCaseInsensitiveDuplicatesAndRetainsTracks() = runBlocking {
+        val dao = db.media()
+        val first = dao.createPlaylist(Playlist(name = "Trips"))
+        val second = dao.createPlaylist(Playlist(name = "Family"))
+        dao.addToPlaylist(PlaylistItem(first, "content://media/video/1", "Clip"))
+        for (invalid in listOf("   ", "  FAMILY  ")) {
+            try { dao.renamePlaylist(first, invalid); fail("Accepted invalid playlist name") }
+            catch (_: IllegalArgumentException) { }
+        }
+        dao.renamePlaylist(first, "  Summer trips  ")
+        assertEquals("Summer trips", dao.playlists().first { it.id == first }.name)
+        assertEquals("Family", dao.playlists().first { it.id == second }.name)
+        assertEquals("Clip", dao.playlistItems(first).single().title)
+    }
 }

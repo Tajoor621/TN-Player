@@ -6,4 +6,40 @@
 <string name="player_speed_badge">%1$s×</string>
 <string name="player_speed_subtitle_badge">%1$s× · Subtitle gestures</string>
 <string name="player_subtitle_delay">This file · Delay %1$s s · positive means later</string>
+    <string name="library_search_all_folders">Search all folders</string>
+    <string name="library_continue_watching">Continue watching</string>
+    <string name="library_resume_item">%1$s · %2$s remaining</string>
+    <string name="library_rename_playlist">Rename playlist</string>
+    <string name="library_sort_this_folder">Sort this folder</string>
+    <string name="player_auto_matching_subtitles">Use matching subtitle file automatically</string>
+    <string name="player_matching_subtitle_item">External: %1$s</string>
+    <string name="library_previous_page">Previous page</string>
+    <string name="library_next_page">Next page</string>
+    <string name="library_access_title">Media library access</string>
+    <string name="library_access_hub_detail">Browse media on this device</string>
+    <string name="library_access_explain_video">Allow video access to see folders and file counts inside TN-Player. Your videos stay on this device.</string>
+    <string name="library_access_explain_audio">Allow audio access to see music folders and file counts inside TN-Player. Your music stays on this device.</string>
+    <string name="library_access_allow">Allow access</string>
+    <string name="library_access_allow_all">Allow all media</string>
+    <string name="library_access_partial_title">Selected videos only</string>
+    <string name="library_access_count_loading">Counting accessible videos…</string>
+    <string name="library_access_count_unavailable">Accessible video count unavailable.</string>
+    <plurals name="library_access_partial_count">
+        <item quantity="one">%d accessible video</item>
+        <item quantity="other">%d accessible videos</item>
+    </plurals>
+    <string name="library_access_partial_settings_hint">Access is still limited to selected videos. To see all folders, open app settings, go to Permissions and allow all photos and videos.</string>
+    <string name="library_access_denied_title">Media access is off</string>
+    <string name="library_access_denied">Android will not show another permission request. You can grant media access under Permissions in app settings.</string>
+    <string name="library_access_settings">Open app settings</string>
+    <string name="library_access_empty">No matching media. Try refreshing or changing your search and filters.</string>
+    <string name="library_access_read_failed">The library could not be read. Try refreshing or checking app permissions.</string>
+    <string name="library_add_storage">Add from storage</string>
+    <string name="library_storage_file">Open a file</string>
+    <string name="library_storage_folder">Open a folder</string>
+    <string name="library_storage_empty">No storage folder added. Use Add from storage in the menu for SD cards, USB drives or document providers.</string>
+    <string name="library_access_help">Videos and Music: tap Allow access to read indexed media and show folders and file counts inside TN-Player. View &amp; layout controls list/grid, sorting and filters. On Android 14 and newer, selected-video access shows only the videos Android grants. Tap Allow all media or use app permission settings to expand access.\n\nUse Add from storage in the menu to explicitly open a file or folder from an SD card, USB drive or document provider. In Files, tap a folder to enter or use its menu for copy, move, rename, share and delete. Copy/move supports individual files.</string>
+    <string name="library_layout_metadata_help">Folders contain accessible indexed media only. Android may omit .nomedia and protected locations. Use Add from storage → Open a folder for other provider storage.\n\nDate means last modified. Played time/status use the history retained by TN-Player (up to 200 items). Folder length/size are totals; date/played time use the newest member. Capture fps is the capture rate indexed by Android, not a guaranteed encoded frame rate; unavailable values sort as zero.</string>
+    <string name="library_provider_delete_error">Android could not request deletion. Try Add from storage → Open a folder for provider access.</string>
+    <item type="id" name="add_from_storage_menu" />
 </resources>

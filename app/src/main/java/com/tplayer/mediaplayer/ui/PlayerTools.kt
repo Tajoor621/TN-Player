@@ -3,6 +3,8 @@ package com.tplayer.mediaplayer.ui
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.os.Build
+import com.tplayer.mediaplayer.R
 import android.view.Gravity
 import android.widget.*
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -12,7 +14,8 @@ import com.google.android.material.materialswitch.MaterialSwitch
  data class PlayerTool(val title: String, val icon: Int, val action: () -> Unit)
 fun Context.playerTools(tools: List<PlayerTool>, videoDisplay: Boolean, shortcuts: Boolean,
     changeVideo: (Boolean) -> Unit, changeShortcuts: (Boolean) -> Unit, customize: () -> Unit) {
-    val dialog = BottomSheetDialog(this)
+    val dialog = if (Build.VERSION.SDK_INT >= 35) BottomSheetDialog(this, R.style.ThemeOverlay_TNPlayer_SafeBottomSheet)
+        else BottomSheetDialog(this)
     var nextAction: (() -> Unit)? = null
     dialog.setOnDismissListener { nextAction?.invoke() }
     fun activate(action: () -> Unit) { nextAction = action; dialog.dismiss() }

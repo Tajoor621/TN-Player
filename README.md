@@ -6,7 +6,7 @@
 
 Native Android media-player core built from the TN-Player master specification.
 
-**Package:** `com.tplayer.mediaplayer` · **minSdk:** 21 · **target/compileSdk:** 34
+**Package:** `com.tplayer.mediaplayer` · **minSdk:** 21 · **target/compileSdk:** 36
 
 This is a hardened implementation of the playback and local-library core. It does not yet implement the entire master specification. See [FEATURE_STATUS.md](FEATURE_STATUS.md) for exact boundaries and concrete next steps. The tagline is the product vision; it is not a guarantee that every codec or DRM service can be played.
 

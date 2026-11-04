@@ -9,7 +9,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tplayer.mediaplayer.data.*
 
 /** Edits a draft; Cancel never changes stored preferences. */
-fun Context.libraryViewDialog(initial: LibraryDisplay, hidden: Boolean, apply: (LibraryDisplay, Boolean) -> Unit) {
+fun Context.libraryViewDialog(initial: LibraryDisplay, hidden: Boolean, folderOrder: Boolean = false, apply: (LibraryDisplay, Boolean) -> Unit) {
     var draft = initial
     var showHidden = hidden
     val scroll = ScrollView(this)
@@ -34,7 +34,7 @@ fun Context.libraryViewDialog(initial: LibraryDisplay, hidden: Boolean, apply: (
     choices(MediaViewMode.values().map { it.label }, draft.mode.ordinal) { draft = draft.copy(mode = MediaViewMode.values()[it]) }
     heading("Layout")
     choices(listOf("List", "Grid"), if (draft.grid) 1 else 0) { draft = draft.copy(grid = it == 1) }
-    heading("Sort")
+    heading(if (folderOrder) getString(com.tplayer.mediaplayer.R.string.library_sort_this_folder) else "Sort")
     choices(MediaSort.values().map { it.label }, draft.sort.ordinal) { draft = draft.copy(sort = MediaSort.values()[it]) }
     choices(listOf("↑ Ascending", "↓ Descending"), if (draft.descending) 1 else 0) { draft = draft.copy(descending = it == 1) }
     val fields = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
@@ -56,7 +56,7 @@ fun Context.libraryViewDialog(initial: LibraryDisplay, hidden: Boolean, apply: (
     val minimum = EditText(this).apply { setSingleLine(); inputType = android.text.InputType.TYPE_CLASS_NUMBER; setText(draft.minimumSeconds.toString()); hint = "Seconds (0–3600)"; minHeight = dp(48); contentDescription = "Minimum duration in seconds" }
     advanced.addView(minimum)
     advanced.addView(TextView(this).apply {
-        text = "Folders contain accessible indexed media only. Android may omit .nomedia and protected locations. Use Files → Choose folder for other provider storage.\n\nDate means last modified. Played time/status use this app's retained history (up to 200 items). Folder length/size are totals; date/played time use the newest member. Capture fps is Android's indexed capture rate, not a guaranteed encoded frame rate; unavailable values sort as zero."
+        setText(com.tplayer.mediaplayer.R.string.library_layout_metadata_help)
         textSize = 13f; setPadding(0, dp(12), 0, 0)
     })
     val dialog = MaterialAlertDialogBuilder(this).setTitle("View & layout").setView(scroll)

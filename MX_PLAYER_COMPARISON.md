@@ -7,11 +7,11 @@ This is an independent implementation of functional behavior. No MX Player sourc
 
 | Published feature | TN-Player implementation | Remaining limits |
 | --- | --- | --- |
-| Hardware acceleration / HW+ | Media3 uses Android's MediaCodec decoders; new Automatic / prefer hardware / prefer platform software control | MX's proprietary HW+ and universal software decoding are not implemented; codec availability depends on device |
-| Multi-core decoding | Platform decoder implementation; compatible fallback candidates remain available | No bundled multi-core software video decoder or performance equivalence claim |
+| Hardware acceleration / HW+ | Hardware-first MediaCodec with configurable platform decoder preference and bundled codec-specific fallback; [decoder matrix](docs/FORMATS.md#current-decoding-policy) | MX's proprietary HW+ and universal software decoding are not implemented; codec availability depends on device |
+| Multi-core decoding | Platform decoding plus bundled AV1/VP9 renderers with decoder threading | [No measured performance equivalence](docs/BENCHMARKS.md#changes-and-possible-tradeoffs-to-measure) |
 | Pinch zoom, zoom and pan | Pinch, bounded pan and two-finger double-tap reset; mirror/flip preserved | Texture surface/device dependent; gestures disabled during TalkBack touch exploration |
 | Subtitle gestures | Explicit subtitle mode: vertical swipe moves text, pinch changes text size; per-file controls and ±0.1 s sync | Timed external imports only for cue navigation; size 50–200% and position 0–40%; turn mode off for video gestures. See docs/GESTURES.md for native cue availability limits |
-| Privacy Folder | Not included | Requires reviewed encrypted media storage, authentication, import/export recovery and tests; hiding names is not encryption |
+| Privacy Folder | No PIN folder on `main`; [review branch status](DEVELOPMENT_PHASE.md) | An [encrypted vault](AUDIT.md#features-worth-building-next) is separate work; hiding names is not encryption |
 | Kids lock | Existing control lock plus new Android screen-pinning action | User must approve Android's pinning UI; Android controls escape/emergency behavior; not a parental-control password |
 | SRT / WebVTT | External load, normalized timed cues, delay ±10 minutes, previous/next cue seek, adjusted-SRT export and removal | UTF-8 and BOM-marked UTF-16; WebVTT cue positioning/styling is not retained by normalization |
 | SSA / ASS | New external loading through Media3's native renderer | Media3 styling subset with an embedded-styles toggle; no full libass fonts/animation guarantee; text-only native delay scheduling with bounded history/lookahead; no cue navigation for these tracks |
@@ -36,7 +36,7 @@ This is an independent implementation of functional behavior. No MX Player sourc
 
 ## Validation
 
-New JVM tests check stable decoder preference ordering without dropping fallback candidates and settings/backup round-trip. A decoder device test switches preference while paused, checks queue/position, resumes video and rejects an invalid mode. Subtitle JVM tests exercise text-format conversion, clipping and offset navigation, UTF-16/UTF-8 decoding, oversized input, ambiguous frame rate, malformed/reversed timing and cue-count limits. A device test imports MPL2 into real Media3 playback, checks rendered text, seeks by caption, shifts timestamps by +1000 ms, checks cue visibility and recreates the Activity while paused. CI runs Android API 28 and 34 plus the existing unit, lint, release and process-recovery checks.
+New JVM tests check stable decoder preference ordering without dropping fallback candidates and settings/backup round-trip. A decoder device test switches preference while paused, checks queue/position, resumes video and rejects an invalid mode. Subtitle JVM tests exercise text-format conversion, clipping and offset navigation, UTF-16/UTF-8 decoding, oversized input, ambiguous frame rate, malformed/reversed timing and cue-count limits. A device test imports MPL2 into real Media3 playback, checks rendered text, seeks by caption, shifts timestamps by +1000 ms, checks cue visibility and recreates the Activity while paused. Android API 28/34 device checks and release builds are gated; normal pushes run source checks only. See [recorded evidence](VALIDATION.md).
 
 Screen-pinning approval and unpin gestures are owned by Android and still require manual checks on physical OEM devices. No all-features-complete or 10/10 claim is made.
 
@@ -47,9 +47,9 @@ The older public [MX Player Features manual](https://sites.google.com/site/mxvpe
 | Historical feature | TN-Player status / next acceptance criterion |
 | --- | --- |
 | Variable playback speed, dynamic audio tracks, A–B repeat, aspect selection, keyboard seek, background playback | Existing functional controls; gesture/button mappings differ |
-| Decoder-specific hi10p support, NEON optimizations and deinterlacing | Not added; requires actual native backend and codec/hardware fixtures |
+| Decoder-specific hi10p support, NEON optimizations and deinterlacing | AV1 has an ARMv7 NEON requirement and VP9 has a high-bit-depth build; neither establishes H.264 Hi10P or deinterlacing support. See [video codec limits](docs/FORMATS.md#video-codecs) |
 | Preview frames while seeking | Not implemented; needs bounded background frame extraction, cache and seek-bar preview UI |
-| Toggle elapsed/remaining time | Current controller shows elapsed time and duration; no toggle |
+| Toggle elapsed/remaining time | The controller shows elapsed time and duration. Display Settings can toggle the separate remaining-time overlay. |
 | Optional browser-link handling | HTTPS/RTSP associations exist; no per-scheme association setting; HTTP remains blocked by default |
 | Movie folders, artwork, search, editing, themes and per-file resume | Existing; no scan-time performance guarantee; file-operation limits are in FEATURE_STATUS.md |
 | Associated-subtitle tags and new-file tags | Not implemented as a complete sidecar-indexing feature |

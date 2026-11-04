@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
@@ -38,6 +39,8 @@ class BrowserState : ViewModel() {
     val parents = mutableListOf<DocumentFile>()
     var clipboard: Pair<DocumentFile, Boolean>? = null
     val searches = mutableMapOf<Screen, String>()
+    var partialUpgradeAttempted = false
+    val searchAllFolders = mutableMapOf<Boolean, Boolean>()
     val mediaFolders = mutableMapOf<Boolean, IndexedFolder?>()
     var settingsDetails = false
     var pendingDownload: LibraryItem? = null
@@ -47,7 +50,9 @@ class BrowserState : ViewModel() {
 class MainActivity : AppCompatActivity() {
     private val settings by lazy { Settings(this) }
     private val mediaHandler = Handler(Looper.getMainLooper())
-    private val refreshLibrary = Runnable { if (screen == Screen.VIDEOS || screen == Screen.MUSIC) renderScreen() }
+    private var reloadMedia: (() -> Unit)? = null
+    private var continueJob: Job? = null
+    private val refreshLibrary = Runnable { if (screen == Screen.VIDEOS || screen == Screen.MUSIC) reloadMedia?.invoke() }
     private var observingMedia = false
     private val mediaObserver = object : android.database.ContentObserver(mediaHandler) {
         override fun onChange(selfChange: Boolean) {
@@ -109,13 +114,25 @@ class MainActivity : AppCompatActivity() {
         set(value) { browser.folder = value }
     private val parents get() = browser.parents
     private var screen = Screen.VIDEOS
+    private var navigationBack: OnBackPressedCallback? = null
     private var searchHandler: ((String) -> Unit)? = null
     private var documents: Map<String, DocumentFile> = emptyMap()
     private var clipboard: Pair<DocumentFile, Boolean>?
         get() = browser.clipboard
         set(value) { browser.clipboard = value }
     private var activePlaylist: Long? = null
-    private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { showTab(tab) }
+    private val accessMachine = LibraryAccessMachine()
+    private val accessPrefs by lazy { getSharedPreferences("library-access", MODE_PRIVATE) }
+    private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        val editor = accessPrefs.edit()
+        for ((permission, granted) in result) {
+            if (permission != Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) {
+                editor.putBoolean(permission, !granted && !ActivityCompat.shouldShowRequestPermissionRationale(this, permission))
+            }
+        }
+        editor.apply()
+        renderScreen()
+    }
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         Toast.makeText(this, if (it) "Notifications enabled" else "Notification access was not granted", Toast.LENGTH_SHORT).show()
     }
@@ -171,6 +188,7 @@ class MainActivity : AppCompatActivity() {
                 android.graphics.Bitmap.createScaledBitmap(brandBitmap, dp(40), dp(40), true))
             menu.add("Library").setOnMenuItemClickListener { collections(); true }
             menu.add("Help").setOnMenuItemClickListener { help(); true }
+            menu.add(0, R.id.add_from_storage_menu, 0, R.string.library_add_storage).setOnMenuItemClickListener { addFromStorage(); true }
         }
         root.addView(toolbar)
         val transferBanner = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), 0, dp(16), dp(8)); visibility = android.view.View.GONE }
@@ -233,6 +251,7 @@ class MainActivity : AppCompatActivity() {
         }
         root.addView(NowPlayingBar(this))
         root.addView(nav); setContentView(root)
+        applyActivityInsets(window, root, includeIme = true)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (isActive) {
@@ -243,7 +262,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+        val back = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
                 when {
                     browser.selection.active -> { browser.selection.clear(); adapter.refreshSelection(); updateSelection() }
@@ -258,7 +277,10 @@ class MainActivity : AppCompatActivity() {
                     else -> { isEnabled = false; onBackPressedDispatcher.onBackPressed() }
                 }
             }
-        })
+        }
+        navigationBack = back
+        onBackPressedDispatcher.addCallback(this, back)
+        syncNavigationBack()
         nav.selectedItemId = tab
         nav.setOnItemSelectedListener { showTab(it.itemId); true }
     }
@@ -295,7 +317,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private fun setup(title: String): LinearLayout {
-        job?.cancel(); content.removeAllViews(); searchHandler = null; selectAllHandler = null
+        job?.cancel(); continueJob?.cancel(); reloadMedia = null
+        content.removeAllViews(); searchHandler = null; selectAllHandler = null
         val selectionScope = "$screen:${if (screen == Screen.FILES) folder?.uri else browser.mediaFolders[screen == Screen.VIDEOS]}"
         browser.selection.scope(selectionScope)
         selectionCounter = null; selectionActions = null
@@ -345,7 +368,8 @@ class MainActivity : AppCompatActivity() {
             adapter = this@MainActivity.adapter
         }
         content.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
-        adapter.filter(browser.searches[screen].orEmpty()); updateSelection()
+        if (screen !in setOf(Screen.VIDEOS, Screen.MUSIC)) adapter.filter(browser.searches[screen].orEmpty())
+        updateSelection()
         search.doAfterTextChanged { value ->
             val query = value?.toString().orEmpty()
             browser.searches[screen] = query
@@ -361,21 +385,23 @@ class MainActivity : AppCompatActivity() {
         when (value) { 1, 2 -> showMedia(value == 1); 3 -> showFiles(); 4 -> showStreams(); 5 -> showSettings() }
     }
     private fun showMedia(video: Boolean) {
-        val display = settings.libraryDisplay
         val current = browser.mediaFolders[video]
+        val display = settings.libraryDisplayFor(current)
         val actions = setup(current?.name ?: if (display.mode == MediaViewMode.FILES) (if (video) "Videos" else "Music") else "Folders")
         actions.addView(button("View & layout") {
-            libraryViewDialog(settings.libraryDisplay, settings.hidden) { value, hidden ->
-                if (value.mode != settings.libraryDisplay.mode) browser.mediaFolders.clear()
-                settings.libraryDisplay = value; settings.hidden = hidden; showMedia(video)
+            libraryViewDialog(display, settings.hidden, folderOrder = current != null) { value, hidden ->
+                val global = settings.libraryDisplay
+                if (value.mode != global.mode) browser.mediaFolders.clear()
+                if (current != null && (value.sort != display.sort || value.descending != display.descending)) settings.saveFolderSort(current, value)
+                settings.libraryDisplay = if (current == null) value else value.copy(sort = global.sort, descending = global.descending)
+                settings.hidden = hidden; showMedia(video)
             }
         })
         if (current != null) actions.addView(button("Up") {
             browser.mediaFolders[video] = if (display.mode == MediaViewMode.ALL_FOLDERS) current.parent() else null
             browser.searches[screen] = ""; showMedia(video)
         })
-        actions.addView(button("Open file") { openFile.launch(arrayOf("video/*", "audio/*")) })
-        actions.addView(button("Refresh") { showMedia(video) })
+        actions.addView(button("Refresh") { reloadMedia?.invoke() ?: showMedia(video) })
         actions.addView(button("Resume last") { startActivity(Intent(this, PlayerActivity::class.java).putExtra("resume", true)) })
         val quick = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val quickIcons = listOf(R.drawable.hub_music, R.drawable.hub_playlist, android.R.drawable.ic_menu_recent_history,
@@ -396,56 +422,156 @@ class MainActivity : AppCompatActivity() {
             })
         }
         content.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(quick) }, 2)
-        val required = if (Build.VERSION.SDK_INT >= 33) {
-            if (video) Manifest.permission.READ_MEDIA_VIDEO else Manifest.permission.READ_MEDIA_AUDIO
-        } else Manifest.permission.READ_EXTERNAL_STORAGE
-        val hasFull = ContextCompat.checkSelfPermission(this, required) == PackageManager.PERMISSION_GRANTED
-        val hasPartial = video && Build.VERSION.SDK_INT >= 34 && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
-        val access = button(if (hasFull) "Library access" else "Grant access") {
-            permissions.launch(if (video && Build.VERSION.SDK_INT >= 34) arrayOf(required, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) else arrayOf(required))
+        val requested = mediaPermissions(Build.VERSION.SDK_INT, video)
+        val primary = requested[0]
+        val granted = mediaAccess(Build.VERSION.SDK_INT, video) {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
         }
-        actions.addView(access, if (hasFull) actions.childCount else 0)
-        if (!hasFull && !hasPartial) { status.text = "Grant library access to see media folders and file counts, or open an individual file. Files → Choose folder also supports SD/USB and document providers."; return }
-        val loaded = mutableListOf<LibraryItem>()
-        var offset = 0
-        var query = browser.searches[screen].orEmpty()
-        val more = button("Load more") {}
-        actions.addView(more)
+        if (granted == MediaAccess.FULL && accessPrefs.contains(primary)) accessPrefs.edit().remove(primary).apply()
+        val access = accessMachine.state(granted == MediaAccess.FULL, granted == MediaAccess.SELECTED,
+            accessPrefs.getBoolean(primary, false) && !ActivityCompat.shouldShowRequestPermissionRationale(this, primary), Build.VERSION.SDK_INT)
+        val partial = when (access) {
+            LibraryAccessState.FULL -> {
+                if (video) browser.partialUpgradeAttempted = false
+                null
+            }
+            LibraryAccessState.PARTIAL -> {
+                addLibraryAccessCard(R.string.library_access_partial_title, R.string.library_access_count_loading,
+                    R.string.library_access_allow_all) {
+                    browser.partialUpgradeAttempted = true
+                    permissions.launch(mediaPermissions(Build.VERSION.SDK_INT, video, upgrade = true))
+                }
+            }
+            LibraryAccessState.NEEDS_REQUEST -> {
+                addLibraryAccessCard(R.string.library_access_title,
+                    if (video) R.string.library_access_explain_video else R.string.library_access_explain_audio,
+                    R.string.library_access_allow) { permissions.launch(requested) }
+                return
+            }
+            LibraryAccessState.DENIED_PERMANENTLY -> {
+                addLibraryAccessCard(R.string.library_access_denied_title, R.string.library_access_denied,
+                    R.string.library_access_settings, ::openLibrarySettings)
+                return
+            }
+        }
+        if (video && current == null && access == LibraryAccessState.FULL) addContinueWatching()
+        val cursors = mutableListOf<CatalogEntry?>(null)
+        var nextCursor: CatalogEntry? = null
+        var query = browser.searches[screen].orEmpty().trim()
+        var allFolders = browser.searchAllFolders[video] == true
+        val previous = button(getString(R.string.library_previous_page)) {}
+        val more = button(getString(R.string.library_next_page)) {}
+        actions.addView(previous); actions.addView(more)
         fun load(reset: Boolean) {
-            job?.cancel(); more.isEnabled = false; status.text = "Reading your media folders…"
-            if (reset) { offset = 0; loaded.clear(); adapter.submit(emptyList()) }
+            job?.cancel(); more.isEnabled = false; previous.isEnabled = false; status.text = "Reading your media folders…"
+            if (reset) { cursors.clear(); cursors.add(null); nextCursor = null; adapter.submit(emptyList()) }
             job = launchUi {
                 try {
                     if (reset && query.isNotBlank()) delay(250)
                     com.tplayer.mediaplayer.playback.PlaybackWorkGate.awaitPlaybackStart()
                     // Local history cannot be blocked by an unavailable network-secret key.
                     val history = MediaDatabase.get(this@MainActivity).raw().history().filter { it.uri.startsWith("content:") || it.uri.startsWith("file:") }
-                    val page = MediaCatalog(this@MainActivity).page(video, display, current, query, settings.hidden, history, offset)
-                    offset = page.nextOffset; loaded.addAll(page.entries.map { it.item(display) })
-                    adapter.submit(loaded.toList()); updateSelection(); more.isEnabled = page.hasMore
-                    status.text = if (loaded.isEmpty()) "No matching accessible ${if (video) "video" else "audio"} media. Try Refresh, adjust filters or choose a folder in Files."
-                        else "${loaded.size} of ${page.total} · ${display.sort.label} ${if (display.descending) "↓" else "↑"}" +
-                            (current?.let { "\n${it.displayPath}" } ?: "") + if (hasPartial && !hasFull) " · Selected videos only" else ""
+                    val page = MediaCatalog(this@MainActivity).page(video, display, current, query, settings.hidden, history, cursors.last(), allFolders)
+                    partial?.text = resources.getQuantityString(R.plurals.library_access_partial_count,
+                        page.accessibleFiles, page.accessibleFiles)
+                    nextCursor = page.nextCursor
+                    val rows = withContext(Dispatchers.Default) { page.entries.map { it.item(display) } }
+                    adapter.submit(rows); updateSelection()
+                    more.isEnabled = page.hasMore; previous.isEnabled = cursors.size > 1
+                    status.text = if (rows.isEmpty()) getString(R.string.library_access_empty)
+                        else "${page.before + 1}–${page.before + rows.size} of ${page.total} · ${display.sort.label} ${if (display.descending) "↓" else "↑"}" +
+                            (if (allFolders && query.isNotBlank()) "\n" + getString(R.string.library_search_all_folders) else current?.let { "\n${it.displayPath}" }.orEmpty())
                 } catch (e: CancellationException) { throw e }
-                catch (_: Exception) { status.text = "Library unavailable. Open a file or grant access again." }
+                catch (_: Exception) { status.setText(R.string.library_access_read_failed); partial?.setText(R.string.library_access_count_unavailable) }
             }
         }
         selectAllHandler = { launchUi {
-            if (current == null && display.mode != MediaViewMode.FILES) { info("Select files", "Open a media folder or choose Files view first."); return@launchUi }
+            val acrossFolders = allFolders && query.isNotBlank()
+            if (!acrossFolders && current == null && display.mode != MediaViewMode.FILES) { info("Select files", "Open a media folder or choose Files view first."); return@launchUi }
             val version = browser.selection.version; val snapshotQuery = query
-            val picked = mutableListOf<LibraryItem>(); var next = 0
+            val picked = mutableListOf<LibraryItem>(); var next: CatalogEntry? = null
             val history = MediaDatabase.get(this@MainActivity).raw().history()
             do {
-                val page = MediaCatalog(this@MainActivity).page(video, display.copy(mode = MediaViewMode.FILES), current, snapshotQuery, settings.hidden, history, next)
+                val page = MediaCatalog(this@MainActivity).page(video, display.copy(mode = MediaViewMode.FILES), current, snapshotQuery, settings.hidden, history, next, acrossFolders)
                 picked += page.entries.filter { !it.directory }.map { it.item(display) }
                 require(picked.size <= FileSelection.LIMIT) { "More than 1,000 matching files. Narrow the search or choose a smaller folder." }
-                next = page.nextOffset
+                next = page.nextCursor
             } while (page.hasMore)
             if (browser.selection.version == version) { browser.selection.all(picked); adapter.refreshSelection(); updateSelection() }
         } }
-        more.setOnClickListener { load(false) }
-        searchHandler = { value -> browser.selection.clear(); updateSelection(); query = value; load(true) }
+        previous.setOnClickListener {
+            if (cursors.size > 1) { cursors.removeAt(cursors.lastIndex); load(false) }
+        }
+        more.setOnClickListener { nextCursor?.let { cursors += it; load(false) } }
+        searchHandler = { value -> browser.selection.clear(); updateSelection(); query = value.trim(); load(true) }
+        actions.addView(CheckBox(this).apply {
+            setText(R.string.library_search_all_folders); minHeight = dp(48); isChecked = allFolders
+            setOnCheckedChangeListener { _, checked ->
+                allFolders = checked; browser.searchAllFolders[video] = checked
+                browser.selection.clear(); updateSelection(); load(true)
+            }
+        })
+        reloadMedia = { load(true) }
         load(true)
+    }
+    private fun addLibraryAccessCard(title: Int, detail: Int, actionLabel: Int, action: () -> Unit): TextView {
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+        }
+        body.addView(TextView(this).apply { setText(title); readable(); accessibilityHeadingCompat() })
+        val message = TextView(this).apply { setText(detail); readable() }
+        body.addView(message)
+        body.addView(button(getString(actionLabel), action))
+        if (title == R.string.library_access_partial_title && browser.partialUpgradeAttempted) {
+            body.addView(TextView(this).apply { setText(R.string.library_access_partial_settings_hint); readable() })
+            body.addView(button(getString(R.string.library_access_settings), ::openLibrarySettings))
+        }
+        val card = com.google.android.material.card.MaterialCardView(this).apply { addView(body) }
+        content.addView(card, 1)
+        return message
+    }
+
+    private fun openLibrarySettings() {
+        startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+    }
+
+    private fun addFromStorage() {
+        MaterialAlertDialogBuilder(this).setTitle(R.string.library_add_storage)
+            .setItems(arrayOf(getString(R.string.library_storage_file), getString(R.string.library_storage_folder))) { _, item ->
+                when (item) {
+                    0 -> openFile.launch(arrayOf("video/*", "audio/*"))
+                    1 -> openTree.launch(null)
+                }
+            }.show()
+    }
+
+    private fun addContinueWatching() {
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val group = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = android.view.View.GONE
+            addView(TextView(this@MainActivity).apply {
+                setText(R.string.library_continue_watching); readable(); accessibilityHeadingCompat()
+            })
+            addView(HorizontalScrollView(this@MainActivity).apply { addView(row) })
+        }
+        content.addView(group, 1)
+        continueJob = launchUi {
+            val saved = withContext(Dispatchers.IO) {
+                ContinueWatching.select(MediaDatabase.get(this@MainActivity).raw().history())
+            }
+            saved.forEach { entry ->
+                val remaining = entry.duration - PlaybackPolicy.resumePosition(entry.position, entry.duration)
+                val label = getString(R.string.library_resume_item, entry.title, mediaTime(remaining))
+                val item = LibraryItem(entry.uri, entry.title, mimeType = entry.mimeType)
+                row.addView(button(label) { play(item, resumeHistory = true) }.apply {
+                    setAllCaps(false); maxWidth = dp(220); maxLines = 3
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                })
+            }
+            if (saved.isNotEmpty()) group.visibility = android.view.View.VISIBLE
+        }
     }
     private fun selectTab(value: Int) {
         findViewById<BottomNavigationView>(navigationId).selectedItemId = value
@@ -454,7 +580,6 @@ class MainActivity : AppCompatActivity() {
     private fun showFiles() {
         val actions = setup("Files")
         actions.addView(button("Refresh") { showFiles() })
-        actions.addView(button("Choose folder") { openTree.launch(null) })
         actions.addView(button("Up") { if (parents.isNotEmpty()) { folder = parents.removeAt(parents.lastIndex); showFiles() } })
         actions.addView(button("New folder") {
             input("Folder name") { name -> if (DocumentOperations.validName(name)) runFile { checkNotNull(folder?.createDirectory(name)) { "Cannot create folder." } } else info("Invalid name", "Use a nonempty name without slashes.") }
@@ -464,7 +589,7 @@ class MainActivity : AppCompatActivity() {
             transfers.start(clip.first, destination, clip.second)
         }) }
         val target = folder
-        if (target == null) { status.text = "Choose a folder to browse files, including SD/USB storage exposed by Android."; return }
+        if (target == null) { status.setText(R.string.library_storage_empty); return }
         job = launchUi {
             try {
                 val recent = MediaDatabase.get(this@MainActivity).raw().history().associateBy { it.uri }
@@ -516,7 +641,14 @@ class MainActivity : AppCompatActivity() {
             }
         }.show()
     }
+    private fun syncNavigationBack() {
+        navigationBack?.isEnabled = browser.selection.active || screen.tab == 0 ||
+            (screen in setOf(Screen.VIDEOS, Screen.MUSIC) && browser.mediaFolders[screen == Screen.VIDEOS] != null) ||
+            (screen == Screen.SETTINGS && browser.settingsDetails) ||
+            (screen == Screen.FILES && parents.isNotEmpty())
+    }
     private fun updateSelection() {
+        syncNavigationBack()
         if (!::adapter.isInitialized) return
         selectionActions?.visibility = if (browser.selection.active) android.view.View.VISIBLE else android.view.View.GONE
         selectionCounter?.text = "${browser.selection.size} / ${maxOf(browser.selection.size, adapter.selectable().size)} selected"
@@ -526,7 +658,7 @@ class MainActivity : AppCompatActivity() {
         if (deletions.state.value.running) { info("File deletion", "Wait for the current deletion to finish."); return }
         MaterialAlertDialogBuilder(this).setTitle("Delete ${items.size} ${if (items.size == 1) "file" else "files"}?")
             .setMessage(items.take(5).joinToString("\n") { it.title } + (if (items.size > 5) "\n…and ${items.size - 5} more" else "") +
-                "\n\nThis removes the original files permanently. TN-Player has no recycle bin. Android may ask for additional approval. Folders are not included.")
+                "\n\nThis removes the original files permanently. TN-Player has no recycle bin. Android may ask for additional approval. This selection deletes files only.")
             .setNegativeButton("Cancel", null).setPositiveButton("Delete") { _, _ ->
                 try { deletions.start(items) } catch (e: Exception) { info("File deletion", e.message.orEmpty()) }
             }.show()
@@ -567,11 +699,12 @@ class MainActivity : AppCompatActivity() {
             launchUi { dao.saveStream(SavedStream(value, name, StreamFormat.values()[format.selectedItemPosition].mimeType)); dialog.dismiss(); play(LibraryItem(value, name, mimeType = StreamFormat.values()[format.selectedItemPosition].mimeType)); showStreams() }
         } }; dialog.show()
     }
-    private fun play(item: LibraryItem) {
+    private fun play(item: LibraryItem, resumeHistory: Boolean = false) {
         com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
         if (screen in setOf(Screen.VIDEOS, Screen.MUSIC)) job?.cancel()
         val uri = Uri.parse(item.uri)
         val intent = Intent(this, PlayerActivity::class.java).setData(uri).putExtra("title", item.title.take(1024)).putExtra("mime", item.mimeType.take(128)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        if (resumeHistory) intent.putExtra("resumeHistory", true)
         startActivity(intent)
     }
     private fun mediaOptions(item: LibraryItem) {
@@ -700,7 +833,13 @@ class MainActivity : AppCompatActivity() {
         screen = Screen.PLAYLIST; activePlaylist = id
         val actions = setup("Playlist")
         job = launchUi {
-            val items = dao.playlistItems(id); status.text = "${items.size} tracks"
+            val playlist = dao.playlists().firstOrNull { it.id == id } ?: return@launchUi
+            val items = dao.playlistItems(id); status.text = "${playlist.name} · ${items.size} tracks"
+            actions.addView(button(getString(R.string.library_rename_playlist)) {
+                input(getString(R.string.library_rename_playlist), playlist.name) { name ->
+                    launchUi { dao.renamePlaylist(id, name); if (activePlaylist == id) showPlaylist(id) }
+                }
+            })
             adapter.submit(items.map { LibraryItem(it.uri, it.title, mimeType = it.mimeType) })
             actions.addView(button("Play all") {
                 val uris = items.map { it.uri }; val titles = items.map { it.title.take(1024) }; val mimes = items.map { it.mimeType.take(128) }
@@ -723,21 +862,18 @@ class MainActivity : AppCompatActivity() {
         }.show()
     }
     private fun showSettings() {
+        syncNavigationBack()
         if (browser.settingsDetails) { showSettingsDetails(); return }
         job?.cancel(); content.removeAllViews(); searchHandler = null
         content.addView(settingsHub(listOf(
             HubAction("File Transfer", R.drawable.hub_transfer, "Local copy / move") { selectTab(3) },
-            HubAction("Private Folder", R.drawable.hub_lock, "Not included"),
+            HubAction("Private Folder", R.drawable.hub_lock, "Unavailable in this build"),
             HubAction("Video Playlists", R.drawable.hub_playlist, "On this device") { listPlaylists() },
             HubAction("Media Manager", R.drawable.hub_files, "Browse files") { selectTab(3) },
-            HubAction("Local Network", R.drawable.hub_network, "Not included"),
+            HubAction("Local Network", R.drawable.hub_network, "Network shares unavailable"),
             HubAction("Music Player", R.drawable.hub_music, "Your audio") { selectTab(2) },
-            HubAction("Cloud Drive", R.drawable.hub_cloud, "Android providers") {
-                MaterialAlertDialogBuilder(this).setTitle("Cloud document provider")
-                    .setMessage("Choose a folder from an installed Android document provider. Its app controls sign-in, availability and offline access. TN-Player browses that granted folder; cloud sync is not included.")
-                    .setPositiveButton("Choose folder") { _, _ -> openTree.launch(null) }.setNegativeButton("Cancel", null).show()
-            },
-            HubAction("Recycle Bin", R.drawable.hub_trash, "Not included")
+            HubAction(getString(R.string.library_access_title), R.drawable.hub_cloud, getString(R.string.library_access_hub_detail)) { selectTab(1) },
+            HubAction("Recycle Bin", R.drawable.hub_trash, "Deletion is permanent")
         ), listOf(
             HubAction("App Theme", R.drawable.hub_theme, "System, light, dark or AMOLED") { themeDialog() },
             HubAction("Settings", R.drawable.hub_settings, "Playback, gestures, permissions and backup") { browser.settingsDetails = true; showSettings() },
@@ -793,6 +929,7 @@ class MainActivity : AppCompatActivity() {
         toggle("Tunneled playback · compatible hardware, next file", settings.tunneledPlayback) { settings.tunneledPlayback = it }
         toggle("Preload next local playlist item · 1 MB, next play", settings.preloadNext) { settings.preloadNext = it }
         toggle("Release paused decoders after 10 s in background", settings.releasePausedInBackground) { settings.releasePausedInBackground = it }
+        toggle(getString(R.string.player_auto_matching_subtitles), settings.autoMatchingSubtitles) { settings.autoMatchingSubtitles = it }
         toggle("Resume unfinished media", settings.resume) { settings.resume = it }
         toggle("Auto picture-in-picture for videos", settings.autoPip) { settings.autoPip = it }
         toggle("Show hidden files in chosen folders", settings.hidden) { settings.hidden = it }
@@ -825,7 +962,7 @@ class MainActivity : AppCompatActivity() {
         box.addView(button("Help & supported features") { help() })
         box.addView(button("Privacy") { info("Privacy", "Media, history, favorites and settings remain on your device. No analytics, ads, crash upload, account or cloud sync is included. Saved network addresses and playback checkpoints are encrypted using local Android Keystore-protected keys. Streams contact the URL you choose. Android backups are disabled. Clearing app data or uninstalling removes this app's database and downloads. RTSP is supported but is not encrypted; use trusted sources.") })
         box.addView(ImageView(this).apply { setImageResource(R.drawable.tn_wordmark); scaleType = ImageView.ScaleType.FIT_CENTER; contentDescription = "TN-Player gold and cyan identity" }, LinearLayout.LayoutParams(dp(240), dp(240)).apply { gravity = Gravity.CENTER_HORIZONTAL })
-        box.addView(TextView(this).apply { text = "TN-Player 1.0.0\ncom.tplayer.mediaplayer\nAndroid 5.0+ · Native Media3 playback\n\nHardware-first Media3 playback with FFmpeg (AC3/EAC3/DTS/TrueHD), libvpx (VP9) and libgav1 (AV1) fallback. FFmpeg is licensed under LGPL 2.1 or later; Media3/libgav1/cpu_features use Apache 2.0 and libvpx uses BSD terms. Corresponding native sources and relink materials: https://tajoor621.github.io/TN-Player/downloads/TN-Player-native-sources.tar.xz . Cast, cloud sync and private vault are not included."; textSize = 13f; setPadding(dp(8), dp(20), dp(8), dp(20)) })
+        box.addView(TextView(this).apply { text = "TN-Player 1.0.0\ncom.tplayer.mediaplayer\nAndroid 5.0+ · Native Media3 playback\n\nHardware-first Media3 playback with FFmpeg (AC3/EAC3/DTS/TrueHD), libvpx (VP9) and libgav1 (AV1) fallback. FFmpeg is licensed under LGPL 2.1 or later; Media3/libgav1/cpu_features use Apache 2.0 and libvpx uses BSD terms. Native source and relink details: https://github.com/Tajoor621/TN-Player/blob/main/docs/FORMATS.md"; textSize = 13f; setPadding(dp(8), dp(20), dp(8), dp(20)) })
     }
-    private fun help() { info("TN-Player help", "Videos/Music: grant library access to see media folders and counts, tap a folder to open it, or use Open file. View & layout offers All folders, Files, Folders, list/grid, sorting, fields and minimum duration. Folder counts include only accessible indexed media; Files → Choose folder opens other document-provider folders. Selected-video access is supported on Android 14.\n\nFiles: choose a folder, tap a folder to enter, or use ⋮ for copy, move, rename, share and delete. Copy/move supports individual files. Android controls which folders are accessible.\n\nPlayer: use built-in controls for seeking, audio/subtitle tracks and speed. More offers A–B repeat, bookmarks, external timed subtitles, subtitle delay/speed correction and SRT export, aspect ratio and sleep timer. Timed captions are restored locally for recent files. Player → More → More → Gesture controls changes swipe sides and double-tap action; Display Settings toggles clock, battery and remaining time. PiP requires Android 8+ and device support. Audio continues in the background.\n\nStreams: add a direct HTTPS or RTSP media URL. Web page links and DRM-locked services are not media URLs. Downloads support direct HTTPS files only.\n\nLibrary menu: favorites, history, playlists and downloads. No sample files are shown as your own media.\n\nThis is the native core build. Bundled fallback covers AC3/EAC3/DTS/TrueHD audio and AV1/VP9 video; this is not universal format support. Player More → More → Decoder diagnostics lists detected tracks and active decoders. SMB/FTP, casting, encrypted vault, advanced PCM processing and additional widget types require further development.") }
+    private fun help() { info("TN-Player help", getString(R.string.library_access_help) + "\n\nPlayer: use built-in controls for seeking, audio/subtitle tracks and speed. More offers A–B repeat, bookmarks, external timed subtitles, subtitle delay/speed correction and SRT export, aspect ratio and sleep timer. Timed captions are restored locally for recent files. Gesture controls assigns actions to single tap, double-tap left/right and vertical swipe left/right. Hold playing video for 2× speed, or hold Unlock to release the player control lock. Subtitle gesture mode adjusts position and size; subtitle timing is saved per file. Display Settings toggles clock, battery and remaining time. PiP requires Android 8+ and device support. Background audio depends on the Background playback setting.\n\nStreams: add a direct HTTPS or RTSP media URL. Web page links and DRM-locked services are not media URLs. Downloads support direct HTTPS files only.\n\nLibrary menu: favorites, history, playlists and downloads. No sample files are shown as your own media.\n\nThis is the native core build. Bundled fallback covers AC3/EAC3/DTS/TrueHD audio and AV1/VP9 video; this is not universal format support. Player More → More → Decoder diagnostics lists detected tracks and active decoders. Built-in SMB, FTP and WebDAV browsing, casting, cloud sync and an encrypted vault are unavailable. Android document providers can still supply granted folders. Equalizer, bass boost and virtualizer depend on device support; there is no PCM limiter or audio delay control. The playback widget is available.") }
 }
