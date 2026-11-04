@@ -21,3 +21,28 @@ For SD cards, USB drives and Android document providers, use the toolbar menu:
 existing Files browsing path. Merely opening the app, switching tabs or opening
 the menu does not launch either picker. Unrelated explicit actions such as backup
 import and loading external subtitles still use their own document pickers.
+
+## Folder queues, diagnostics and hidden folders
+
+See [PLAYBACK.md](PLAYBACK.md) for queue ordering, the 5,000-item cap and
+notification behavior. MediaStore folder playback is independent of the
+200-item display page.
+
+**Library diagnostics** reports Android video and audio grants and, for each
+collection, raw MediaStore rows → dot-name filter → user folder exclusions →
+minimum duration → current folder scope → folder grouping → text search. The
+grouped and searched columns count display rows (folders or files). An empty
+Music list with indexed audio reports the first stage that reaches zero and
+offers its reset. If raw audio is zero, no app filter removed it; verify the
+audio permission and the Android index. The dialog requests a bounded scanner
+pass for readable files in the last selected local storage tree, then refreshes.
+Android may deny direct path access even when SAF can read a file; opaque or
+cloud providers are not scanned.
+
+Long-press an indexed folder or a supported local SAF folder to hide/unhide it.
+The Me hub and Settings include **Hidden folders** with current indexed file
+counts. **Show hidden folders** brings those folders and their descendants back
+into results and dims folder rows with a Hidden badge. Dot-prefixed names have
+a separate filter. Hiding is a browse preference, not a vault or a deletion.
+The backup format stays version 1. It accepts bounded, validated
+`excludedFolders` and `showExcludedFolders` values; old backups may omit both.

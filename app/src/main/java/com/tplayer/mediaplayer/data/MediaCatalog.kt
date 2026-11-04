@@ -37,7 +37,7 @@ data class CatalogEntry(
     val uri: String, val title: String, val folder: IndexedFolder, val mime: String = "", val bytes: Long = 0,
     val duration: Long = 0, val date: Long = 0, val width: Int = 0, val height: Int = 0,
     val frameRate: Float = 0f, val lastPlayed: Long = 0, val state: Int = 0, val artwork: String? = null,
-    val count: Int = 0, val resumeAt: Long = 0
+    val count: Int = 0, val resumeAt: Long = 0, val excludedFolder: Boolean = false
 ) {
     val directory get() = count > 0
     fun item(display: LibraryDisplay): LibraryItem {
@@ -55,22 +55,32 @@ data class CatalogEntry(
         if (display.date && date > 0) fields += java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT).format(java.util.Date(date))
         // Disambiguate duplicate folder names even when the optional path field is off.
         if (directory || display.path) fields += folder.displayPath
-        return LibraryItem(uri, title, fields.joinToString(" · "), mime, artwork, if (directory) folder else null)
+        return LibraryItem(uri, title, fields.joinToString(" · "), mime, artwork, if (directory) folder else null, sourceFolder = folder, excludedFolder = excludedFolder)
     }
 }
-data class CatalogPage(val entries: List<CatalogEntry>, val total: Int, val nextCursor: CatalogEntry?, val before: Int, val accessibleFiles: Int = 0) {
+data class CatalogStats(val raw: Int = 0, val named: Int = 0, val visible: Int = 0,
+    val duration: Int = 0, val scoped: Int = 0, val grouped: Int = 0, val searched: Int = 0)
+
+data class CatalogPage(val entries: List<CatalogEntry>, val total: Int, val nextCursor: CatalogEntry?, val before: Int, val accessibleFiles: Int = 0, val stats: CatalogStats = CatalogStats(), val excludedCounts: Map<IndexedFolder, Int> = emptyMap()) {
     val hasMore get() = nextCursor != null
 }
 
 /** One ordered page is buffered, regardless of depth. Directory aggregates are separate scan metadata. */
 class CatalogCollector(private val display: LibraryDisplay, private val current: IndexedFolder?,
-    private val query: String, private val hidden: Boolean, private val after: CatalogEntry?, private val pageSize: Int) {
-    init { require(pageSize in 1..500) }
+    private val query: String, private val hidden: Boolean, private val after: CatalogEntry?, private val pageSize: Int, private val excluded: Set<IndexedFolder> = emptySet(), private val showExcluded: Boolean = false) {
+    init { require(pageSize in 1..5000) }
     private val order = compareByDescending<CatalogEntry> { it.directory }.then(comparator(display))
     private val page = PriorityQueue<CatalogEntry>(pageSize, Comparator { a, b -> order.compare(b, a) })
     private val folders = mutableMapOf<IndexedFolder, CatalogEntry>()
     private var total = 0
     private var before = 0
+    private var raw = 0
+    private var named = 0
+    private var visible = 0
+    private var duration = 0
+    private var scoped = 0
+    private var groupedFiles = 0
+    private val excludedCounts = mutableMapOf<IndexedFolder, Int>()
     internal val bufferedRows get() = page.size
     private fun keep(entry: CatalogEntry) {
         total++
@@ -79,8 +89,15 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
         else if (order.compare(entry, page.peek()) < 0) { page.poll(); page.add(entry) }
     }
     fun add(entry: CatalogEntry) {
+        raw++
+        val matching = if (excluded.isEmpty()) emptyList() else FolderExclusions.matches(entry.folder, excluded).toList()
+        matching.forEach { excludedCounts[it] = (excludedCounts[it] ?: 0) + 1 }
         if (!hidden && (entry.title.startsWith('.') || entry.folder.path.startsWith('.') || "/." in entry.folder.path)) return
+        named++
+        if (matching.isNotEmpty() && !showExcluded) return
+        visible++
         if (entry.duration < display.minimumSeconds * 1000L) return
+        duration++
         if (display.mode == MediaViewMode.FILES && current != null && entry.folder != current) return
         val key: IndexedFolder? = when {
             display.mode == MediaViewMode.FILES -> null
@@ -91,22 +108,25 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
                 ?.let { current.copy(path = current.path + it + "/") }
         }
         if (display.mode == MediaViewMode.FOLDERS && current != null && entry.folder != current) return
+        scoped++
         if (key != null) {
             val old = folders[key]
-            folders[key] = if (old == null) entry.copy(uri = "tnfolder:${key.volume}:${key.path}", title = key.name, folder = key, count = 1, mime = "", artwork = null)
+            folders[key] = if (old == null) entry.copy(uri = "tnfolder:${key.volume}:${key.path}", title = key.name, folder = key, count = 1, mime = "", artwork = null, excludedFolder = FolderExclusions.matches(key, excluded).any())
                 else old.copy(count = old.count + 1, bytes = old.bytes + entry.bytes, duration = old.duration + entry.duration,
                     date = maxOf(old.date, entry.date), width = if (entry.width.toLong() * entry.height > old.width.toLong() * old.height) entry.width else old.width,
                     height = if (entry.width.toLong() * entry.height > old.width.toLong() * old.height) entry.height else old.height,
                     lastPlayed = maxOf(old.lastPlayed, entry.lastPlayed), state = maxOf(old.state, entry.state), frameRate = maxOf(old.frameRate, entry.frameRate))
-        } else if (entry.title.contains(query, true)) keep(entry)
+        } else { groupedFiles++; if (entry.title.contains(query, true)) keep(entry) }
     }
     fun finish(): CatalogPage {
         for (folder in folders.values) {
             if (folder.title.contains(query, true) || folder.folder.displayPath.contains(query, true)) keep(folder)
         }
+        val grouped = groupedFiles + folders.size
         folders.clear()
         val rows = page.sortedWith(order)
-        return CatalogPage(rows, total, rows.lastOrNull()?.takeIf { total - before > rows.size }, before)
+        return CatalogPage(rows, total, rows.lastOrNull()?.takeIf { total - before > rows.size }, before, raw,
+            CatalogStats(raw, named, visible, duration, scoped, grouped, total), excludedCounts.toMap())
     }
     companion object {
         fun comparator(display: LibraryDisplay): Comparator<CatalogEntry> {
@@ -129,29 +149,55 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
 }
 
 internal fun catalogCollector(display: LibraryDisplay, folder: IndexedFolder?, query: String,
-    hidden: Boolean, after: CatalogEntry?, allFolders: Boolean): CatalogCollector {
+    hidden: Boolean, after: CatalogEntry?, allFolders: Boolean, excluded: Set<IndexedFolder> = emptySet(), showExcluded: Boolean = false): CatalogCollector {
     val global = allFolders && query.isNotBlank()
     return CatalogCollector(if (global) display.copy(mode = MediaViewMode.FILES) else display,
-        if (global) null else folder, query, hidden, after, 200)
+        if (global) null else folder, query, hidden, after, 200, excluded, showExcluded)
 }
 
 class MediaCatalog(private val context: Context) {
     suspend fun page(video: Boolean, display: LibraryDisplay, folder: IndexedFolder?, query: String,
-        hidden: Boolean, history: List<History>, after: CatalogEntry? = null, allFolders: Boolean = false): CatalogPage = withContext(Dispatchers.IO) {
-        val collector = catalogCollector(display, folder, query, hidden, after, allFolders)
+        hidden: Boolean, history: List<History>, after: CatalogEntry? = null, allFolders: Boolean = false,
+        excluded: Set<IndexedFolder> = emptySet(), showExcluded: Boolean = false): CatalogPage = withContext(Dispatchers.IO) {
+        val collector = catalogCollector(display, folder, query, hidden, after, allFolders, excluded, showExcluded)
+        scan(video, history, collector::add)
+        collector.finish()
+    }
+
+    internal suspend fun folderItems(folder: IndexedFolder, display: LibraryDisplay, history: List<History>,
+        excluded: Set<IndexedFolder>, showExcluded: Boolean): CatalogPage = withContext(Dispatchers.IO) {
+        val collector = CatalogCollector(display.copy(mode = MediaViewMode.FILES, minimumSeconds = 0), folder,
+            "", true, null, FolderQueue.LIMIT, excluded, showExcluded)
+        for (video in listOf(true, false)) try { scan(video, history, collector::add) } catch (_: SecurityException) { }
+        collector.finish()
+    }
+
+    internal suspend fun indexedFolder(uri: String): IndexedFolder? = withContext(Dispatchers.IO) {
+        val source = android.net.Uri.parse(uri)
+        if (source.authority != "media") return@withContext null
+        val columns = if (Build.VERSION.SDK_INT >= 29) arrayOf("volume_name", "relative_path") else arrayOf("_data")
+        try {
+            context.contentResolver.query(source, columns, null, null, null)?.use { c ->
+                if (!c.moveToFirst()) return@use null
+                val volume = if (columns.size == 2) c.getString(0).orEmpty().ifBlank { "external_primary" } else "external"
+                val path = if (columns.size == 2) c.getString(1).orEmpty() else c.getString(0).orEmpty().substringBeforeLast('/', "")
+                IndexedFolder(volume, path.trim('/').let { if (it.isEmpty()) "" else "$it/" })
+            }
+        } catch (_: SecurityException) { null } catch (_: IllegalArgumentException) { null }
+    }
+
+    private suspend fun scan(video: Boolean, history: List<History>, add: (CatalogEntry) -> Unit) {
         val collection = if (video) MediaStore.Video.Media.EXTERNAL_CONTENT_URI else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val projection = mutableListOf("_id", "_display_name", "duration", "_size", "mime_type", "date_modified")
         if (Build.VERSION.SDK_INT >= 29) projection += listOf("relative_path", "volume_name") else projection += "_data"
         if (video) { projection += listOf("width", "height"); if (Build.VERSION.SDK_INT >= 30) projection += "capture_framerate" }
         else projection += "album_id"
         val recent = history.associateBy { it.uri }
-        var accessibleFiles = 0
         checkNotNull(context.contentResolver.query(collection, projection.toTypedArray(), null, null, "_id DESC")) { "Android's media index is unavailable." }.use { c ->
             fun string(name: String) = c.getColumnIndex(name).takeIf { it >= 0 }?.let { if (c.isNull(it)) "" else c.getString(it) }.orEmpty()
             fun number(name: String) = c.getColumnIndex(name).takeIf { it >= 0 }?.let { if (c.isNull(it)) 0L else c.getLong(it) } ?: 0L
             while (c.moveToNext()) {
                 currentCoroutineContext().ensureActive()
-                accessibleFiles++
                 val volume = if (Build.VERSION.SDK_INT >= 29) string("volume_name").ifBlank { "external_primary" } else "external"
                 val path = if (Build.VERSION.SDK_INT >= 29) string("relative_path") else string("_data").substringBeforeLast('/', "").trimStart('/')
                 val key = IndexedFolder(volume, path.trim('/').let { if (it.isEmpty()) "" else "$it/" })
@@ -162,13 +208,12 @@ class MediaCatalog(private val context: Context) {
                 val duration = number("duration").coerceAtLeast(0)
                 val state = if (prior == null) 0 else if (prior.duration > 0 && prior.position > 0 && prior.position >= prior.duration - minOf(5000, prior.duration / 20)) 2 else 1
                 val rate = string("capture_framerate").toFloatOrNull()?.takeIf { it.isFinite() && it > 0 } ?: 0f
-                collector.add(CatalogEntry(uri, string("_display_name").ifBlank { "Untitled" }, key, string("mime_type"),
+                add(CatalogEntry(uri, string("_display_name").ifBlank { "Untitled" }, key, string("mime_type"),
                     number("_size").coerceAtLeast(0), duration, number("date_modified") * 1000L,
                     number("width").toInt(), number("height").toInt(), rate, prior?.updatedAt ?: 0, state,
                     if (!video && number("album_id") > 0) "content://media/$volume/audio/albumart/${number("album_id")}" else null,
                     resumeAt = prior?.let { com.tplayer.mediaplayer.playback.PlaybackPolicy.resumePosition(it.position, it.duration) } ?: 0))
             }
         }
-        collector.finish().copy(accessibleFiles = accessibleFiles)
     }
 }

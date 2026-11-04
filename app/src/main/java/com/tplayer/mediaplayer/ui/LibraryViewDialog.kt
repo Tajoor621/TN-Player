@@ -51,7 +51,7 @@ fun Context.libraryViewDialog(initial: LibraryDisplay, hidden: Boolean, folderOr
     val advanced = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
     box.addView(button("Advanced ⌄") { advanced.visibility = if (advanced.visibility == View.VISIBLE) View.GONE else View.VISIBLE })
     box.addView(advanced)
-    field(advanced, "Show hidden indexed media / chosen-folder entries", showHidden) { showHidden = it }
+    field(advanced, getString(com.tplayer.mediaplayer.R.string.library_show_dot_names), showHidden) { showHidden = it }
     advanced.addView(TextView(this).apply { text = "Minimum duration"; setPadding(0, dp(12), 0, 0) })
     val minimum = EditText(this).apply { setSingleLine(); inputType = android.text.InputType.TYPE_CLASS_NUMBER; setText(draft.minimumSeconds.toString()); hint = "Seconds (0–3600)"; minHeight = dp(48); contentDescription = "Minimum duration in seconds" }
     advanced.addView(minimum)

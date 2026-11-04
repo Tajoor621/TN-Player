@@ -157,7 +157,21 @@ class Settings(context: Context) {
         get() = prefs.getString("playerShortcuts", null)?.split(',')?.mapNotNull { key -> PlayerShortcut.values().firstOrNull { it.name == key } }?.toSet()
             ?: setOf(PlayerShortcut.ROTATION, PlayerShortcut.SPEED, PlayerShortcut.BACKGROUND, PlayerShortcut.EQUALIZER, PlayerShortcut.AB)
         set(value) { prefs.edit().putString("playerShortcuts", PlayerShortcut.values().filter { it in value }.joinToString(",") { it.name }).apply() }
+    var excludedFolders: Set<IndexedFolder>
+        get() = prefs.getString(FolderExclusions.KEY, null)?.let { runCatching { FolderExclusions.decode(it) }.getOrNull() }.orEmpty()
+        set(value) { prefs.edit().putString(FolderExclusions.KEY, FolderExclusions.encode(value)).apply() }
+    var showExcludedFolders: Boolean
+        get() = prefs.getBoolean("showExcludedFolders", false)
+        set(value) { prefs.edit().putBoolean("showExcludedFolders", value).apply() }
+    var playbackNotificationAsked: Boolean
+        get() = prefs.getBoolean("playbackNotificationAsked", false)
+        set(value) { prefs.edit().putBoolean("playbackNotificationAsked", value).apply() }
+    var playbackNotificationDenialShown: Boolean
+        get() = prefs.getBoolean("playbackNotificationDenialShown", false)
+        set(value) { prefs.edit().putBoolean("playbackNotificationDenialShown", value).apply() }
+
     fun backupValues(): Map<String, Any> = mapOf(
+        FolderExclusions.KEY to FolderExclusions.encode(excludedFolders), "showExcludedFolders" to showExcludedFolders,
         "autoMatchingSubtitles" to autoMatchingSubtitles, "tunneledPlayback" to tunneledPlayback, "preloadNext" to preloadNext, "releasePausedInBackground" to releasePausedInBackground, "decoderPreference" to decoderPreference, "theme" to theme, "gestureVolumeRight" to gestureVolumeRight, "doubleTapPlayPause" to doubleTapPlayPause, "showPlayerClock" to showPlayerClock, "showPlayerBattery" to showPlayerBattery, "showRemainingTime" to showRemainingTime, "autoPip" to autoPip, "resume" to resume, "hidden" to hidden,
         "seekMs" to seekMs, "gestures" to gestures, "amoled" to amoled,
         "embeddedSubtitleStyles" to embeddedSubtitleStyles, "subtitleSize" to subtitleSize, "subtitleFont" to subtitleFont, "subtitleColor" to subtitleColor,
@@ -187,7 +201,12 @@ class Settings(context: Context) {
                 editor.putString(key, value as String)
                 continue
             }
-            if (key == "autoMatchingSubtitles") require(value is Boolean)
+            if (key == FolderExclusions.KEY) {
+                require(value is String)
+                editor.putString(key, FolderExclusions.encode(FolderExclusions.decode(value)))
+                continue
+            }
+            if (key in setOf("autoMatchingSubtitles", "showExcludedFolders")) require(value is Boolean)
             when (value) {
             is Boolean -> editor.putBoolean(key, value)
             is Long -> editor.putLong(key, value)

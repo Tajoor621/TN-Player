@@ -28,7 +28,7 @@ data class PlaybackCheckpoint(val items: List<QueueEntry>, val index: Int, val p
     companion object {
         fun parse(value: String): PlaybackCheckpoint {
             val obj = JSONObject(value); require(obj.getInt("schema") == 1)
-            val entries = obj.getJSONArray("items"); require(entries.length() in 1..1000)
+            val entries = obj.getJSONArray("items"); require(entries.length() in 1..5000)
             val items = (0 until entries.length()).map { i -> entries.getJSONObject(i).let { e ->
                 val uri = e.getString("uri"); require(uri.length <= 32768 && Uri.parse(uri).scheme?.lowercase() in setOf("content", "file", "https", "rtsp"))
                 QueueEntry(uri, e.optString("title", "Media").take(1024), e.optString("mime"))

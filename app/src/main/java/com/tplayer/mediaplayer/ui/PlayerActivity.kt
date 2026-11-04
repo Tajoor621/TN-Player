@@ -61,6 +61,7 @@ class PlayerActivity : AppCompatActivity() {
     private val captionTicker = object : Runnable { override fun run() { renderCaptions(); renderStatus(); video.postDelayed(this, 50) } }
     private lateinit var top: LinearLayout
     private lateinit var title: TextView
+    private lateinit var orderIndicator: TextView
     private lateinit var shortcuts: HorizontalScrollView
     private lateinit var bottom: LinearLayout
     private lateinit var unlock: android.view.View
@@ -100,6 +101,8 @@ class PlayerActivity : AppCompatActivity() {
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"
+            updateQueueIndicator(player)
+            if (player.isPlaying) offerPlaybackNotifications()
             if (resumeRequested && player.mediaItemCount > 0) { resumeRequested = false; startPlayback(player) }
             renderCaptions(); updateSpeed(); updateAwake(); updatePip()
         }
@@ -116,6 +119,40 @@ class PlayerActivity : AppCompatActivity() {
             if (ui.pendingSubtitleMediaId != null && ui.pendingSubtitleMediaId != item?.mediaId) { subtitleJob?.cancel(); ui.pendingSubtitle = null; ui.pendingSubtitleMediaId = null }
         }
     }
+    private fun updateQueueIndicator(player: Player) {
+        orderIndicator.visibility = if (player.mediaItemCount > 1 && !inPip()) View.VISIBLE else View.GONE
+        if (player.mediaItemCount > 1) orderIndicator.text =
+            getString(R.string.playback_queue_position, player.currentMediaItemIndex + 1, player.mediaItemCount)
+    }
+
+    private val playbackNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (!granted) explainNotificationDenial()
+    }
+
+    private fun explainNotificationDenial() {
+        if (settings.playbackNotificationDenialShown) return
+        settings.playbackNotificationDenialShown = true
+        MaterialAlertDialogBuilder(this).setTitle(R.string.playback_notifications_title)
+            .setMessage(R.string.playback_notifications_denied)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.playback_notification_settings) { _, _ ->
+                startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName))
+            }.show()
+    }
+
+    private fun offerPlaybackNotifications() {
+        if (Build.VERSION.SDK_INT < 33 || inPip() || settings.playbackNotificationAsked ||
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        settings.playbackNotificationAsked = true
+        MaterialAlertDialogBuilder(this).setTitle(R.string.playback_notifications_title)
+            .setMessage(R.string.playback_notifications_explain)
+            .setNegativeButton(R.string.playback_notifications_later, null)
+            .setPositiveButton(R.string.library_access_allow) { _, _ ->
+                playbackNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }.show()
+    }
+
     private val subtitlePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: SecurityException) { }
@@ -184,7 +221,14 @@ class PlayerActivity : AppCompatActivity() {
             contentDescription = "Current playback speed 1×"
         }
         frame.addView(speedBadge, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = dp(120); marginStart = dp(24) })
+        orderIndicator = TextView(this).apply {
+            setTextColor(-1); setBackgroundColor(0xA0000000.toInt())
+            setPadding(dp(8), dp(4), dp(8), dp(4)); visibility = View.GONE
+        }
         buildChrome(frame)
+        frame.addView(orderIndicator, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply {
+            topMargin = dp(142); marginEnd = dp(8)
+        })
         setContentView(frame)
         if (Build.VERSION.SDK_INT >= 35) {
             frame.setBackgroundColor(android.graphics.Color.BLACK)
@@ -237,6 +281,7 @@ class PlayerActivity : AppCompatActivity() {
                 player.addListener(listener); consumeIntent()
                 ui.pendingSubtitle?.let { attachSubtitle(it) }
                 title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"; applyDisplay(); updateAwake(); updatePip()
+                updateQueueIndicator(player); if (player.isPlaying) offerPlaybackNotifications()
                 restoreCaptions(player); scanMatchingSubtitles(player, refresh = true); updateChrome()
             } catch (e: Exception) { info("Player unavailable", e.cause?.message ?: e.message ?: "Cannot connect to playback service.") }
         }, ContextCompat.getMainExecutor(this))
@@ -339,6 +384,23 @@ class PlayerActivity : AppCompatActivity() {
     private suspend fun consumeSource(source: Intent) {
         if (source.data != null || source.hasExtra("queue") || source.hasExtra(Intent.EXTRA_STREAM)) com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
         val player = controller ?: return
+        source.getStringExtra("folderQueueToken")?.let { token ->
+            val prepared = FolderQueueHandoff.take(token)
+            if (prepared == null) {
+                info(getString(R.string.playback_queue_title), getString(R.string.playback_queue_expired))
+                return
+            }
+            com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
+            val entries = prepared.entries
+            val items = withContext(Dispatchers.Default) { entries.map { it.mediaItem() } }
+            val position = if (source.getBooleanExtra("resumeHistory", false)) {
+                com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this).historyFor(entries[prepared.start].uri)
+                    ?.let { PlaybackPolicy.resumePosition(it.position, it.duration) } ?: 0
+            } else 0L
+            resumeRequested = false
+            player.setMediaItems(items, prepared.start, position); player.prepare(); player.play()
+            return
+        }
         val queue = source.getStringArrayListExtra("queue")
         val titles = source.getStringArrayListExtra("titles")
         val mimes = source.getStringArrayListExtra("mimes")

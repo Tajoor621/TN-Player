@@ -54,11 +54,13 @@ class MediaAdapter(private val click: (LibraryItem) -> Unit, private val more: (
     override fun getItemCount() = rows.size
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = rows[position]
-        holder.title.text = item.title; holder.detail.text = item.detail
+        holder.title.text = item.title
+        holder.detail.text = if (item.excludedFolder) holder.itemView.context.getString(com.tplayer.mediaplayer.R.string.library_hidden_badge, item.detail) else item.detail
+        holder.itemView.alpha = if (item.excludedFolder) .55f else 1f
         holder.menu.visibility = if (item.indexedFolder != null) android.view.View.GONE else android.view.View.VISIBLE
         holder.detail.maxLines = if (grid) 4 else 3
         holder.detail.ellipsize = android.text.TextUtils.TruncateAt.END
-        holder.itemView.contentDescription = "${item.title}, ${item.detail}"
+        holder.itemView.contentDescription = "${item.title}, ${holder.detail.text}"
         val local = android.net.Uri.parse(item.uri).scheme in setOf("content", "file")
         val artwork = item.artworkUri ?: item.uri.takeIf { local && item.mimeType.startsWith("video/") }
         Glide.with(holder.image).clear(holder.image)
