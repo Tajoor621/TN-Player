@@ -17,6 +17,7 @@ import androidx.activity.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.*
 import androidx.media3.session.*
@@ -91,6 +92,8 @@ class PlayerActivity : AppCompatActivity() {
     private var pinRequested = false
     private var loopA: Long? = null
     private var locked = false
+    private var lockBack: androidx.activity.OnBackPressedCallback? = null
+    private lateinit var playerRoot: PlayerGestureFrame
     private var resumeRequested = false
     private val dao by lazy { MediaDatabase.get(this).media() }
     private val settings by lazy { Settings(this) }
@@ -144,7 +147,7 @@ class PlayerActivity : AppCompatActivity() {
         pinRequested = savedInstanceState?.getBoolean("pinRequested") ?: false
         applyOrientation()
         resumeRequested = savedInstanceState?.getBoolean("resumeRequested") ?: false
-        val frame = PlayerGestureFrame(this)
+        val frame = PlayerGestureFrame(this).also { playerRoot = it }
         video = (layoutInflater.inflate(R.layout.player_surface, frame, false) as PlayerView).apply {
             setShowSubtitleButton(true); setShowNextButton(true); setShowPreviousButton(true)
             setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
@@ -183,16 +186,18 @@ class PlayerActivity : AppCompatActivity() {
         frame.addView(speedBadge, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = dp(120); marginStart = dp(24) })
         buildChrome(frame)
         setContentView(frame)
+        applyActivityInsets(window, frame, includeBars = { !fullscreen && !inPip() }, includeCutout = { !inPip() })
         applyFullscreen()
         video.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
             chromeVisibility = visibility; updateChrome()
         })
-        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+        val back = object : androidx.activity.OnBackPressedCallback(locked) {
             override fun handleOnBackPressed() {
-                if (locked) Toast.makeText(this@PlayerActivity, "Hold Unlock to restore controls", Toast.LENGTH_SHORT).show()
-                else { isEnabled = false; onBackPressedDispatcher.onBackPressed() }
+                Toast.makeText(this@PlayerActivity, "Hold Unlock to restore controls", Toast.LENGTH_SHORT).show()
             }
-        })
+        }
+        lockBack = back
+        onBackPressedDispatcher.addCallback(this, back)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -337,8 +342,7 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
         if (source.action == Intent.ACTION_SEND_MULTIPLE) {
-            @Suppress("DEPRECATION")
-            val shared = source.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM).orEmpty()
+            val shared = IntentCompat.getParcelableArrayListExtra(source, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
             require(shared.size in 1..1000)
             val items = shared.mapNotNull { uri ->
                 require(uri.scheme?.lowercase() in setOf("content", "file"))
@@ -348,8 +352,7 @@ class PlayerActivity : AppCompatActivity() {
             if (items.isNotEmpty()) { resumeRequested = false; player.setMediaItems(items); player.prepare(); player.play() }
             return
         }
-        @Suppress("DEPRECATION")
-        val uri = source.data ?: source.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        val uri = source.data ?: IntentCompat.getParcelableExtra(source, Intent.EXTRA_STREAM, Uri::class.java)
         if (uri == null) {
             if (source.getBooleanExtra("resume", false)) {
                 if (player.mediaItemCount > 0) startPlayback(player) else resumeRequested = true
@@ -443,7 +446,7 @@ class PlayerActivity : AppCompatActivity() {
             try { stopLockTask() } catch (_: Exception) { }
             pinRequested = false
         }
-        gestures.cancel(); locked = value; video.useController = !value
+        gestures.cancel(); locked = value; lockBack?.isEnabled = value; video.useController = !value
         if (value) { video.hideController(); updatePip() }
         if (!value) { updatePip(); chromeVisibility = View.VISIBLE; video.showController() }
         updateChrome()
@@ -463,6 +466,7 @@ class PlayerActivity : AppCompatActivity() {
         val insets = androidx.core.view.WindowCompat.getInsetsController(window, video)
         insets.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (fullscreen) insets.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars()) else insets.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        androidx.core.view.ViewCompat.requestApplyInsets(playerRoot)
     }
     private fun applyDisplay() {
         if (!::video.isInitialized) return
@@ -947,6 +951,7 @@ class PlayerActivity : AppCompatActivity() {
     @androidx.annotation.RequiresApi(26)
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        androidx.core.view.ViewCompat.requestApplyInsets(playerRoot)
         video.useController = !isInPictureInPictureMode && !locked
         updateChrome()
     }

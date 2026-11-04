@@ -112,13 +112,14 @@ class MainActivity : AppCompatActivity() {
         set(value) { browser.folder = value }
     private val parents get() = browser.parents
     private var screen = Screen.VIDEOS
+    private var navigationBack: OnBackPressedCallback? = null
     private var searchHandler: ((String) -> Unit)? = null
     private var documents: Map<String, DocumentFile> = emptyMap()
     private var clipboard: Pair<DocumentFile, Boolean>?
         get() = browser.clipboard
         set(value) { browser.clipboard = value }
     private var activePlaylist: Long? = null
-    private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { showTab(tab) }
+    private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { renderScreen() }
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         Toast.makeText(this, if (it) "Notifications enabled" else "Notification access was not granted", Toast.LENGTH_SHORT).show()
     }
@@ -236,6 +237,7 @@ class MainActivity : AppCompatActivity() {
         }
         root.addView(NowPlayingBar(this))
         root.addView(nav); setContentView(root)
+        applyActivityInsets(window, root, includeIme = true)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (isActive) {
@@ -246,7 +248,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+        val back = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
                 when {
                     browser.selection.active -> { browser.selection.clear(); adapter.refreshSelection(); updateSelection() }
@@ -261,7 +263,10 @@ class MainActivity : AppCompatActivity() {
                     else -> { isEnabled = false; onBackPressedDispatcher.onBackPressed() }
                 }
             }
-        })
+        }
+        navigationBack = back
+        onBackPressedDispatcher.addCallback(this, back)
+        syncNavigationBack()
         nav.selectedItemId = tab
         nav.setOnItemSelectedListener { showTab(it.itemId); true }
     }
@@ -405,13 +410,13 @@ class MainActivity : AppCompatActivity() {
         }
         content.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(quick) }, 2)
         if (video && current == null) addContinueWatching()
-        val required = if (Build.VERSION.SDK_INT >= 33) {
-            if (video) Manifest.permission.READ_MEDIA_VIDEO else Manifest.permission.READ_MEDIA_AUDIO
-        } else Manifest.permission.READ_EXTERNAL_STORAGE
-        val hasFull = ContextCompat.checkSelfPermission(this, required) == PackageManager.PERMISSION_GRANTED
-        val hasPartial = video && Build.VERSION.SDK_INT >= 34 && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
-        val access = button(if (hasFull) "Library access" else "Grant access") {
-            permissions.launch(if (video && Build.VERSION.SDK_INT >= 34) arrayOf(required, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) else arrayOf(required))
+        val accessLevel = mediaAccess(Build.VERSION.SDK_INT, video) {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+        }
+        val hasFull = accessLevel == MediaAccess.FULL
+        val hasPartial = accessLevel == MediaAccess.SELECTED
+        val access = button(if (hasFull || hasPartial) "Library access" else "Grant access") {
+            permissions.launch(mediaPermissions(Build.VERSION.SDK_INT, video))
         }
         actions.addView(access, if (hasFull) actions.childCount else 0)
         if (!hasFull && !hasPartial) { status.text = "Grant library access to see media folders and file counts, or open an individual file. Files → Choose folder also supports SD/USB and document providers."; return }
@@ -562,7 +567,14 @@ class MainActivity : AppCompatActivity() {
             }
         }.show()
     }
+    private fun syncNavigationBack() {
+        navigationBack?.isEnabled = browser.selection.active || screen.tab == 0 ||
+            (screen in setOf(Screen.VIDEOS, Screen.MUSIC) && browser.mediaFolders[screen == Screen.VIDEOS] != null) ||
+            (screen == Screen.SETTINGS && browser.settingsDetails) ||
+            (screen == Screen.FILES && parents.isNotEmpty())
+    }
     private fun updateSelection() {
+        syncNavigationBack()
         if (!::adapter.isInitialized) return
         selectionActions?.visibility = if (browser.selection.active) android.view.View.VISIBLE else android.view.View.GONE
         selectionCounter?.text = "${browser.selection.size} / ${maxOf(browser.selection.size, adapter.selectable().size)} selected"
@@ -776,6 +788,7 @@ class MainActivity : AppCompatActivity() {
         }.show()
     }
     private fun showSettings() {
+        syncNavigationBack()
         if (browser.settingsDetails) { showSettingsDetails(); return }
         job?.cancel(); content.removeAllViews(); searchHandler = null
         content.addView(settingsHub(listOf(
