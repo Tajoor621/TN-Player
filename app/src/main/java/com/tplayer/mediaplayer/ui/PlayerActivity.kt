@@ -45,6 +45,7 @@ class PlayerUiState : ViewModel() {
     var pendingSubtitleMediaId: String? = null
     var matchingAutoAttempted: String? = null
     var explicitSubtitleChoice: String? = null
+    internal var preparedFolderQueue: Pair<String, FolderQueue>? = null
 }
 class PlayerActivity : AppCompatActivity() {
     private lateinit var video: PlayerView
@@ -374,7 +375,10 @@ class PlayerActivity : AppCompatActivity() {
         inputJob = launchUi {
             try {
                 consumeSource(source)
-                if (pendingIntent === source) pendingIntent = null
+                if (pendingIntent === source) {
+                    pendingIntent = null
+                    ui.preparedFolderQueue = null
+                }
             } catch (e: CancellationException) { throw e }
             catch (_: android.os.BadParcelableException) { pendingIntent = null; info("Invalid media request", "The sharing app supplied invalid media data.") }
             catch (_: ClassCastException) { pendingIntent = null; info("Invalid media request", "Choose a valid media file or stream.") }
@@ -385,7 +389,8 @@ class PlayerActivity : AppCompatActivity() {
         if (source.data != null || source.hasExtra("queue") || source.hasExtra(Intent.EXTRA_STREAM)) com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
         val player = controller ?: return
         source.getStringExtra("folderQueueToken")?.let { token ->
-            val prepared = FolderQueueHandoff.take(token)
+            val prepared = ui.preparedFolderQueue?.takeIf { it.first == token }?.second
+                ?: FolderQueueHandoff.take(token)?.also { ui.preparedFolderQueue = token to it }
             if (prepared == null) {
                 info(getString(R.string.playback_queue_title), getString(R.string.playback_queue_expired))
                 return

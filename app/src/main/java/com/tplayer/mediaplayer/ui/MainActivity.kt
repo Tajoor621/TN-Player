@@ -759,7 +759,7 @@ class MainActivity : AppCompatActivity() {
                     val order = settings.libraryDisplayFor(if (activeScreen in setOf(Screen.VIDEOS, Screen.MUSIC))
                         browser.mediaFolders[activeScreen == Screen.VIDEOS] else indexed)
                     val history = MediaDatabase.get(this@MainActivity).raw().history()
-                    val result = catalog.folderItems(indexed, order, history, settings.excludedFolders, settings.showExcludedFolders)
+                    val result = catalog.folderItems(indexed, order, history, settings.excludedFolders, settings.showExcludedFolders, settings.hidden)
                     if (result.total > FolderQueue.LIMIT) { queueLimit(); return@launchUi }
                     result.entries.map { entry ->
                         val row = entry.item(order)
@@ -774,6 +774,7 @@ class MainActivity : AppCompatActivity() {
                     for (doc in safFolder.listFiles()) {
                         ensureActive()
                         val mime = doc.type.orEmpty()
+                        if (!settings.hidden && doc.name?.startsWith('.') == true) continue
                         if (!mime.startsWith("audio/") && !mime.startsWith("video/")) continue
                         siblings.add(LibraryItem(doc.uri.toString(), doc.name.orEmpty(), mimeType = mime))
                         if (siblings.size > FolderQueue.LIMIT) break

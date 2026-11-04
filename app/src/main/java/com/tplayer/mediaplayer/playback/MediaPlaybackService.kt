@@ -26,6 +26,8 @@ import kotlinx.coroutines.*
 @UnstableApi
 class MediaPlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
+    private var checkpointTimeline: Timeline? = null
+    private var checkpointEntries = emptyList<QueueEntry>()
     private val diagnostics = PlaybackDiagnostics()
     private var recovery: PlaybackRecovery? = null
     private val performance = PlaybackPerformance()
@@ -302,16 +304,21 @@ class MediaPlaybackService : MediaSessionService() {
         if (restoring || preparingHistory || benchmark?.active == true) return
         val player = session?.player ?: return
         val item = player.currentMediaItem
-        if (item == null) { persistence.save(null); return }
+        if (item == null) { checkpointTimeline = null; checkpointEntries = emptyList(); persistence.save(null); return }
         if (item.mediaId.startsWith("benchmark-")) return
         val position = player.currentPosition.coerceAtLeast(0)
         persistence.recordHistory(History(item.mediaId, item.mediaMetadata.title?.toString() ?: "Media", position,
             player.duration.takeIf { it != C.TIME_UNSET } ?: 0, mimeType = item.localConfiguration?.mimeType ?: item.mediaMetadata.extras?.getString("mime").orEmpty()))
-        val items = (0 until player.mediaItemCount.coerceAtMost(FolderQueue.LIMIT)).map { index ->
-            val value = player.getMediaItemAt(index)
-            QueueEntry(value.localConfiguration?.uri?.toString() ?: value.mediaId,
-                value.mediaMetadata.title?.toString() ?: "Media", value.localConfiguration?.mimeType ?: value.mediaMetadata.extras?.getString("mime").orEmpty())
+        val timeline = player.currentTimeline
+        if (checkpointTimeline !== timeline) {
+            checkpointTimeline = timeline
+            checkpointEntries = (0 until player.mediaItemCount.coerceAtMost(FolderQueue.LIMIT)).map { index ->
+                val value = player.getMediaItemAt(index)
+                QueueEntry(value.localConfiguration?.uri?.toString() ?: value.mediaId,
+                    value.mediaMetadata.title?.toString() ?: "Media", value.localConfiguration?.mimeType ?: value.mediaMetadata.extras?.getString("mime").orEmpty())
+            }
         }
+        val items = checkpointEntries
         if (player.currentMediaItemIndex in items.indices) persistence.save(PlaybackCheckpoint(items, player.currentMediaItemIndex, if (player.playbackState == Player.STATE_ENDED) 0 else position, player.repeatMode, player.shuffleModeEnabled))
     }
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session

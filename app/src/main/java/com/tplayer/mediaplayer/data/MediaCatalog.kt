@@ -111,7 +111,7 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
         scoped++
         if (key != null) {
             val old = folders[key]
-            folders[key] = if (old == null) entry.copy(uri = "tnfolder:${key.volume}:${key.path}", title = key.name, folder = key, count = 1, mime = "", artwork = null, excludedFolder = FolderExclusions.matches(key, excluded).any())
+            folders[key] = if (old == null) entry.copy(uri = "tnfolder:${key.volume}:${key.path}", title = key.name, folder = key, count = 1, mime = "", artwork = null, excludedFolder = excluded.isNotEmpty() && FolderExclusions.matches(key, excluded).any())
                 else old.copy(count = old.count + 1, bytes = old.bytes + entry.bytes, duration = old.duration + entry.duration,
                     date = maxOf(old.date, entry.date), width = if (entry.width.toLong() * entry.height > old.width.toLong() * old.height) entry.width else old.width,
                     height = if (entry.width.toLong() * entry.height > old.width.toLong() * old.height) entry.height else old.height,
@@ -165,10 +165,10 @@ class MediaCatalog(private val context: Context) {
     }
 
     internal suspend fun folderItems(folder: IndexedFolder, display: LibraryDisplay, history: List<History>,
-        excluded: Set<IndexedFolder>, showExcluded: Boolean): CatalogPage = withContext(Dispatchers.IO) {
+        excluded: Set<IndexedFolder>, showExcluded: Boolean, showDotNames: Boolean): CatalogPage = withContext(Dispatchers.IO) {
         val collector = CatalogCollector(display.copy(mode = MediaViewMode.FILES, minimumSeconds = 0), folder,
-            "", true, null, FolderQueue.LIMIT, excluded, showExcluded)
-        for (video in listOf(true, false)) try { scan(video, history, collector::add) } catch (_: SecurityException) { }
+            "", showDotNames, null, FolderQueue.LIMIT, excluded, showExcluded)
+        for (video in listOf(true, false)) try { scan(video, history, collector::add, folder) } catch (_: SecurityException) { }
         collector.finish()
     }
 
@@ -186,14 +186,19 @@ class MediaCatalog(private val context: Context) {
         } catch (_: SecurityException) { null } catch (_: IllegalArgumentException) { null }
     }
 
-    private suspend fun scan(video: Boolean, history: List<History>, add: (CatalogEntry) -> Unit) {
+    private suspend fun scan(video: Boolean, history: List<History>, add: (CatalogEntry) -> Unit, folder: IndexedFolder? = null) {
         val collection = if (video) MediaStore.Video.Media.EXTERNAL_CONTENT_URI else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val projection = mutableListOf("_id", "_display_name", "duration", "_size", "mime_type", "date_modified")
         if (Build.VERSION.SDK_INT >= 29) projection += listOf("relative_path", "volume_name") else projection += "_data"
         if (video) { projection += listOf("width", "height"); if (Build.VERSION.SDK_INT >= 30) projection += "capture_framerate" }
         else projection += "album_id"
         val recent = history.associateBy { it.uri }
-        checkNotNull(context.contentResolver.query(collection, projection.toTypedArray(), null, null, "_id DESC")) { "Android's media index is unavailable." }.use { c ->
+        val selection = if (Build.VERSION.SDK_INT < 29 || folder == null) null
+            else if (folder.path.isEmpty()) "volume_name = ? AND (relative_path IS NULL OR relative_path = '')"
+            else "volume_name = ? AND relative_path = ?"
+        val args = if (selection == null || folder == null) null
+            else if (folder.path.isEmpty()) arrayOf(folder.volume) else arrayOf(folder.volume, folder.path)
+        checkNotNull(context.contentResolver.query(collection, projection.toTypedArray(), selection, args, "_id DESC")) { "Android's media index is unavailable." }.use { c ->
             fun string(name: String) = c.getColumnIndex(name).takeIf { it >= 0 }?.let { if (c.isNull(it)) "" else c.getString(it) }.orEmpty()
             fun number(name: String) = c.getColumnIndex(name).takeIf { it >= 0 }?.let { if (c.isNull(it)) 0L else c.getLong(it) } ?: 0L
             while (c.moveToNext()) {
