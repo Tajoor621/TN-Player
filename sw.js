@@ -2,7 +2,7 @@
 
 const scope = self.registration.scope;
 const prefix = `tn-player-shell:${scope}:`;
-const cacheName = `${prefix}v1`;
+const cacheName = `${prefix}v2`;
 const shell = [
     "./", "./index.html", "./player.html", "./manifest.webmanifest", "./pwa.js",
     "./assets/tn-player-icon.png", "./assets/tn-player-brand.png", "./assets/tn-player-maskable.png",

@@ -1,9 +1,12 @@
 "use strict";
 
-if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(error => {
-        console.warn("TN-Player offline setup failed:", error);
-    });
+if ("windowControlsOverlay" in navigator && navigator.windowControlsOverlay) {
+    const overlay = navigator.windowControlsOverlay;
+    const syncOverlay = () => {
+        document.documentElement.classList.toggle("wco-visible", overlay.visible);
+    };
+    overlay.addEventListener("geometrychange", syncOverlay);
+    syncOverlay();
 }
 
 const input = document.querySelector("#media-file");

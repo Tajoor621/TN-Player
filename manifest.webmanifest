@@ -8,6 +8,7 @@
   "start_url": "./player.html",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "any",
   "background_color": "#081d21",
   "theme_color": "#081d21",

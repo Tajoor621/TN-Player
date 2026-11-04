@@ -11,12 +11,41 @@
 <title>TN-Player Web</title>
 <style>
 :root{color-scheme:dark;background:#081d21;color:#f4f7ff;font:16px/1.55 system-ui,sans-serif}*{box-sizing:border-box}body{margin:0}main{max-width:820px;margin:auto;padding:24px clamp(16px,5vw,40px) 48px}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #355156;padding-bottom:14px}header span{display:flex;align-items:center;gap:10px;font-weight:700}header img{border-radius:9px}h1{font-size:clamp(32px,7vw,52px);line-height:1.1;margin-bottom:.4em}p{color:#b8cbd2}a{color:#8de9ff}video{display:block;width:100%;max-height:56vh;min-height:64px;border-radius:12px;background:#020607;margin-top:20px}video[hidden]{display:none}button,input::file-selector-button{background:#d6f6ff;color:#081d21;border:0;border-radius:8px;min-height:44px;padding:8px 14px;font:inherit;font-weight:650;cursor:pointer}input{max-width:100%;min-height:44px;font:inherit}label{display:block;margin-bottom:8px;font-weight:650}:focus-visible{outline:3px solid #38cdee;outline-offset:4px}#status{overflow-wrap:anywhere}
+
+/* Only active in an installed desktop window with visible overlay controls. */
+.wco-visible body{padding-top:calc(env(titlebar-area-y, 0px) + env(titlebar-area-height, 0px))}
+.wco-visible .app-titlebar{
+    position:fixed;
+    top:env(titlebar-area-y, 0px);
+    left:env(titlebar-area-x, 0px);
+    width:env(titlebar-area-width, 100%);
+    height:env(titlebar-area-height, 0px);
+    max-width:none;
+    margin:0;
+    padding:0 12px;
+    flex-wrap:nowrap;
+    overflow:hidden;
+    background:#081d21;
+    z-index:3;
+    -webkit-app-region:drag;
+    app-region:drag;
+}
+.wco-visible .app-titlebar a{
+    -webkit-app-region:no-drag;
+    app-region:no-drag;
+}
+.wco-visible .app-titlebar img{
+    width:min(28px, env(titlebar-area-height, 28px));
+    height:min(28px, env(titlebar-area-height, 28px));
+}
+.wco-visible .app-titlebar a:focus-visible{outline-offset:-2px}
+.wco-visible .skip:focus{z-index:4}
 </style>
 <script src="./pwa.js" defer></script>
 </head>
 <body>
 <main>
-<header><span><img src="./assets/tn-player-icon.png" width="38" height="38" alt="">TN-Player Web</span><a href="./#title">Android download</a></header>
+<header class="app-titlebar"><span><img src="./assets/tn-player-icon.png" width="38" height="38" alt="">TN-Player Web</span><a href="./#title">Android download</a></header>
 <h1>Play a file</h1>
 <p>Open video or audio from this device. The file stays in your browser and is never uploaded.</p>
 <label for="media-file">Choose video or audio</label>
@@ -26,5 +55,12 @@
 <button id="install" type="button" hidden>Install web player</button>
 <p>Playback formats depend on your browser. For Media3 features and additional formats, use the native Android app.</p>
 </main>
+<script>
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(error => {
+        console.warn("TN-Player offline setup failed:", error);
+    });
+}
+</script>
 </body>
 </html>
