@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
@@ -126,7 +127,7 @@ class MainActivity : AppCompatActivity() {
         val editor = accessPrefs.edit()
         for ((permission, granted) in result) {
             if (permission != Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) {
-                editor.putBoolean(permission, !granted && !shouldShowRequestPermissionRationale(permission))
+                editor.putBoolean(permission, !granted && !ActivityCompat.shouldShowRequestPermissionRationale(this, permission))
             }
         }
         editor.apply()
@@ -428,7 +429,7 @@ class MainActivity : AppCompatActivity() {
         }
         if (granted == MediaAccess.FULL && accessPrefs.contains(primary)) accessPrefs.edit().remove(primary).apply()
         val access = accessMachine.state(granted == MediaAccess.FULL, granted == MediaAccess.SELECTED,
-            accessPrefs.getBoolean(primary, false) && !shouldShowRequestPermissionRationale(primary), Build.VERSION.SDK_INT)
+            accessPrefs.getBoolean(primary, false) && !ActivityCompat.shouldShowRequestPermissionRationale(this, primary), Build.VERSION.SDK_INT)
         val partial = when (access) {
             LibraryAccessState.FULL -> {
                 if (video) browser.partialUpgradeAttempted = false

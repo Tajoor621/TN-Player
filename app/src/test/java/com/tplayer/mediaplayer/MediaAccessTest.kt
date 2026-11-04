@@ -25,6 +25,7 @@ class MediaAccessTest {
         assertArrayEquals(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), mediaPermissions(21, true))
         assertArrayEquals(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), mediaPermissions(32, false))
         assertArrayEquals(arrayOf(Manifest.permission.READ_MEDIA_VIDEO), mediaPermissions(33, true))
+        assertArrayEquals(arrayOf(Manifest.permission.READ_MEDIA_AUDIO), mediaPermissions(33, false))
         assertArrayEquals(arrayOf(Manifest.permission.READ_MEDIA_AUDIO), mediaPermissions(36, false))
         assertEquals(MediaAccess.FULL, mediaAccess(21, false) { it == Manifest.permission.READ_EXTERNAL_STORAGE })
         assertEquals(MediaAccess.FULL, mediaAccess(36, false) { it == Manifest.permission.READ_MEDIA_AUDIO })

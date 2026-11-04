@@ -10,17 +10,15 @@ class LibraryAccessMachineTest {
     private val flags = listOf(false, true)
 
     @Test fun everyPermissionSnapshotOnLegacyGranularAndSelectedVideoApis() {
-        for (api in listOf(28, 33, 34, 36)) {
-            for (full in flags) for (partial in flags) for (blocked in flags) {
-                val expected = when {
-                    full -> LibraryAccessState.FULL
-                    partial && api >= 34 -> LibraryAccessState.PARTIAL
-                    blocked -> LibraryAccessState.DENIED_PERMANENTLY
-                    else -> LibraryAccessState.NEEDS_REQUEST
-                }
-                assertEquals("API $api full=$full selected=$partial blocked=$blocked",
-                    expected, machine.state(full, partial, blocked, api))
+        val legacy = listOf(LibraryAccessState.NEEDS_REQUEST, LibraryAccessState.DENIED_PERMANENTLY,
+            LibraryAccessState.NEEDS_REQUEST, LibraryAccessState.DENIED_PERMANENTLY) + List(4) { LibraryAccessState.FULL }
+        val selected = listOf(LibraryAccessState.NEEDS_REQUEST, LibraryAccessState.DENIED_PERMANENTLY,
+            LibraryAccessState.PARTIAL, LibraryAccessState.PARTIAL) + List(4) { LibraryAccessState.FULL }
+        for ((api, expected) in mapOf(28 to legacy, 33 to legacy, 34 to selected, 36 to selected)) {
+            val actual = flags.flatMap { full ->
+                flags.flatMap { partial -> flags.map { blocked -> machine.state(full, partial, blocked, api) } }
             }
+            assertEquals("API $api", expected, actual)
         }
     }
 
