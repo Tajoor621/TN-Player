@@ -67,7 +67,7 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
     private val query: String, private val hidden: Boolean, private val after: CatalogEntry?, private val pageSize: Int) {
     init { require(pageSize in 1..500) }
     private val order = compareByDescending<CatalogEntry> { it.directory }.then(comparator(display))
-    private val page = PriorityQueue<CatalogEntry>(pageSize, order.reversed())
+    private val page = PriorityQueue<CatalogEntry>(pageSize, Comparator { a, b -> order.compare(b, a) })
     private val folders = mutableMapOf<IndexedFolder, CatalogEntry>()
     private var total = 0
     private var before = 0

@@ -14,6 +14,10 @@ import java.util.Locale
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
 class CatalogHostBenchmarkTest {
+    // Call the JVM clock via reflection to avoid Robolectric's simulated System clock.
+    private val nanoTime = System::class.java.getMethod("nanoTime")
+    private fun now() = nanoTime.invoke(null) as Long
+
     private fun folders(count: Int) = List(count) { i ->
         IndexedFolder(if (i % 4 == 0) "abcd-1234" else "external_primary",
             when (i % 3) { 0 -> "Movies/Series $i/"; 1 -> "Downloads/Channel $i/Season 2/"; else -> "Camera/Year/Trip $i/Day 3/" })
@@ -31,17 +35,17 @@ class CatalogHostBenchmarkTest {
     private fun measured(count: Int, name: String, task: () -> Unit) {
         task() // Warm each workload before recording samples.
         val nanos = LongArray(3) {
-            val start = System.nanoTime()
+            val start = now()
             task()
-            System.nanoTime() - start
+            now() - start
         }.sorted()
         val ms = nanos[1] / 1_000_000.0
         println("HOST_CATALOG|$count|$name|" + String.format(Locale.ROOT, "%.3f", ms))
-        assertTrue("$name median took $ms ms for $count entries", ms < 1500)
+        assertTrue("$name median took $ms ms for $count entries", ms > 0 && ms < 1500)
     }
 
     @Test fun syntheticCatalogTimings() {
-        val start = System.nanoTime()
+        val start = now()
         val context = ApplicationProvider.getApplicationContext<Context>()
         val prefs = context.getSharedPreferences("tplayer", Context.MODE_PRIVATE)
         val settings = Settings(context)
@@ -86,6 +90,6 @@ class CatalogHostBenchmarkTest {
                 }
             }
         }
-        assertTrue("Host workloads must finish within 55 seconds", System.nanoTime() - start < 55_000_000_000L)
+        assertTrue("Host workloads must finish within 55 seconds", now() - start < 55_000_000_000L)
     }
 }
