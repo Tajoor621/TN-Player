@@ -24,7 +24,6 @@ import androidx.annotation.Nullable;
 import androidx.media3.common.C;
 import androidx.media3.common.Format;
 import androidx.media3.common.MimeTypes;
-import androidx.media3.common.audio.AudioProcessor;
 import androidx.media3.common.util.Assertions;
 import androidx.media3.common.util.TraceUtil;
 import androidx.media3.common.util.UnstableApi;
@@ -34,7 +33,6 @@ import androidx.media3.exoplayer.audio.AudioRendererEventListener;
 import androidx.media3.exoplayer.audio.AudioSink;
 import androidx.media3.exoplayer.audio.AudioSink.SinkFormatSupport;
 import androidx.media3.exoplayer.audio.DecoderAudioRenderer;
-import androidx.media3.exoplayer.audio.DefaultAudioSink;
 
 /** Decodes and renders audio using FFmpeg. */
 @UnstableApi
@@ -47,28 +45,6 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
 
   /** The default input buffer size. */
   private static final int DEFAULT_INPUT_BUFFER_SIZE = 960 * 6;
-
-  public FfmpegAudioRenderer() {
-    this(/* eventHandler= */ null, /* eventListener= */ null);
-  }
-
-  /**
-   * Creates a new instance.
-   *
-   * @param eventHandler A handler to use when delivering events to {@code eventListener}. May be
-   *     null if delivery of events is not required.
-   * @param eventListener A listener of events. May be null if delivery of events is not required.
-   * @param audioProcessors Optional {@link AudioProcessor}s that will process audio before output.
-   */
-  public FfmpegAudioRenderer(
-      @Nullable Handler eventHandler,
-      @Nullable AudioRendererEventListener eventListener,
-      AudioProcessor... audioProcessors) {
-    this(
-        eventHandler,
-        eventListener,
-        new DefaultAudioSink.Builder().setAudioProcessors(audioProcessors).build());
-  }
 
   /**
    * Creates a new instance.

@@ -13,8 +13,10 @@ import androidx.media3.session.*
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.tplayer.mediaplayer.R
 import com.tplayer.mediaplayer.BuildConfig
 import com.tplayer.mediaplayer.data.History
+import com.tplayer.mediaplayer.data.FolderQueue
 import com.tplayer.mediaplayer.data.MediaDatabase
 import com.tplayer.mediaplayer.data.Settings
 import com.tplayer.mediaplayer.ui.PlayerActivity
@@ -24,6 +26,8 @@ import kotlinx.coroutines.*
 @UnstableApi
 class MediaPlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
+    private var checkpointTimeline: Timeline? = null
+    private var checkpointEntries = emptyList<QueueEntry>()
     private val diagnostics = PlaybackDiagnostics()
     private var recovery: PlaybackRecovery? = null
     private val performance = PlaybackPerformance()
@@ -110,6 +114,8 @@ class MediaPlaybackService : MediaSessionService() {
     }
     override fun onCreate() {
         super.onCreate()
+        setMediaNotificationProvider(DefaultMediaNotificationProvider.Builder(this)
+            .setChannelId("tn-player-playback").setChannelName(R.string.playback_notification_channel).build())
         val tuning = PlaybackTuning(Settings(this))
         val renderers = TnRenderersFactory(this).also { renderersFactory = it }
         val selector = RecoveryTrackSelector(this)
@@ -298,20 +304,27 @@ class MediaPlaybackService : MediaSessionService() {
         if (restoring || preparingHistory || benchmark?.active == true) return
         val player = session?.player ?: return
         val item = player.currentMediaItem
-        if (item == null) { persistence.save(null); return }
+        if (item == null) { checkpointTimeline = null; checkpointEntries = emptyList(); persistence.save(null); return }
         if (item.mediaId.startsWith("benchmark-")) return
         val position = player.currentPosition.coerceAtLeast(0)
         persistence.recordHistory(History(item.mediaId, item.mediaMetadata.title?.toString() ?: "Media", position,
             player.duration.takeIf { it != C.TIME_UNSET } ?: 0, mimeType = item.localConfiguration?.mimeType ?: item.mediaMetadata.extras?.getString("mime").orEmpty()))
-        val items = (0 until player.mediaItemCount.coerceAtMost(1000)).map { index ->
-            val value = player.getMediaItemAt(index)
-            QueueEntry(value.localConfiguration?.uri?.toString() ?: value.mediaId,
-                value.mediaMetadata.title?.toString() ?: "Media", value.localConfiguration?.mimeType ?: value.mediaMetadata.extras?.getString("mime").orEmpty())
+        val timeline = player.currentTimeline
+        if (checkpointTimeline !== timeline) {
+            checkpointTimeline = timeline
+            checkpointEntries = (0 until player.mediaItemCount.coerceAtMost(FolderQueue.LIMIT)).map { index ->
+                val value = player.getMediaItemAt(index)
+                QueueEntry(value.localConfiguration?.uri?.toString() ?: value.mediaId,
+                    value.mediaMetadata.title?.toString() ?: "Media", value.localConfiguration?.mimeType ?: value.mediaMetadata.extras?.getString("mime").orEmpty())
+            }
         }
+        val items = checkpointEntries
         if (player.currentMediaItemIndex in items.indices) persistence.save(PlaybackCheckpoint(items, player.currentMediaItemIndex, if (player.playbackState == Player.STATE_ENDED) 0 else position, player.repeatMode, player.shuffleModeEnabled))
     }
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
-    override fun onTaskRemoved(rootIntent: Intent?) { if (session?.player?.playWhenReady != true) stopSelf() }
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        if ((session?.player?.mediaItemCount ?: 0) == 0) stopSelf()
+    }
     override fun onDestroy() {
         save(); handler.removeCallbacksAndMessages(null); historyRestore?.cancel()
         benchmark?.restoreOptionsOnDestroy()

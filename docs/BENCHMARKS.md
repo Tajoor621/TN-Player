@@ -1,9 +1,6 @@
 # TN-Player playback benchmarks
 
-Status on 3 November 2026: **NOT RUN on a connected device. No measured speed,
-power or leak-free claim is made for this source change.** This is feature prompt
-1 of the owner's 3-prompt integration phase. APK builds, device execution and
-publication remain deferred. This environment has no Android SDK/adb/device.
+Status on 3 November 2026: **No connected-device results recorded.** This harness was added in the first integrated feature prompt. See [the current source-only gate](../DEVELOPMENT_PHASE.md). No measured speed, power or leak-free claim is made.
 
 <!-- DEVICE_RESULTS_START -->
 Device model: pending. Android version: pending. APK source revision: pending.
@@ -16,6 +13,65 @@ Device model: pending. Android version: pending. APK source revision: pending.
 | 30-minute background playback then paused decoder/wake-lock release | Pending device run |
 | Matched baseline comparison / performance regressions | Not measured |
 <!-- DEVICE_RESULTS_END -->
+
+## Host synthetic
+
+**Device library scan timing is still pending.** These are host JVM results from
+[GitHub Actions source-only run 41810642418](https://github.com/Tajoor621/TN-Player/actions/runs/41810642418),
+using the Ubuntu runner, Java 17 and Robolectric for preference access. The
+benchmark test took **2.247s**. No real media, Android device, APK, MediaStore
+provider or filesystem scan was used.
+
+The generated catalogs have 5,000 and 50,000 metadata rows, respectively, with
+271 and 503 distinct folders across two volumes, mixed depths, duplicate titles
+and missing metadata. Each number is the median wall-clock time of three samples
+after one warm-up, excluding fixture construction and preference seeding.
+Each sort row measures the first 200 results with that key; two-page rows measure
+both scans together. Search measures the first page plus the total match count.
+The lookup row measures a batch of 1,000 reads through the real settings code.
+Each median must be below 1,500 ms and the timed workload suite below 55 seconds.
+The 5,000-row workloads run first in the same JVM; JIT warm-up and scheduling
+can make later, larger samples faster. These medians are regression checks,
+not a controlled comparison of scaling between the two sizes.
+
+| Workload | 5,000 rows (ms) | 50,000 rows (ms) |
+|---|---:|---:|
+| Title sort | 18.009 | 9.159 |
+| Date sort | 9.864 | 3.955 |
+| Played time sort | 15.681 | 9.408 |
+| Status sort | 12.479 | 11.385 |
+| Length sort | 11.164 | 5.374 |
+| Size sort | 8.887 | 9.132 |
+| Resolution sort | 14.168 | 5.705 |
+| Path sort | 79.052 | 49.913 |
+| Capture frame rate sort | 6.265 | 6.969 |
+| Type sort | 5.850 | 5.830 |
+| Files: first and second pages | 17.346 | 24.425 |
+| Folders: first and second pages | 12.417 | 13.223 |
+| Whole-catalog search | 8.408 | 11.605 |
+| Per-folder sort: 1,000 lookups | 32.118 | 18.480 |
+
+The old collector retained the entire prefix through the requested offset, and
+the UI copied and filtered all previously loaded rows on every page. That UI
+work was quadratic over a full walk. Next/Previous now replaces the displayed
+page. The ordered heap and adapter each hold at most 200 result rows; only the
+cursor boundaries are kept for back navigation. The folder scan still needs one
+aggregate per distinct folder for exact counts, and each page still scans the
+candidate index. A full page-by-page walk repeats that scan; the numbers above do
+not claim provider-side keyset queries. Per-folder lookup also no longer copies
+the preference map or formats each hash byte through a formatter.
+
+The deep-page JVM test streams 50,000 inputs without constructing a fixture
+list and asserts the heap cap after every input. A separate test covers the
+folder/file boundary across pages. For a source-only rerun, use the source-review
+workflow or run `./gradlew :app:testDebugUnitTest --tests '*CatalogHostBenchmarkTest' -x :software-codecs:verifyNativeCodecs`
+with a configured Android SDK. The Gradle HTML test report contains the
+`HOST_CATALOG` measurements.
+
+Still needed on a device: real 5,000- and 50,000-file MediaStore query-to-display
+timing (cold/warm and local/removable storage), first/deep page and search latency,
+peak memory and UI responsiveness while scanning, and the playback measurements
+listed above.
 
 ## Run after the final build is authorized
 

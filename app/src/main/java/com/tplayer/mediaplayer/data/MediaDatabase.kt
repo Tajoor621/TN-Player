@@ -48,6 +48,7 @@ interface RawMediaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun saveStream(value: SavedStream)
     @Query("DELETE FROM streams WHERE uri = :uri") suspend fun removeStream(uri: String)
     @Query("SELECT * FROM playlists ORDER BY name COLLATE NOCASE") suspend fun playlists(): List<Playlist>
+    @Query("UPDATE playlists SET name = :name WHERE id = :id") suspend fun renamePlaylist(id: Long, name: String): Int
     @Insert suspend fun createPlaylist(value: Playlist): Long
     @Query("DELETE FROM playlists WHERE id = :id") suspend fun deletePlaylist(id: Long)
     @Query("SELECT * FROM playlist_items WHERE playlistId = :id ORDER BY addedAt") suspend fun playlistItems(id: Long): List<PlaylistItem>

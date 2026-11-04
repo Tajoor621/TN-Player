@@ -17,6 +17,7 @@ import androidx.activity.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.*
 import androidx.media3.session.*
@@ -42,6 +43,9 @@ class PlayerUiState : ViewModel() {
     var subtitleExport: String? = null
     var pendingSubtitle: Uri? = null
     var pendingSubtitleMediaId: String? = null
+    var matchingAutoAttempted: String? = null
+    var explicitSubtitleChoice: String? = null
+    internal var preparedFolderQueue: Pair<String, FolderQueue>? = null
 }
 class PlayerActivity : AppCompatActivity() {
     private lateinit var video: PlayerView
@@ -58,6 +62,7 @@ class PlayerActivity : AppCompatActivity() {
     private val captionTicker = object : Runnable { override fun run() { renderCaptions(); renderStatus(); video.postDelayed(this, 50) } }
     private lateinit var top: LinearLayout
     private lateinit var title: TextView
+    private lateinit var orderIndicator: TextView
     private lateinit var shortcuts: HorizontalScrollView
     private lateinit var bottom: LinearLayout
     private lateinit var unlock: android.view.View
@@ -83,15 +88,22 @@ class PlayerActivity : AppCompatActivity() {
     private var pendingIntent: Intent? = null
     private var inputJob: Job? = null
     private var subtitleJob: Job? = null
+    private var matchingJob: Job? = null
+    private var matchingMediaId: String? = null
+    private var matching = emptyList<MatchingSubtitle>()
     private var pinRequested = false
     private var loopA: Long? = null
     private var locked = false
+    private var lockBack: androidx.activity.OnBackPressedCallback? = null
+    private lateinit var playerRoot: PlayerGestureFrame
     private var resumeRequested = false
     private val dao by lazy { MediaDatabase.get(this).media() }
     private val settings by lazy { Settings(this) }
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"
+            updateQueueIndicator(player)
+            if (player.isPlaying) offerPlaybackNotifications()
             if (resumeRequested && player.mediaItemCount > 0) { resumeRequested = false; startPlayback(player) }
             renderCaptions(); updateSpeed(); updateAwake(); updatePip()
         }
@@ -100,10 +112,48 @@ class PlayerActivity : AppCompatActivity() {
             if (ui.subtitlePreferencesId != item?.mediaId) { ui.subtitlePreferencesId = null; ui.subtitlePreferences = null }
             loopA = null
             if (ui.captions?.mediaId != item?.mediaId) ui.captions = null
-            controller?.let { restoreCaptions(it) }
+            if (matchingMediaId != item?.mediaId) {
+                ui.matchingAutoAttempted = null
+                if (ui.explicitSubtitleChoice != item?.mediaId) ui.explicitSubtitleChoice = null
+            }
+            controller?.let { restoreCaptions(it); scanMatchingSubtitles(it) }
             if (ui.pendingSubtitleMediaId != null && ui.pendingSubtitleMediaId != item?.mediaId) { subtitleJob?.cancel(); ui.pendingSubtitle = null; ui.pendingSubtitleMediaId = null }
         }
     }
+    private fun updateQueueIndicator(player: Player) {
+        orderIndicator.visibility = if (player.mediaItemCount > 1 && !inPip()) View.VISIBLE else View.GONE
+        if (player.mediaItemCount > 1) orderIndicator.text =
+            getString(R.string.playback_queue_position, player.currentMediaItemIndex + 1, player.mediaItemCount)
+    }
+
+    private val playbackNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (!granted) explainNotificationDenial()
+    }
+
+    private fun explainNotificationDenial() {
+        if (settings.playbackNotificationDenialShown) return
+        settings.playbackNotificationDenialShown = true
+        MaterialAlertDialogBuilder(this).setTitle(R.string.playback_notifications_title)
+            .setMessage(R.string.playback_notifications_denied)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.playback_notification_settings) { _, _ ->
+                startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName))
+            }.show()
+    }
+
+    private fun offerPlaybackNotifications() {
+        if (Build.VERSION.SDK_INT < 33 || inPip() || settings.playbackNotificationAsked ||
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        settings.playbackNotificationAsked = true
+        MaterialAlertDialogBuilder(this).setTitle(R.string.playback_notifications_title)
+            .setMessage(R.string.playback_notifications_explain)
+            .setNegativeButton(R.string.playback_notifications_later, null)
+            .setPositiveButton(R.string.library_access_allow) { _, _ ->
+                playbackNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }.show()
+    }
+
     private val subtitlePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: SecurityException) { }
@@ -135,7 +185,7 @@ class PlayerActivity : AppCompatActivity() {
         pinRequested = savedInstanceState?.getBoolean("pinRequested") ?: false
         applyOrientation()
         resumeRequested = savedInstanceState?.getBoolean("resumeRequested") ?: false
-        val frame = PlayerGestureFrame(this)
+        val frame = PlayerGestureFrame(this).also { playerRoot = it }
         video = (layoutInflater.inflate(R.layout.player_surface, frame, false) as PlayerView).apply {
             setShowSubtitleButton(true); setShowNextButton(true); setShowPreviousButton(true)
             setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
@@ -172,18 +222,34 @@ class PlayerActivity : AppCompatActivity() {
             contentDescription = "Current playback speed 1×"
         }
         frame.addView(speedBadge, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = dp(120); marginStart = dp(24) })
+        orderIndicator = TextView(this).apply {
+            setTextColor(-1); setBackgroundColor(0xA0000000.toInt())
+            setPadding(dp(8), dp(4), dp(8), dp(4)); visibility = View.GONE
+        }
         buildChrome(frame)
+        frame.addView(orderIndicator, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply {
+            topMargin = dp(142); marginEnd = dp(8)
+        })
         setContentView(frame)
+        if (Build.VERSION.SDK_INT >= 35) {
+            frame.setBackgroundColor(android.graphics.Color.BLACK)
+            androidx.core.view.WindowCompat.getInsetsController(window, frame).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
+        }
+        applyActivityInsets(window, frame, includeBars = { !fullscreen && !inPip() }, includeCutout = { !inPip() })
         applyFullscreen()
         video.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
             chromeVisibility = visibility; updateChrome()
         })
-        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+        val back = object : androidx.activity.OnBackPressedCallback(locked) {
             override fun handleOnBackPressed() {
-                if (locked) Toast.makeText(this@PlayerActivity, "Hold Unlock to restore controls", Toast.LENGTH_SHORT).show()
-                else { isEnabled = false; onBackPressedDispatcher.onBackPressed() }
+                Toast.makeText(this@PlayerActivity, "Hold Unlock to restore controls", Toast.LENGTH_SHORT).show()
             }
-        })
+        }
+        lockBack = back
+        onBackPressedDispatcher.addCallback(this, back)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -216,13 +282,14 @@ class PlayerActivity : AppCompatActivity() {
                 player.addListener(listener); consumeIntent()
                 ui.pendingSubtitle?.let { attachSubtitle(it) }
                 title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"; applyDisplay(); updateAwake(); updatePip()
-                restoreCaptions(player); updateChrome()
+                updateQueueIndicator(player); if (player.isPlaying) offerPlaybackNotifications()
+                restoreCaptions(player); scanMatchingSubtitles(player, refresh = true); updateChrome()
             } catch (e: Exception) { info("Player unavailable", e.cause?.message ?: e.message ?: "Cannot connect to playback service.") }
         }, ContextCompat.getMainExecutor(this))
     }
     override fun onStop() {
         gestures.cancel(); persistSubtitlePreferences()
-        inputJob?.cancel(); subtitleJob?.cancel(); restoreCaptionJob?.cancel(); video.removeCallbacks(captionTicker)
+        inputJob?.cancel(); subtitleJob?.cancel(); restoreCaptionJob?.cancel(); matchingJob?.cancel(); video.removeCallbacks(captionTicker)
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (!settings.backgroundPlayback && !isChangingConfigurations && !inPip()) controller?.pause()
         video.player = null
@@ -295,6 +362,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun removeExternalCaptions() {
         val player = controller ?: return
         val item = player.currentMediaItem ?: return
+        ui.explicitSubtitleChoice = item.mediaId
         subtitleJob?.cancel(); restoreCaptionJob?.cancel(); ui.pendingSubtitle = null; ui.captions = null; ui.subtitleGestures = false; renderCaptions()
         subtitleJob = launchUi {
             withContext(NonCancellable + Dispatchers.IO) { captionStore.remove(item.mediaId) }
@@ -307,7 +375,10 @@ class PlayerActivity : AppCompatActivity() {
         inputJob = launchUi {
             try {
                 consumeSource(source)
-                if (pendingIntent === source) pendingIntent = null
+                if (pendingIntent === source) {
+                    pendingIntent = null
+                    ui.preparedFolderQueue = null
+                }
             } catch (e: CancellationException) { throw e }
             catch (_: android.os.BadParcelableException) { pendingIntent = null; info("Invalid media request", "The sharing app supplied invalid media data.") }
             catch (_: ClassCastException) { pendingIntent = null; info("Invalid media request", "Choose a valid media file or stream.") }
@@ -317,6 +388,24 @@ class PlayerActivity : AppCompatActivity() {
     private suspend fun consumeSource(source: Intent) {
         if (source.data != null || source.hasExtra("queue") || source.hasExtra(Intent.EXTRA_STREAM)) com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
         val player = controller ?: return
+        source.getStringExtra("folderQueueToken")?.let { token ->
+            val prepared = ui.preparedFolderQueue?.takeIf { it.first == token }?.second
+                ?: FolderQueueHandoff.take(token)?.also { ui.preparedFolderQueue = token to it }
+            if (prepared == null) {
+                info(getString(R.string.playback_queue_title), getString(R.string.playback_queue_expired))
+                return
+            }
+            com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
+            val entries = prepared.entries
+            val items = withContext(Dispatchers.Default) { entries.map { it.mediaItem() } }
+            val position = if (source.getBooleanExtra("resumeHistory", false)) {
+                com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this).historyFor(entries[prepared.start].uri)
+                    ?.let { PlaybackPolicy.resumePosition(it.position, it.duration) } ?: 0
+            } else 0L
+            resumeRequested = false
+            player.setMediaItems(items, prepared.start, position); player.prepare(); player.play()
+            return
+        }
         val queue = source.getStringArrayListExtra("queue")
         val titles = source.getStringArrayListExtra("titles")
         val mimes = source.getStringArrayListExtra("mimes")
@@ -327,8 +416,7 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
         if (source.action == Intent.ACTION_SEND_MULTIPLE) {
-            @Suppress("DEPRECATION")
-            val shared = source.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM).orEmpty()
+            val shared = IntentCompat.getParcelableArrayListExtra(source, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
             require(shared.size in 1..1000)
             val items = shared.mapNotNull { uri ->
                 require(uri.scheme?.lowercase() in setOf("content", "file"))
@@ -338,8 +426,7 @@ class PlayerActivity : AppCompatActivity() {
             if (items.isNotEmpty()) { resumeRequested = false; player.setMediaItems(items); player.prepare(); player.play() }
             return
         }
-        @Suppress("DEPRECATION")
-        val uri = source.data ?: source.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        val uri = source.data ?: IntentCompat.getParcelableExtra(source, Intent.EXTRA_STREAM, Uri::class.java)
         if (uri == null) {
             if (source.getBooleanExtra("resume", false)) {
                 if (player.mediaItemCount > 0) startPlayback(player) else resumeRequested = true
@@ -348,8 +435,16 @@ class PlayerActivity : AppCompatActivity() {
         }
         val item = makeItem(uri, source.getStringExtra("title") ?: withContext(Dispatchers.IO) { displayName(uri) }, source.getStringExtra("mime")?.ifBlank { source.type } ?: source.type) ?: return
         resumeRequested = false
-        if (player.currentMediaItem?.mediaId == item.mediaId && player.mediaMetadata.extras?.getString("mime").orEmpty() == item.mediaMetadata.extras?.getString("mime").orEmpty()) { startPlayback(player); return }
-        player.setMediaItem(item); player.prepare(); player.play()
+        val explicitResume = if (source.getBooleanExtra("resumeHistory", false)) {
+            com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this).historyFor(item.mediaId)
+                ?.let { PlaybackPolicy.resumePosition(it.position, it.duration) }?.takeIf { it > 0 }
+        } else null
+        if (player.currentMediaItem?.mediaId == item.mediaId && player.mediaMetadata.extras?.getString("mime").orEmpty() == item.mediaMetadata.extras?.getString("mime").orEmpty()) {
+            if (explicitResume != null) player.seekTo(explicitResume)
+            startPlayback(player); return
+        }
+        if (explicitResume != null) player.setMediaItem(item, explicitResume) else player.setMediaItem(item)
+        player.prepare(); player.play()
     }
     private fun makeItem(uri: Uri, name: String, mime: String? = null): MediaItem? {
         require(uri.toString().length <= 32768)
@@ -425,7 +520,7 @@ class PlayerActivity : AppCompatActivity() {
             try { stopLockTask() } catch (_: Exception) { }
             pinRequested = false
         }
-        gestures.cancel(); locked = value; video.useController = !value
+        gestures.cancel(); locked = value; lockBack?.isEnabled = value; video.useController = !value
         if (value) { video.hideController(); updatePip() }
         if (!value) { updatePip(); chromeVisibility = View.VISIBLE; video.showController() }
         updateChrome()
@@ -445,6 +540,7 @@ class PlayerActivity : AppCompatActivity() {
         val insets = androidx.core.view.WindowCompat.getInsetsController(window, video)
         insets.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (fullscreen) insets.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars()) else insets.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        androidx.core.view.ViewCompat.requestApplyInsets(playerRoot)
     }
     private fun applyDisplay() {
         if (!::video.isInitialized) return
@@ -483,9 +579,34 @@ class PlayerActivity : AppCompatActivity() {
         if (player.currentTracks.groups.none { it.type == type }) { info("Tracks", "No embedded track of this type is available. External subtitles can be loaded from Subtitle."); return }
         TrackSelectionDialogBuilder(this, if (type == C.TRACK_TYPE_AUDIO) "Audio Track" else "Subtitle", player, type).setShowDisableOption(type == C.TRACK_TYPE_TEXT).build().show()
     }
+    private fun scanMatchingSubtitles(player: MediaController, refresh: Boolean = false) {
+        val id = player.currentMediaItem?.mediaId
+        if (!refresh && matchingMediaId == id) return
+        matchingJob?.cancel()
+        matchingMediaId = id; matching = emptyList()
+        if (id == null) return
+        val mime = player.currentMediaItem?.mediaMetadata?.extras?.getString("mime").orEmpty()
+        matchingJob = lifecycleScope.launch {
+            val files = MatchingSubtitles(this@PlayerActivity).find(id, mime)
+            if (controller !== player || player.currentMediaItem?.mediaId != id) return@launch
+            matching = files
+            restoreCaptionJob?.join()
+            if (controller === player && player.currentMediaItem?.mediaId == id && files.isNotEmpty() &&
+                settings.autoMatchingSubtitles && ui.matchingAutoAttempted != id && ui.explicitSubtitleChoice != id &&
+                ui.captions?.mediaId != id && ui.pendingSubtitle == null) {
+                ui.matchingAutoAttempted = id
+                val first = files.first()
+                attachSubtitle(first.uri, first.name, automatic = true)
+            }
+        }
+    }
+
     private fun subtitleMenu() {
         val options = arrayOf("Embedded tracks", "Load external subtitle", "Subtitle style", "Subtitle timing", "Previous caption", "Next caption", if (ui.subtitleGestures) "Subtitle gestures: on" else "Subtitle gestures: off", "Remove external subtitle", "Supported subtitle formats", "Export adjusted subtitles", "Subtitle speed correction")
-        MaterialAlertDialogBuilder(this).setTitle("Subtitle").setItems(options) { _, index -> when (index) {
+        val currentId = controller?.currentMediaItem?.mediaId
+        val sidecars = matching.takeIf { currentId == matchingMediaId }.orEmpty()
+        val labels = options + sidecars.map { getString(R.string.player_matching_subtitle_item, it.name) }
+        MaterialAlertDialogBuilder(this).setTitle("Subtitle").setItems(labels) { _, index -> when (index) {
             0 -> trackDialog(C.TRACK_TYPE_TEXT); 1 -> control(2); 2 -> control(14)
             3 -> subtitleTiming(); 4 -> jumpCaption(-1); 5 -> jumpCaption(1)
             6 -> { gestures.cancel(); ui.subtitleGestures = !ui.subtitleGestures; updateSpeed(); info("Subtitle gestures", if (ui.subtitleGestures) "Swipe vertically to move subtitles; pinch to change text size. Subtitle timing offers ±0.1 s buttons, remembered for this file. Turn this mode off for video brightness/volume and zoom/pan. System edges remain reserved for Android." else "Video seek, brightness, volume, zoom and pan gestures restored.") }
@@ -499,6 +620,10 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
             10 -> subtitleRate()
+            in options.size until labels.size -> if (controller?.currentMediaItem?.mediaId == currentId) {
+                val sidecar = sidecars[index - options.size]
+                attachSubtitle(sidecar.uri, sidecar.name)
+            } else Unit
             8 -> info("Subtitle formats", "Timed import: SRT, WebVTT, MPL2 (.mpl), PJS, MicroDVD (.sub with frame-rate header), SubViewer 2.0 (.sub), TMPlayer (.txt). Native rendering: ASS/SSA and TTML/DFXP. Text must use UTF-8 or BOM-marked UTF-16, up to 2 MB. Delay and cue navigation apply to timed imports; advanced WebVTT and legacy styling is not retained.")
         } }.show()
     }
@@ -770,17 +895,21 @@ class PlayerActivity : AppCompatActivity() {
                 }.show()
         }, ContextCompat.getMainExecutor(this))
     }
-    internal fun attachSubtitle(uri: Uri) {
+    internal fun attachSubtitle(uri: Uri, knownName: String? = null, automatic: Boolean = false) {
         val player = controller ?: return
         val item = player.currentMediaItem ?: return
         subtitleJob?.cancel()
-        ui.pendingSubtitle = uri; ui.pendingSubtitleMediaId = item.mediaId
+        if (!automatic) {
+            ui.explicitSubtitleChoice = item.mediaId
+            ui.pendingSubtitle = uri; ui.pendingSubtitleMediaId = item.mediaId
+        }
         subtitleJob = launchUi {
             try {
             val imported = withContext(Dispatchers.IO) {
                 require(uri.scheme in setOf("content", "file")) { "Choose a local subtitle file." }
-                val name = displayName(uri)
-                val text = checkNotNull(contentResolver.openInputStream(uri)).use { SubtitleImport.read(it) }
+                val name = knownName ?: displayName(uri)
+                val stream = if (uri.scheme == "file") File(checkNotNull(uri.path)).inputStream() else checkNotNull(contentResolver.openInputStream(uri))
+                val text = stream.use { SubtitleImport.read(it) }
                 Triple(name, text, name.substringAfterLast('.', "").lowercase(java.util.Locale.ROOT))
             }
             if (controller !== player || player.currentMediaItem?.mediaId != item.mediaId) return@launchUi
@@ -790,10 +919,10 @@ class PlayerActivity : AppCompatActivity() {
                 if (controller !== player || player.currentMediaItem?.mediaId != item.mediaId) return@launchUi
                 val mime = if (imported.third in setOf("ass", "ssa")) MimeTypes.TEXT_SSA else MimeTypes.APPLICATION_TTML
                 val config = MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(file)).setMimeType(mime).setLanguage("und").setLabel(imported.first).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
-                replaceCaptions(player, item, listOf(config)); withContext(NonCancellable + Dispatchers.IO) { captionStore.remove(item.mediaId) }; ui.captions = null; ui.pendingSubtitle = null; applyNativeSubtitleDelay(); renderCaptions()
+                replaceCaptions(player, item, listOf(config)); if (!automatic) withContext(NonCancellable + Dispatchers.IO) { captionStore.remove(item.mediaId) }; ui.captions = null; ui.pendingSubtitle = null; applyNativeSubtitleDelay(); renderCaptions()
             } else {
                 val document = withContext(Dispatchers.Default) { SubtitleImport.parse(imported.second, imported.first) }
-                if (controller === player && player.currentMediaItem?.mediaId == item.mediaId) applyCaptions(player, item, ExternalCaptions(item.mediaId, imported.first, document, delayMs = currentSubtitlePreferences().delayMs))
+                if (controller === player && player.currentMediaItem?.mediaId == item.mediaId) applyCaptions(player, item, ExternalCaptions(item.mediaId, imported.first, document, delayMs = currentSubtitlePreferences().delayMs), saveAssociation = !automatic)
             }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { ui.pendingSubtitle = null; ui.pendingSubtitleMediaId = null; throw e }
@@ -817,7 +946,7 @@ class PlayerActivity : AppCompatActivity() {
         subtitleJob?.cancel()
         subtitleJob = launchUi { applyCaptions(player, item, captions) }
     }
-    private suspend fun applyCaptions(player: MediaController, item: MediaItem, captions: ExternalCaptions) {
+    private suspend fun applyCaptions(player: MediaController, item: MediaItem, captions: ExternalCaptions, saveAssociation: Boolean = true) {
         if (controller !== player || player.currentMediaItem?.mediaId != captions.mediaId) return
         // Timed imports use the same position as the controller, including while paused/seeking.
         // Avoid replacing native media sources for each delay edit and avoid duplicate embedded captions.
@@ -827,7 +956,7 @@ class PlayerActivity : AppCompatActivity() {
         if (ui.subtitlePreferencesId == captions.mediaId && currentSubtitlePreferences().delayMs != captions.delayMs) {
             ui.subtitlePreferences = currentSubtitlePreferences().copy(delayMs = captions.delayMs); ui.subtitlePreferencesDirty = true
         }
-        applyNativeSubtitleDelay(); renderCaptions(); persistCaptions(captions); persistSubtitlePreferences()
+        applyNativeSubtitleDelay(); renderCaptions(); if (saveAssociation) persistCaptions(captions); persistSubtitlePreferences()
     }
     private fun renderCaptions() {
         if (!::externalCaption.isInitialized) return
@@ -896,6 +1025,7 @@ class PlayerActivity : AppCompatActivity() {
     @androidx.annotation.RequiresApi(26)
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        androidx.core.view.ViewCompat.requestApplyInsets(playerRoot)
         video.useController = !isInPictureInPictureMode && !locked
         updateChrome()
     }

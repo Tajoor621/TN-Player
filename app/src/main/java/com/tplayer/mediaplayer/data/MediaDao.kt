@@ -41,6 +41,12 @@ class MediaDao(private val db: MediaDatabase, private val codec: SecretCodec) {
     suspend fun removeStream(uri: String) = write { raw.removeStream(id(uri)) }
     suspend fun playlists() = read { raw.playlists() }
     suspend fun createPlaylist(value: Playlist) = write { raw.createPlaylist(value) }
+    suspend fun renamePlaylist(id: Long, name: String) = write {
+        val clean = name.trim()
+        require(clean.isNotEmpty() && clean.length <= 1024 && clean.none { it.code < 32 }) { "Enter a playlist name of 1–1024 characters." }
+        require(raw.playlists().none { it.id != id && it.name.trim().equals(clean, ignoreCase = true) }) { "A playlist with that name already exists." }
+        check(raw.renamePlaylist(id, clean) == 1) { "This playlist no longer exists." }
+    }
     suspend fun deletePlaylist(id: Long) = write { raw.deletePlaylist(id) }
     suspend fun playlistItems(id: Long) = read { raw.playlistItems(id).map { it.copy(uri = reveal(it.uri)) } }
     suspend fun addToPlaylist(value: PlaylistItem) = write { raw.addToPlaylist(value.copy(uri = protect(value.uri), title = title(value.title))) }

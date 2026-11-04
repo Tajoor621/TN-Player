@@ -71,7 +71,15 @@ for abi in armeabi-v7a arm64-v8a x86 x86_64; do
   for library in ffmpegJNI vpxV2JNI gav1JNI; do
     cp "$build/jni/lib$library.so" "$dist/jniLibs/$abi/"
     "$tools/llvm-strip" --strip-unneeded "$dist/jniLibs/$abi/lib$library.so"
-    "$tools/llvm-readelf" -l "$dist/jniLibs/$abi/lib$library.so" > "$work/config/$abi/$library-elf.txt"
+    "$tools/llvm-readelf" -lW "$dist/jniLibs/$abi/lib$library.so" > "$work/config/$abi/$library-elf.txt"
+    alignments=$(awk '$1 == "LOAD" {print $NF}' "$work/config/$abi/$library-elf.txt")
+    test -n "$alignments"
+    while IFS= read -r alignment; do
+      if [[ ! "$alignment" =~ ^0x[0-9a-fA-F]+$ ]] || (( alignment < 16384 )); then
+        echo "PT_LOAD alignment below 16 KiB for $abi/$library: $alignment" >&2
+        exit 1
+      fi
+    done <<< "$alignments"
   done
   # Preserve the complete JNI translation unit for LGPL relinking in addition to source.
   find "$build/jni" -name '*ffmpeg_jni.cc.o' -exec cp '{}' "$work/config/$abi/ffmpeg_jni.cc.o" \;

@@ -8,8 +8,8 @@ class MediaCatalogTest {
     private fun entry(id: Int, volume: String = "external_primary", path: String = "Movies/Travel/", title: String = "Film $id", bytes: Long = id.toLong(), duration: Long = 12000) =
         CatalogEntry("content://media/$volume/video/media/$id", title, IndexedFolder(volume, path), "video/mp4", bytes, duration)
     private fun collect(rows: List<CatalogEntry>, display: LibraryDisplay = LibraryDisplay(), folder: IndexedFolder? = null,
-        query: String = "", offset: Int = 0, pageSize: Int = 200, hidden: Boolean = false): CatalogPage {
-        val c = CatalogCollector(display, folder, query, hidden, offset, pageSize); rows.forEach(c::add); return c.finish()
+        query: String = "", after: CatalogEntry? = null, pageSize: Int = 200, hidden: Boolean = false): CatalogPage {
+        val c = CatalogCollector(display, folder, query, hidden, after, pageSize); rows.forEach(c::add); return c.finish()
     }
     @Test fun countsAndOpensSameNamedFoldersOnDifferentVolumesWithoutMergingThem() {
         val rows = listOf(entry(1), entry(2), entry(3, "SD-card"), entry(4, path = "Downloads/Travel/"))
@@ -36,10 +36,10 @@ class MediaCatalogTest {
         val display = LibraryDisplay(mode = MediaViewMode.FILES, sort = MediaSort.SIZE, descending = true)
         val expected = rows.sortedWith(CatalogCollector.comparator(display))
         val first = collect(rows, display)
-        val second = collect(rows, display, offset = first.nextOffset)
+        val second = collect(rows, display, after = first.nextCursor)
         assertEquals(1000, first.total); assertTrue(first.hasMore)
         assertEquals(expected.take(400), first.entries + second.entries)
-        assertEquals(400, second.nextOffset)
+        assertEquals(200, second.before)
     }
     @Test fun filtersAndUnknownMetadataDoNotCreateFakeEntriesOrExposeHiddenItems() {
         val rows = listOf(entry(1, title = ".secret"), entry(2, path = "Movies/.private/"), entry(3, duration = 5000), entry(4, duration = 60000))
@@ -49,5 +49,38 @@ class MediaCatalogTest {
         assertEquals(0, collect(emptyList()).total)
         val text = entry(4).item(LibraryDisplay(frameRate = true)).detail
         assertTrue(text.contains("Capture fps unknown")); assertFalse(text.contains("0.0 capture fps"))
+    }
+
+    @Test fun deepFilePageRetainsAtMost200RowsWhileStreamingFiftyThousandInputs() {
+        val display = LibraryDisplay(mode = MediaViewMode.FILES, sort = MediaSort.SIZE)
+        val c = CatalogCollector(display, null, "", false, entry(49800), 200)
+        for (id in 50000 downTo 1) {
+            c.add(entry(id))
+            assertTrue(c.bufferedRows <= 200)
+        }
+        val last = c.finish()
+        assertEquals(50000, last.total)
+        assertEquals(49800, last.before)
+        assertEquals((49801..50000).map { entry(it).uri }, last.entries.map { it.uri })
+        assertNull(last.nextCursor)
+    }
+
+    @Test fun folderPagingBoundsTheOrderedBufferAndKeepsDirectoryFileBoundaryStable() {
+        val root = IndexedFolder("external_primary", "Movies/")
+        val mode = LibraryDisplay(mode = MediaViewMode.ALL_FOLDERS)
+        val rows = (1..240).map { entry(it, path = "Movies/Folder $it/Child/") } +
+            (241..480).map { entry(it, path = "Movies/") }
+        val first = collect(rows, mode, root)
+        val second = collect(rows, mode, root, after = first.nextCursor)
+        val third = collect(rows, mode, root, after = second.nextCursor)
+        assertTrue(first.entries.all { it.directory })
+        assertEquals(40, second.entries.count { it.directory })
+        assertTrue(third.entries.none { it.directory })
+        assertEquals(480, (first.entries + second.entries + third.entries).distinctBy { it.uri }.size)
+        assertFalse(third.hasMore)
+        val c = CatalogCollector(mode, root, "", false, second.nextCursor, 200)
+        rows.forEach(c::add)
+        c.finish()
+        assertTrue(c.bufferedRows <= 200)
     }
 }

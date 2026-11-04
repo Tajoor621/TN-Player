@@ -1,7 +1,7 @@
 plugins { id("com.android.library") }
 android {
     namespace = "com.tplayer.softwarecodecs"
-    compileSdk = 34
+    compileSdk = 36
     defaultConfig { minSdk = 21; consumerProguardFiles("consumer-rules.pro") }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
@@ -23,3 +23,6 @@ val verifyNativeCodecs by tasks.registering {
     }
 }
 tasks.named("preBuild").configure { dependsOn(verifyNativeCodecs) }
+
+// Report exact vendored Java deprecations in source-only compiler output.
+tasks.withType<JavaCompile>().configureEach { options.compilerArgs.add("-Xlint:deprecation") }

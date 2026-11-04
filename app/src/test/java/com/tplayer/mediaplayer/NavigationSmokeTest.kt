@@ -29,6 +29,9 @@ class NavigationSmokeTest {
             val activity = lifecycle.get()
             val root = activity.findViewById<View>(android.R.id.content)
             val nav = descendants(root).filterIsInstance<BottomNavigationView>().single()
+            assertTrue(descendants(root).filterIsInstance<TextView>().any { it.text.toString() == "Allow access" })
+            val shadow = org.robolectric.Shadows.shadowOf(activity)
+            org.junit.Assert.assertNull(shadow.nextStartedActivityForResult)
             nav.selectedItemId = 5
             // Exercise measurement, where the device's SwitchCompat crash occurred.
             root.measure(View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY),
@@ -36,7 +39,15 @@ class NavigationSmokeTest {
             root.layout(0, 0, 400, 800)
             assertTrue(descendants(root).filterIsInstance<TextView>().any { it.text.toString() == "Make it yours" })
             nav.selectedItemId = 3
-            assertTrue(descendants(root).filterIsInstance<TextView>().any { it.text.toString() == "Choose folder" })
+            assertTrue(descendants(root).filterIsInstance<TextView>().any { it.text.toString().startsWith("No storage folder added.") })
+            org.junit.Assert.assertNull(shadow.nextStartedActivityForResult)
+            val toolbar = descendants(root).filterIsInstance<com.google.android.material.appbar.MaterialToolbar>().single()
+            val add = (0 until toolbar.menu.size()).map { toolbar.menu.getItem(it) }.single { it.title == "Add from storage" }
+            toolbar.menu.performIdentifierAction(add.itemId, 0)
+            org.junit.Assert.assertNull(shadow.nextStartedActivityForResult)
+            val dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog() as androidx.appcompat.app.AlertDialog
+            dialog.listView!!.performItemClick(null, 0, 0)
+            org.junit.Assert.assertEquals(android.content.Intent.ACTION_OPEN_DOCUMENT, shadow.nextStartedActivityForResult.intent.action)
         } finally { lifecycle.pause().stop().destroy() }
     }
     @Test fun cancellingPlaylistChooserStillLetsFilesOpenASubfolder() {
