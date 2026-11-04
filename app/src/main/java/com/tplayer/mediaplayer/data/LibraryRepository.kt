@@ -23,6 +23,7 @@ class LibraryRepository(private val context: Context) {
                 currentCoroutineContext().ensureActive()
                 val duration = cursor.getLong(2).coerceAtLeast(0) / 1000
                 val id = cursor.getLong(0)
+                if (com.tplayer.mediaplayer.security.PrivateFolder.get(context).isPrivate(ContentUris.withAppendedId(collection, id).toString())) continue
                 rows += id to LibraryItem(ContentUris.withAppendedId(collection, id).toString(), cursor.getString(1) ?: "Untitled",
                     "%d:%02d · %.1f MB".format(duration / 60, duration % 60, cursor.getLong(3) / 1_000_000.0), cursor.getString(4).orEmpty(), if (!video && cursor.getLong(5) > 0) "content://media/external/audio/albumart/${cursor.getLong(5)}" else null)
             }

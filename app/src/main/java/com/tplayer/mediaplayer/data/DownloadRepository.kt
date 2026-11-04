@@ -68,6 +68,10 @@ class DownloadRepository(context: Context) {
             while (result.size < 500 && c.moveToNext()) {
                 currentCoroutineContext().ensureActive()
                 val id = long(DownloadManager.COLUMN_ID); val state = long(DownloadManager.COLUMN_STATUS).toInt()
+                val local = string(DownloadManager.COLUMN_LOCAL_URI)
+                val privacy = com.tplayer.mediaplayer.security.PrivateFolder.get(app)
+                if (local.isNotBlank() && privacy.isPrivate(local)) continue
+                if (local.isBlank() && privacy.configuration() != null) continue
                 result += DownloadEntry(id, string(DownloadManager.COLUMN_TITLE).ifBlank { "Download" }.take(1024), state,
                     long(DownloadManager.COLUMN_REASON).toInt(), long(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR),
                     long(DownloadManager.COLUMN_TOTAL_SIZE_BYTES), string(DownloadManager.COLUMN_MEDIA_TYPE),
@@ -80,7 +84,7 @@ class DownloadRepository(context: Context) {
         require(DownloadPolicy.error(url, mime) == null) { DownloadPolicy.error(url, mime).orEmpty() }
         val fileName = Uri.parse(url).lastPathSegment?.replace(Regex("[^A-Za-z0-9._-]"), "_")?.take(100)?.ifBlank { "media" } ?: "media"
         val request = DownloadManager.Request(Uri.parse(url)).setTitle(title.take(1024))
-            .setDestinationInExternalFilesDir(app, Environment.DIRECTORY_DOWNLOADS, "${UUID.randomUUID()}-$fileName")
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "TN-Player/${UUID.randomUUID()}-$fileName")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
         if (mime.isNotBlank()) request.setMimeType(mime)
         return manager.enqueue(request)

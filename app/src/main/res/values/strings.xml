@@ -6,4 +6,6 @@
 <string name="player_speed_badge">%1$s×</string>
 <string name="player_speed_subtitle_badge">%1$s× · Subtitle gestures</string>
 <string name="player_subtitle_delay">This file · Delay %1$s s · positive means later</string>
+<string name="private_folder_title">Private folder</string>
+<string name="private_folder_scope">Choose a local folder to hide and PIN-protect inside TN-Player. Files stay in their current location. This does not encrypt media or change other apps’ storage permissions. Private playback stops when the app leaves the foreground.</string>
 </resources>
