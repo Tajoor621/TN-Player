@@ -41,7 +41,7 @@ class LibraryFeaturesTest {
         val video = CatalogEntry("a", "Trip One", folder)
         val remoteFolder = CatalogEntry("b", "Trip Two", other)
         val excluded = CatalogEntry("c", "Party", folder)
-        fun search(query: String, all: Boolean) = catalogCollector(LibraryDisplay(), folder, query, false, 0, all)
+        fun search(query: String, all: Boolean) = catalogCollector(LibraryDisplay(), folder, query, false, null, all)
             .apply { listOf(video, remoteFolder, excluded).forEach(::add) }.finish()
         assertEquals(listOf(video), search("trip", false).entries)
         assertEquals(listOf(video, remoteFolder), search("trip", true).entries)

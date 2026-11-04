@@ -420,26 +420,29 @@ class MainActivity : AppCompatActivity() {
         }
         actions.addView(access, if (hasFull) actions.childCount else 0)
         if (!hasFull && !hasPartial) { status.text = "Grant library access to see media folders and file counts, or open an individual file. Files → Choose folder also supports SD/USB and document providers."; return }
-        val loaded = mutableListOf<LibraryItem>()
-        var offset = 0
+        val cursors = mutableListOf<CatalogEntry?>(null)
+        var nextCursor: CatalogEntry? = null
         var query = browser.searches[screen].orEmpty().trim()
         var allFolders = browser.searchAllFolders[video] == true
-        val more = button("Load more") {}
-        actions.addView(more)
+        val previous = button(getString(R.string.library_previous_page)) {}
+        val more = button(getString(R.string.library_next_page)) {}
+        actions.addView(previous); actions.addView(more)
         fun load(reset: Boolean) {
-            job?.cancel(); more.isEnabled = false; status.text = "Reading your media folders…"
-            if (reset) { offset = 0; loaded.clear(); adapter.submit(emptyList()) }
+            job?.cancel(); more.isEnabled = false; previous.isEnabled = false; status.text = "Reading your media folders…"
+            if (reset) { cursors.clear(); cursors.add(null); nextCursor = null; adapter.submit(emptyList()) }
             job = launchUi {
                 try {
                     if (reset && query.isNotBlank()) delay(250)
                     com.tplayer.mediaplayer.playback.PlaybackWorkGate.awaitPlaybackStart()
                     // Local history cannot be blocked by an unavailable network-secret key.
                     val history = MediaDatabase.get(this@MainActivity).raw().history().filter { it.uri.startsWith("content:") || it.uri.startsWith("file:") }
-                    val page = MediaCatalog(this@MainActivity).page(video, display, current, query, settings.hidden, history, offset, allFolders)
-                    offset = page.nextOffset; loaded.addAll(page.entries.map { it.item(display) })
-                    adapter.submit(loaded.toList()); updateSelection(); more.isEnabled = page.hasMore
-                    status.text = if (loaded.isEmpty()) "0 results · No matching accessible ${if (video) "video" else "audio"} media. Try Refresh, adjust filters or choose a folder in Files."
-                        else "${loaded.size} of ${page.total} · ${display.sort.label} ${if (display.descending) "↓" else "↑"}" +
+                    val page = MediaCatalog(this@MainActivity).page(video, display, current, query, settings.hidden, history, cursors.last(), allFolders)
+                    nextCursor = page.nextCursor
+                    val rows = withContext(Dispatchers.Default) { page.entries.map { it.item(display) } }
+                    adapter.submit(rows); updateSelection()
+                    more.isEnabled = page.hasMore; previous.isEnabled = cursors.size > 1
+                    status.text = if (rows.isEmpty()) "0 results · No matching accessible ${if (video) "video" else "audio"} media. Try Refresh, adjust filters or choose a folder in Files."
+                        else "${page.before + 1}–${page.before + rows.size} of ${page.total} · ${display.sort.label} ${if (display.descending) "↓" else "↑"}" +
                             (if (allFolders && query.isNotBlank()) "\n" + getString(R.string.library_search_all_folders) else current?.let { "\n${it.displayPath}" }.orEmpty()) + if (hasPartial && !hasFull) " · Selected videos only" else ""
                 } catch (e: CancellationException) { throw e }
                 catch (_: Exception) { status.text = "Library unavailable. Open a file or grant access again." }
@@ -449,17 +452,20 @@ class MainActivity : AppCompatActivity() {
             val acrossFolders = allFolders && query.isNotBlank()
             if (!acrossFolders && current == null && display.mode != MediaViewMode.FILES) { info("Select files", "Open a media folder or choose Files view first."); return@launchUi }
             val version = browser.selection.version; val snapshotQuery = query
-            val picked = mutableListOf<LibraryItem>(); var next = 0
+            val picked = mutableListOf<LibraryItem>(); var next: CatalogEntry? = null
             val history = MediaDatabase.get(this@MainActivity).raw().history()
             do {
                 val page = MediaCatalog(this@MainActivity).page(video, display.copy(mode = MediaViewMode.FILES), current, snapshotQuery, settings.hidden, history, next, acrossFolders)
                 picked += page.entries.filter { !it.directory }.map { it.item(display) }
                 require(picked.size <= FileSelection.LIMIT) { "More than 1,000 matching files. Narrow the search or choose a smaller folder." }
-                next = page.nextOffset
+                next = page.nextCursor
             } while (page.hasMore)
             if (browser.selection.version == version) { browser.selection.all(picked); adapter.refreshSelection(); updateSelection() }
         } }
-        more.setOnClickListener { load(false) }
+        previous.setOnClickListener {
+            if (cursors.size > 1) { cursors.removeAt(cursors.lastIndex); load(false) }
+        }
+        more.setOnClickListener { nextCursor?.let { cursors += it; load(false) } }
         searchHandler = { value -> browser.selection.clear(); updateSelection(); query = value.trim(); load(true) }
         actions.addView(CheckBox(this).apply {
             setText(R.string.library_search_all_folders); minHeight = dp(48); isChecked = allFolders

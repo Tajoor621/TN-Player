@@ -116,7 +116,7 @@ class Settings(context: Context) {
             .putInt("minimumSeconds", value.minimumSeconds.coerceIn(0, 3600)).apply() }
     fun libraryDisplayFor(folder: IndexedFolder?): LibraryDisplay {
         val global = libraryDisplay
-        val order = folder?.let { FolderSort.decode(prefs.all[FolderSort.key(it)]) } ?: return global
+        val order = folder?.let { FolderSort.decode(prefs.getString(FolderSort.key(it), null)) } ?: return global
         return global.copy(sort = order.first, descending = order.second)
     }
     fun saveFolderSort(folder: IndexedFolder, display: LibraryDisplay) {

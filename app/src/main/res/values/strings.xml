@@ -13,4 +13,6 @@
     <string name="library_sort_this_folder">Sort this folder</string>
     <string name="player_auto_matching_subtitles">Use matching subtitle file automatically</string>
     <string name="player_matching_subtitle_item">External: %1$s</string>
+    <string name="library_previous_page">Previous page</string>
+    <string name="library_next_page">Next page</string>
 </resources>

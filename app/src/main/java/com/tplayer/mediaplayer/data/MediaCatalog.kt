@@ -58,25 +58,28 @@ data class CatalogEntry(
         return LibraryItem(uri, title, fields.joinToString(" · "), mime, artwork, if (directory) folder else null)
     }
 }
-data class CatalogPage(val entries: List<CatalogEntry>, val total: Int, val nextOffset: Int) {
-    val hasMore get() = nextOffset < total
+data class CatalogPage(val entries: List<CatalogEntry>, val total: Int, val nextCursor: CatalogEntry?, val before: Int) {
+    val hasMore get() = nextCursor != null
 }
 
-/** Selection and sorting are independent of the provider's SQL dialect. Only a page prefix is retained. */
+/** One ordered page is buffered, regardless of depth. Directory aggregates are separate scan metadata. */
 class CatalogCollector(private val display: LibraryDisplay, private val current: IndexedFolder?,
-    private val query: String, private val hidden: Boolean, private val offset: Int, private val pageSize: Int) {
-    init { require(offset >= 0 && pageSize in 1..500); require(offset <= Int.MAX_VALUE - pageSize) }
-    private val order = comparator(display)
-    private val files = PriorityQueue<CatalogEntry>(pageSize, Comparator { a, b -> order.compare(b, a) })
+    private val query: String, private val hidden: Boolean, private val after: CatalogEntry?, private val pageSize: Int) {
+    init { require(pageSize in 1..500) }
+    private val order = compareByDescending<CatalogEntry> { it.directory }.then(comparator(display))
+    private val page = PriorityQueue<CatalogEntry>(pageSize, order.reversed())
     private val folders = mutableMapOf<IndexedFolder, CatalogEntry>()
-    private var totalFiles = 0
+    private var total = 0
+    private var before = 0
+    internal val bufferedRows get() = page.size
     private fun keep(entry: CatalogEntry) {
-        totalFiles++
-        if (files.size < offset + pageSize) files.add(entry)
-        else if (order.compare(entry, files.peek()) < 0) { files.poll(); files.add(entry) }
+        total++
+        if (after != null && order.compare(entry, after) <= 0) { before++; return }
+        if (page.size < pageSize) page.add(entry)
+        else if (order.compare(entry, page.peek()) < 0) { page.poll(); page.add(entry) }
     }
     fun add(entry: CatalogEntry) {
-        if (!hidden && (entry.title.startsWith('.') || entry.folder.path.split('/').any { it.startsWith('.') })) return
+        if (!hidden && (entry.title.startsWith('.') || entry.folder.path.startsWith('.') || "/." in entry.folder.path)) return
         if (entry.duration < display.minimumSeconds * 1000L) return
         if (display.mode == MediaViewMode.FILES && current != null && entry.folder != current) return
         val key: IndexedFolder? = when {
@@ -98,11 +101,12 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
         } else if (entry.title.contains(query, true)) keep(entry)
     }
     fun finish(): CatalogPage {
-        val directories = folders.values.filter { it.title.contains(query, true) || it.folder.displayPath.contains(query, true) }
-        // Folders stay ahead of files. A page crossing the boundary uses the correct file offset.
-        val all = (directories.sortedWith(order) + files.sortedWith(order)).drop(offset).take(pageSize)
-        val total = directories.size + totalFiles
-        return CatalogPage(all, total, minOf(offset + all.size, total))
+        for (folder in folders.values) {
+            if (folder.title.contains(query, true) || folder.folder.displayPath.contains(query, true)) keep(folder)
+        }
+        folders.clear()
+        val rows = page.sortedWith(order)
+        return CatalogPage(rows, total, rows.lastOrNull()?.takeIf { total - before > rows.size }, before)
     }
     companion object {
         fun comparator(display: LibraryDisplay): Comparator<CatalogEntry> {
@@ -125,16 +129,16 @@ class CatalogCollector(private val display: LibraryDisplay, private val current:
 }
 
 internal fun catalogCollector(display: LibraryDisplay, folder: IndexedFolder?, query: String,
-    hidden: Boolean, offset: Int, allFolders: Boolean): CatalogCollector {
+    hidden: Boolean, after: CatalogEntry?, allFolders: Boolean): CatalogCollector {
     val global = allFolders && query.isNotBlank()
     return CatalogCollector(if (global) display.copy(mode = MediaViewMode.FILES) else display,
-        if (global) null else folder, query, hidden, offset, 200)
+        if (global) null else folder, query, hidden, after, 200)
 }
 
 class MediaCatalog(private val context: Context) {
     suspend fun page(video: Boolean, display: LibraryDisplay, folder: IndexedFolder?, query: String,
-        hidden: Boolean, history: List<History>, offset: Int = 0, allFolders: Boolean = false): CatalogPage = withContext(Dispatchers.IO) {
-        val collector = catalogCollector(display, folder, query, hidden, offset, allFolders)
+        hidden: Boolean, history: List<History>, after: CatalogEntry? = null, allFolders: Boolean = false): CatalogPage = withContext(Dispatchers.IO) {
+        val collector = catalogCollector(display, folder, query, hidden, after, allFolders)
         val collection = if (video) MediaStore.Video.Media.EXTERNAL_CONTENT_URI else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val projection = mutableListOf("_id", "_display_name", "duration", "_size", "mime_type", "date_modified")
         if (Build.VERSION.SDK_INT >= 29) projection += listOf("relative_path", "volume_name") else projection += "_data"

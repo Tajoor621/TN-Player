@@ -12,7 +12,13 @@ internal object FolderSort {
     fun key(folder: IndexedFolder): String {
         val identity = "${folder.volume}\u0000${folder.path.trim('/')}"
         val hash = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8))
-        return PREFIX + hash.joinToString("") { "%02x".format(it) }
+        return buildString(PREFIX.length + hash.size * 2) {
+            append(PREFIX)
+            for (byte in hash) {
+                val value = byte.toInt() and 255
+                append("0123456789abcdef"[value ushr 4]); append("0123456789abcdef"[value and 15])
+            }
+        }
     }
 
     fun validKey(key: String) = keyPattern.matches(key)
