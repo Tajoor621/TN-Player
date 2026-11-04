@@ -14,6 +14,8 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.tplayer.mediaplayer.BuildConfig
+import com.tplayer.mediaplayer.security.PrivateFolder
+import com.tplayer.mediaplayer.security.PrivateMediaPolicy
 import com.tplayer.mediaplayer.data.History
 import com.tplayer.mediaplayer.data.MediaDatabase
 import com.tplayer.mediaplayer.data.Settings
@@ -96,7 +98,7 @@ class MediaPlaybackService : MediaSessionService() {
             } else save()
         }
         override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
-            if (benchmark?.active != true && oldPosition.mediaItem?.mediaId?.startsWith("benchmark-") != true && !restoring && oldPosition.mediaItem != null && oldPosition.mediaItem?.mediaId != newPosition.mediaItem?.mediaId) {
+            if (!PrivateMediaPolicy.marked(oldPosition.mediaItem) && benchmark?.active != true && oldPosition.mediaItem?.mediaId?.startsWith("benchmark-") != true && !restoring && oldPosition.mediaItem != null && oldPosition.mediaItem?.mediaId != newPosition.mediaItem?.mediaId) {
                 val item = oldPosition.mediaItem!!
                 persistence.recordHistory(History(item.mediaId, item.mediaMetadata.title?.toString() ?: "Media", oldPosition.positionMs, 0, mimeType = item.mediaMetadata.extras?.getString("mime").orEmpty()))
             }
@@ -145,12 +147,22 @@ class MediaPlaybackService : MediaSessionService() {
                             } }
                             .add(SessionCommand("SUBTITLE_DELAY", Bundle.EMPTY)).add(SessionCommand("PLAYBACK_DIAGNOSTICS", Bundle.EMPTY)).add(SessionCommand("TOGGLE_PLAYBACK", Bundle.EMPTY)).add(SessionCommand("DECODER_PREFERENCE", Bundle.EMPTY)).add(SessionCommand("EXTERNAL_SUBTITLE", Bundle.EMPTY)).build()).build()
                 }
+                override fun onAddMediaItems(session: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList<MediaItem>): ListenableFuture<MutableList<MediaItem>> {
+                    val result = SettableFuture.create<MutableList<MediaItem>>()
+                    scope.launch {
+                        try { result.set(PrivateMediaPolicy.protect(mediaItems, PrivateFolder.get(this@MediaPlaybackService)).toMutableList()) }
+                        catch (e: Exception) { result.setException(e) }
+                    }
+                    return result
+                }
                 override fun onPlaybackResumption(session: MediaSession, controller: MediaSession.ControllerInfo): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
                     val result = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
                     scope.launch {
                         try {
                             val saved = persistence.read() ?: error("No saved playback queue.")
-                            result.set(MediaSession.MediaItemsWithStartPosition(saved.items.map { it.mediaItem() }, saved.index, saved.position))
+                            val publicItems = saved.items.filter { !PrivateFolder.get(this@MediaPlaybackService).isPrivate(it.uri) }
+                            check(publicItems.isNotEmpty()) { "No public queue to restore." }
+                            result.set(MediaSession.MediaItemsWithStartPosition(publicItems.map { it.mediaItem() }, saved.index.coerceAtMost(publicItems.lastIndex), if (publicItems == saved.items) saved.position else 0))
                         } catch (e: Exception) { result.setException(e) }
                     }
                     return result
@@ -210,10 +222,15 @@ class MediaPlaybackService : MediaSessionService() {
                                         require(mime in setOf(MimeTypes.APPLICATION_SUBRIP, MimeTypes.TEXT_SSA, MimeTypes.APPLICATION_TTML))
                                         val parsed = android.net.Uri.parse(uri)
                                         withContext(Dispatchers.IO) {
-                                            require(parsed.scheme == "file")
-                                            val folder = java.io.File(cacheDir, "subtitles").canonicalFile
-                                            val file = java.io.File(requireNotNull(parsed.path)).canonicalFile
-                                            require(file.parentFile == folder && file.isFile && file.length() <= 4L * 1024 * 1024)
+                                            if (id.startsWith("tnprivate:")) {
+                                                val privacy = PrivateFolder.get(this@MediaPlaybackService)
+                                                require(parsed.scheme in setOf("file", "content") && privacy.isUnlocked() && privacy.authorize(uri))
+                                            } else {
+                                                require(parsed.scheme == "file")
+                                                val folder = java.io.File(cacheDir, "subtitles").canonicalFile
+                                                val file = java.io.File(requireNotNull(parsed.path)).canonicalFile
+                                                require(file.parentFile == folder && file.isFile && file.length() <= 4L * 1024 * 1024)
+                                            }
                                         }
                                         listOf(MediaItem.SubtitleConfiguration.Builder(parsed).setMimeType(mime).setLanguage("und")
                                             .setLabel(args.getString("label").orEmpty().take(256)).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build())
@@ -277,6 +294,9 @@ class MediaPlaybackService : MediaSessionService() {
             }).build()
         player.addListener(listener)
         effects.attach(player.audioSessionId)
+        scope.launch { PrivateFolder.get(this@MediaPlaybackService).unlocked.collect { unlocked ->
+            if (!unlocked && PrivateMediaPolicy.marked(player.currentMediaItem)) { player.stop(); player.clearMediaItems() }
+        } }
         scope.launch {
             try {
                 val saved = persistence.read()
@@ -284,7 +304,8 @@ class MediaPlaybackService : MediaSessionService() {
                 if (saved != null && transition == 0L && player.mediaItemCount == 0) {
                     applyingCheckpoint = true
                     try {
-                        player.setMediaItems(saved.items.map { it.mediaItem() }, saved.index, saved.position)
+                        val publicItems = saved.items.filter { !PrivateFolder.get(this@MediaPlaybackService).isPrivate(it.uri) }
+                        if (publicItems.isNotEmpty()) player.setMediaItems(publicItems.map { it.mediaItem() }, saved.index.coerceAtMost(publicItems.lastIndex), if (publicItems == saved.items) saved.position else 0)
                         player.repeatMode = saved.repeatMode; player.shuffleModeEnabled = saved.shuffle
                         player.playWhenReady = false
                     } finally { applyingCheckpoint = false }
@@ -299,7 +320,7 @@ class MediaPlaybackService : MediaSessionService() {
         val player = session?.player ?: return
         val item = player.currentMediaItem
         if (item == null) { persistence.save(null); return }
-        if (item.mediaId.startsWith("benchmark-")) return
+        if (item.mediaId.startsWith("benchmark-") || PrivateMediaPolicy.marked(item)) return
         val position = player.currentPosition.coerceAtLeast(0)
         persistence.recordHistory(History(item.mediaId, item.mediaMetadata.title?.toString() ?: "Media", position,
             player.duration.takeIf { it != C.TIME_UNSET } ?: 0, mimeType = item.localConfiguration?.mimeType ?: item.mediaMetadata.extras?.getString("mime").orEmpty()))

@@ -23,6 +23,7 @@
             </intent-filter>
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
+        <activity android:name=".ui.PrivateFolderActivity" android:exported="false" android:excludeFromRecents="true" />
         <activity android:name=".ui.PlayerActivity" android:exported="true"
             android:launchMode="singleTop" android:resizeableActivity="true"
             android:supportsPictureInPicture="true" android:hardwareAccelerated="true"

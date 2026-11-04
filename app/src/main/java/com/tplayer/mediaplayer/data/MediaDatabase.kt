@@ -18,10 +18,10 @@ data class SavedStream(@PrimaryKey val uri: String, val title: String, @ColumnIn
 @Entity(tableName = "uri_secrets")
 data class UriSecret(@PrimaryKey val id: String, val ciphertext: String)
 @Entity(tableName = "playlists")
-data class Playlist(@PrimaryKey(autoGenerate = true) val id: Long = 0, val name: String)
+data class Playlist(@PrimaryKey(autoGenerate = true) val id: Long = 0, val name: String, @ColumnInfo(defaultValue = "0") val position: Int = 0)
 @Entity(tableName = "playlist_items", primaryKeys = ["playlistId", "uri"],
     foreignKeys = [ForeignKey(entity = Playlist::class, parentColumns = ["id"], childColumns = ["playlistId"], onDelete = ForeignKey.CASCADE)])
-data class PlaylistItem(val playlistId: Long, val uri: String, val title: String, val addedAt: Long = System.currentTimeMillis(), @ColumnInfo(defaultValue = "''") val mimeType: String = "")
+data class PlaylistItem(val playlistId: Long, val uri: String, val title: String, val addedAt: Long = System.currentTimeMillis(), @ColumnInfo(defaultValue = "''") val mimeType: String = "", @ColumnInfo(defaultValue = "0") val position: Int = 0)
 @Entity(tableName = "bookmarks")
 data class Bookmark(@PrimaryKey(autoGenerate = true) val id: Long = 0, val uri: String, val title: String, val position: Long)
 
@@ -29,8 +29,8 @@ data class Bookmark(@PrimaryKey(autoGenerate = true) val id: Long = 0, val uri: 
 interface RawMediaDao {
     @Query("SELECT * FROM bookmarks LIMIT 10001") suspend fun backupBookmarks(): List<Bookmark>
     @Query("SELECT * FROM favorites LIMIT 10001") suspend fun backupFavorites(): List<Favorite>
-    @Query("SELECT * FROM playlists LIMIT 201") suspend fun backupPlaylists(): List<Playlist>
-    @Query("SELECT * FROM playlist_items WHERE playlistId = :id ORDER BY addedAt LIMIT 10001") suspend fun backupItems(id: Long): List<PlaylistItem>
+    @Query("SELECT * FROM playlists ORDER BY position, name COLLATE NOCASE, id LIMIT 201") suspend fun backupPlaylists(): List<Playlist>
+    @Query("SELECT * FROM playlist_items WHERE playlistId = :id ORDER BY position, addedAt, uri LIMIT 10001") suspend fun backupItems(id: Long): List<PlaylistItem>
 
     @Query("DELETE FROM uri_secrets WHERE id NOT IN (SELECT uri FROM history UNION SELECT uri FROM favorites UNION SELECT uri FROM streams UNION SELECT uri FROM playlist_items UNION SELECT uri FROM bookmarks)") suspend fun collectSecrets()
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun putSecret(secret: UriSecret)
@@ -47,20 +47,31 @@ interface RawMediaDao {
     @Query("SELECT * FROM streams ORDER BY title COLLATE NOCASE") suspend fun streams(): List<SavedStream>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun saveStream(value: SavedStream)
     @Query("DELETE FROM streams WHERE uri = :uri") suspend fun removeStream(uri: String)
-    @Query("SELECT * FROM playlists ORDER BY name COLLATE NOCASE") suspend fun playlists(): List<Playlist>
+    @Query("SELECT * FROM playlists ORDER BY position, name COLLATE NOCASE, id") suspend fun playlists(): List<Playlist>
     @Insert suspend fun createPlaylist(value: Playlist): Long
+    @Query("UPDATE playlists SET name = :name WHERE id = :id") suspend fun renamePlaylist(id: Long, name: String)
+    @Query("UPDATE playlists SET position = :position WHERE id = :id") suspend fun playlistPosition(id: Long, position: Int)
+    @Query("UPDATE playlist_items SET position = :position WHERE playlistId = :id AND uri = :uri") suspend fun itemPosition(id: Long, uri: String, position: Int)
+    @Query("SELECT COALESCE(MAX(position), -1) FROM playlists") suspend fun lastPlaylistPosition(): Int
+    @Query("SELECT COALESCE(MAX(position), -1) FROM playlist_items WHERE playlistId = :id") suspend fun lastItemPosition(id: Long): Int
+    @Query("DELETE FROM history WHERE uri = :uri") suspend fun deleteHistory(uri: String)
+    @Query("DELETE FROM bookmarks WHERE uri = :uri") suspend fun deleteBookmarks(uri: String)
+    @Query("DELETE FROM playlist_items WHERE uri = :uri") suspend fun deletePrivatePlaylistItems(uri: String)
     @Query("DELETE FROM playlists WHERE id = :id") suspend fun deletePlaylist(id: Long)
-    @Query("SELECT * FROM playlist_items WHERE playlistId = :id ORDER BY addedAt") suspend fun playlistItems(id: Long): List<PlaylistItem>
+    @Query("SELECT * FROM playlist_items WHERE playlistId = :id ORDER BY position, addedAt, uri") suspend fun playlistItems(id: Long): List<PlaylistItem>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun addToPlaylist(value: PlaylistItem)
     @Query("DELETE FROM playlist_items WHERE playlistId = :id AND uri = :uri") suspend fun removeFromPlaylist(id: Long, uri: String)
     @Insert suspend fun addBookmark(value: Bookmark)
     @Query("SELECT * FROM bookmarks WHERE uri = :uri ORDER BY position") suspend fun bookmarks(uri: String): List<Bookmark>
 }
 
-@Database(entities = [History::class, Favorite::class, SavedStream::class, Playlist::class, PlaylistItem::class, Bookmark::class, UriSecret::class], version = 2, exportSchema = false)
+@Database(entities = [History::class, Favorite::class, SavedStream::class, Playlist::class, PlaylistItem::class, Bookmark::class, UriSecret::class], version = 3, exportSchema = false)
 abstract class MediaDatabase : RoomDatabase() {
     abstract fun raw(): RawMediaDao
     @Volatile private var codec: SecretCodec? = null
+    private var privacy: (suspend (String) -> Boolean)? = null
+    fun isPrivate(uri: String): suspend () -> Boolean = { privacy?.invoke(uri) ?: false }
+    fun usePrivacy(check: suspend (String) -> Boolean): MediaDatabase { privacy = check; return this }
     fun media(): MediaDao = MediaDao(this, checkNotNull(codec) { "Secure storage was not initialized." })
     fun useCodec(value: SecretCodec): MediaDatabase { codec = value; return this }
     companion object {
@@ -87,11 +98,28 @@ abstract class MediaDatabase : RoomDatabase() {
                 }
             }
         }
+        val ORDER_MIGRATION = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE playlists ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE playlist_items ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+                db.query("SELECT id FROM playlists ORDER BY name COLLATE NOCASE, id").use { cursor ->
+                    var position = 0
+                    while (cursor.moveToNext()) db.execSQL("UPDATE playlists SET position=? WHERE id=?", arrayOf(position++, cursor.getLong(0)))
+                }
+                db.query("SELECT playlistId,uri FROM playlist_items ORDER BY playlistId,addedAt,uri").use { cursor ->
+                    var list = Long.MIN_VALUE; var position = 0
+                    while (cursor.moveToNext()) {
+                        if (list != cursor.getLong(0)) { list = cursor.getLong(0); position = 0 }
+                        db.execSQL("UPDATE playlist_items SET position=? WHERE playlistId=? AND uri=?", arrayOf(position++, list, cursor.getString(1)))
+                    }
+                }
+            }
+        }
         fun get(context: Context): MediaDatabase = instance ?: synchronized(this) {
             instance ?: run {
                 val codec = AndroidSecretCodec(context.applicationContext)
                 Room.databaseBuilder(context.applicationContext, MediaDatabase::class.java, "media.db")
-                    .addMigrations(migration(codec)).build().useCodec(codec).also { instance = it }
+                    .addMigrations(migration(codec), ORDER_MIGRATION).build().useCodec(codec).usePrivacy { com.tplayer.mediaplayer.security.PrivateFolder.get(context.applicationContext).isPrivate(it) }.also { instance = it }
             }
         }
     }

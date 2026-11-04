@@ -39,6 +39,7 @@ class BrowserState : ViewModel() {
     var clipboard: Pair<DocumentFile, Boolean>? = null
     val searches = mutableMapOf<Screen, String>()
     val mediaFolders = mutableMapOf<Boolean, IndexedFolder?>()
+    var wholeLibrarySearch = false
     var settingsDetails = false
     var pendingDownload: LibraryItem? = null
     var pendingRetry: Long? = null
@@ -289,6 +290,7 @@ class MainActivity : AppCompatActivity() {
         when (screen) {
             Screen.FAVORITES -> showFavorites()
             Screen.HISTORY -> showHistory()
+            Screen.CONTINUE -> showHistory(true)
             Screen.DOWNLOADS -> showDownloads()
             Screen.PLAYLIST -> activePlaylist?.let { showPlaylist(it) } ?: showTab(1)
             else -> showTab(screen.tab)
@@ -361,13 +363,15 @@ class MainActivity : AppCompatActivity() {
         when (value) { 1, 2 -> showMedia(value == 1); 3 -> showFiles(); 4 -> showStreams(); 5 -> showSettings() }
     }
     private fun showMedia(video: Boolean) {
-        val display = settings.libraryDisplay
         val current = browser.mediaFolders[video]
+        val orderKey = "indexed:$video:${current?.volume}:${current?.path}"
+        val orders = FolderOrders(this)
+        val display = orders.read(orderKey, settings.libraryDisplay)
         val actions = setup(current?.name ?: if (display.mode == MediaViewMode.FILES) (if (video) "Videos" else "Music") else "Folders")
         actions.addView(button("View & layout") {
-            libraryViewDialog(settings.libraryDisplay, settings.hidden) { value, hidden ->
+            libraryViewDialog(display, settings.hidden) { value, hidden ->
                 if (value.mode != settings.libraryDisplay.mode) browser.mediaFolders.clear()
-                settings.libraryDisplay = value; settings.hidden = hidden; showMedia(video)
+                orders.save(orderKey, value); settings.libraryDisplay = value; settings.hidden = hidden; showMedia(video)
             }
         })
         if (current != null) actions.addView(button("Up") {
@@ -376,6 +380,9 @@ class MainActivity : AppCompatActivity() {
         })
         actions.addView(button("Open file") { openFile.launch(arrayOf("video/*", "audio/*")) })
         actions.addView(button("Refresh") { showMedia(video) })
+        actions.addView(button("Continue watching") { showHistory(true) })
+        actions.addView(CheckBox(this).apply { text = "Search whole library"; isChecked = browser.wholeLibrarySearch
+            setOnCheckedChangeListener { _, checked -> browser.wholeLibrarySearch = checked; showMedia(video) } })
         actions.addView(button("Resume last") { startActivity(Intent(this, PlayerActivity::class.java).putExtra("resume", true)) })
         val quick = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val quickIcons = listOf(R.drawable.hub_music, R.drawable.hub_playlist, android.R.drawable.ic_menu_recent_history,
@@ -420,7 +427,10 @@ class MainActivity : AppCompatActivity() {
                     com.tplayer.mediaplayer.playback.PlaybackWorkGate.awaitPlaybackStart()
                     // Local history cannot be blocked by an unavailable network-secret key.
                     val history = MediaDatabase.get(this@MainActivity).raw().history().filter { it.uri.startsWith("content:") || it.uri.startsWith("file:") }
-                    val page = MediaCatalog(this@MainActivity).page(video, display, current, query, settings.hidden, history, offset)
+                    val expectedAdapter = adapter
+                    val page = MediaCatalog(this@MainActivity).page(video, if (query.isNotBlank()) display.copy(mode = MediaViewMode.FILES) else display, if (browser.wholeLibrarySearch && query.isNotBlank()) null else current, query, settings.hidden, history, offset) { count ->
+                        mediaHandler.post { if (adapter === expectedAdapter) status.text = "Scanning… $count files" }
+                    }
                     offset = page.nextOffset; loaded.addAll(page.entries.map { it.item(display) })
                     adapter.submit(loaded.toList()); updateSelection(); more.isEnabled = page.hasMore
                     status.text = if (loaded.isEmpty()) "No matching accessible ${if (video) "video" else "audio"} media. Try Refresh, adjust filters or choose a folder in Files."
@@ -431,12 +441,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
         selectAllHandler = { launchUi {
-            if (current == null && display.mode != MediaViewMode.FILES) { info("Select files", "Open a media folder or choose Files view first."); return@launchUi }
+            if (current == null && display.mode != MediaViewMode.FILES && query.isBlank()) { info("Select files", "Open a media folder or choose Files view first."); return@launchUi }
             val version = browser.selection.version; val snapshotQuery = query
             val picked = mutableListOf<LibraryItem>(); var next = 0
             val history = MediaDatabase.get(this@MainActivity).raw().history()
             do {
-                val page = MediaCatalog(this@MainActivity).page(video, display.copy(mode = MediaViewMode.FILES), current, snapshotQuery, settings.hidden, history, next)
+                val page = MediaCatalog(this@MainActivity).page(video, display.copy(mode = MediaViewMode.FILES), if (browser.wholeLibrarySearch && snapshotQuery.isNotBlank()) null else current, snapshotQuery, settings.hidden, history, next)
                 picked += page.entries.filter { !it.directory }.map { it.item(display) }
                 require(picked.size <= FileSelection.LIMIT) { "More than 1,000 matching files. Narrow the search or choose a smaller folder." }
                 next = page.nextOffset
@@ -452,7 +462,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showFiles() {
+        val orders = FolderOrders(this)
+        val orderKey = "saf:${folder?.uri}"
+        val display = orders.read(orderKey, settings.libraryDisplay)
         val actions = setup("Files")
+        actions.addView(button("Sort") {
+            MaterialAlertDialogBuilder(this).setTitle("Sort files").setItems(MediaSort.values().map { it.label }.toTypedArray()) { _, i ->
+                orders.save(orderKey, display.copy(sort = MediaSort.values()[i])); showFiles()
+            }.show()
+        })
+        actions.addView(button(if (display.descending) "Descending ↓" else "Ascending ↑") { orders.save(orderKey, display.copy(descending = !display.descending)); showFiles() })
         actions.addView(button("Refresh") { showFiles() })
         actions.addView(button("Choose folder") { openTree.launch(null) })
         actions.addView(button("Up") { if (parents.isNotEmpty()) { folder = parents.removeAt(parents.lastIndex); showFiles() } })
@@ -469,12 +488,25 @@ class MainActivity : AppCompatActivity() {
             try {
                 val recent = MediaDatabase.get(this@MainActivity).raw().history().associateBy { it.uri }
                 val snapshot = withContext(Dispatchers.IO) {
-                    val entries = target.listFiles().map { doc ->
+                    val privacy = com.tplayer.mediaplayer.security.PrivateFolder.get(this@MainActivity)
+                    val entries = target.listFiles().filter { !privacy.isPrivate(it.uri.toString()) }.map { doc ->
                         ensureActive()
                         val name = doc.name ?: "Untitled"; val directory = doc.isDirectory
                         doc to LibraryItem(doc.uri.toString(), name, if (directory) "Folder" else "${doc.length() / 1024} KB" + (recent[doc.uri.toString()]?.let { " · Resume ${mediaTime(PlaybackPolicy.resumePosition(it.position, it.duration))}" } ?: ""), doc.type.orEmpty())
                     }.filter { settings.hidden || !it.second.title.startsWith('.') }
-                        .sortedWith(compareBy<Pair<DocumentFile, LibraryItem>> { it.second.detail != "Folder" }.thenBy { it.second.title.lowercase() })
+                         .let { values ->
+                            val metadata = values.associate { (doc, item) ->
+                                val prior = recent[item.uri]
+                                item.uri to CatalogEntry(item.uri, item.title, IndexedFolder("saf", target.uri.toString()), item.mimeType,
+                                    doc.length(), prior?.duration ?: 0, doc.lastModified(), lastPlayed = prior?.updatedAt ?: 0,
+                                    state = if (prior == null) 0 else 1, watchPosition = prior?.position ?: 0, watchDuration = prior?.duration ?: 0)
+                            }
+                            val comparator = CatalogCollector.comparator(display)
+                            values.sortedWith(Comparator { a, b ->
+                                val directories = (a.second.detail != "Folder").compareTo(b.second.detail != "Folder")
+                                if (directories != 0) directories else comparator.compare(metadata.getValue(a.second.uri), metadata.getValue(b.second.uri))
+                            })
+                        }
                     Triple(entries, target.name ?: "Folder", target.canWrite())
                 }
                 documents = snapshot.first.associate { it.first.uri.toString() to it.first }
@@ -580,7 +612,7 @@ class MainActivity : AppCompatActivity() {
             val options = mutableListOf(if (favorite) "Remove favorite" else "Add favorite", "Add to playlist", "Properties")
             if (screen in setOf(Screen.VIDEOS, Screen.MUSIC)) options += listOf("Select file", "Delete file")
             if (screen == Screen.STREAMS) options += listOf("Edit stream", "Download HTTPS file", "Remove saved stream")
-            if (screen == Screen.PLAYLIST && activePlaylist != null) options += "Remove from playlist"
+            if (screen == Screen.PLAYLIST && activePlaylist != null) options += listOf("Move up", "Move down", "Remove from playlist")
             MaterialAlertDialogBuilder(this@MainActivity).setTitle(item.title).setItems(options.toTypedArray()) { _, index ->
                 launchUi {
                     when (options[index]) {
@@ -593,6 +625,7 @@ class MainActivity : AppCompatActivity() {
                         "Edit stream" -> streamDialog(item)
                         "Remove saved stream" -> { dao.removeStream(item.uri); showStreams() }
                         "Download HTTPS file" -> download(item)
+                        "Move up", "Move down" -> { activePlaylist?.let { dao.moveItem(it, item.uri, if (options[index] == "Move up") -1 else 1); showPlaylist(it) } }
                         "Remove from playlist" -> { activePlaylist?.let { dao.removeFromPlaylist(it, item.uri); showPlaylist(it) } }
                     }
                 }
@@ -612,7 +645,7 @@ class MainActivity : AppCompatActivity() {
         launchUi {
             if (item != null) downloads.start(item) else downloads.retry(checkNotNull(retry))
             if (screen == Screen.DOWNLOADS) showDownloads()
-            else info("Download queued", "Open Library → Downloads for progress, failures, retry and cancellation. Android manages the background transfer. Files are removed on uninstall.")
+            else info("Download queued", "Open Library → Downloads for progress, failures, retry and cancellation. Android manages the background transfer. New files are saved in public Downloads/TN-Player and remain after uninstall.")
         }
     }
     private fun collections() {
@@ -629,18 +662,18 @@ class MainActivity : AppCompatActivity() {
         screen = Screen.FAVORITES; activePlaylist = null; setup("Favorites"); status.text = "Saved on this device"
         job = launchUi { adapter.submit(dao.favorites().map { LibraryItem(it.uri, it.title, mimeType = it.mimeType) }) }
     }
-    private fun showHistory() {
-        screen = Screen.HISTORY; activePlaylist = null
-        val actions = setup("Recently played"); status.text = "Tap a file to resume playback"
+    private fun showHistory(resumable: Boolean = false) {
+        screen = if (resumable) Screen.CONTINUE else Screen.HISTORY; activePlaylist = null
+        val actions = setup(if (resumable) "Continue watching" else "Recently played"); status.text = "Tap a file to resume playback"
         val historyAdapter = adapter
         actions.addView(button("Clear history") {
             job?.cancel()
             launchUi {
                 com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@MainActivity).clearHistory()
-                if (screen == Screen.HISTORY && adapter === historyAdapter) historyAdapter.submit(emptyList())
+                if (adapter === historyAdapter) historyAdapter.submit(emptyList())
             }
         })
-        job = launchUi { com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@MainActivity).flushHistory(); adapter.submit(dao.history().map { LibraryItem(it.uri, it.title, "Resume at ${it.position / 1000}s", it.mimeType) }) }
+        job = launchUi { com.tplayer.mediaplayer.playback.PlaybackPersistence.get(this@MainActivity).flushHistory(); adapter.submit(if (resumable) ContinueWatching.items(dao.history()) else dao.history().map { LibraryItem(it.uri, it.title, "Resume at ${mediaTime(it.position)}", it.mimeType) }) }
     }
     private fun showDownloads() {
         screen = Screen.DOWNLOADS; activePlaylist = null
@@ -709,6 +742,9 @@ class MainActivity : AppCompatActivity() {
                 else startActivity(Intent(this@MainActivity, PlayerActivity::class.java).putStringArrayListExtra("queue", ArrayList(uris))
                     .putStringArrayListExtra("titles", ArrayList(titles)).putStringArrayListExtra("mimes", ArrayList(mimes)))
             })
+            actions.addView(button("Rename playlist") { input("Playlist name") { name -> launchUi { dao.renamePlaylist(id, name); showPlaylist(id) } } })
+            actions.addView(button("Move playlist up") { launchUi { dao.movePlaylist(id, -1); listPlaylists() } })
+            actions.addView(button("Move playlist down") { launchUi { dao.movePlaylist(id, 1); listPlaylists() } })
             actions.addView(button("Delete playlist") {
                 MaterialAlertDialogBuilder(this@MainActivity).setTitle("Delete playlist?").setMessage("Media files are retained.")
                     .setPositiveButton("Delete") { _, _ -> launchUi { dao.deletePlaylist(id); showTab(1) } }.setNegativeButton("Cancel", null).show()
@@ -727,7 +763,7 @@ class MainActivity : AppCompatActivity() {
         job?.cancel(); content.removeAllViews(); searchHandler = null
         content.addView(settingsHub(listOf(
             HubAction("File Transfer", R.drawable.hub_transfer, "Local copy / move") { selectTab(3) },
-            HubAction("Private Folder", R.drawable.hub_lock, "Not included"),
+            HubAction("Private Folder", R.drawable.hub_lock, "PIN-protected local folder") { startActivity(Intent(this, PrivateFolderActivity::class.java)) },
             HubAction("Video Playlists", R.drawable.hub_playlist, "On this device") { listPlaylists() },
             HubAction("Media Manager", R.drawable.hub_files, "Browse files") { selectTab(3) },
             HubAction("Local Network", R.drawable.hub_network, "Not included"),

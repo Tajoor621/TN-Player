@@ -108,7 +108,7 @@ object BackupFormat {
         val prefs = root.getJSONObject("preferences"); val values = mutableMapOf<String, Any>()
         for (key in listOf("tunneledPlayback", "preloadNext", "releasePausedInBackground", "gestureVolumeRight", "doubleTapPlayPause", "showPlayerClock", "showPlayerBattery", "showRemainingTime", "autoPip", "resume", "hidden", "gestures", "amoled", "embeddedSubtitleStyles", "subtitleBackground", "libraryGrid", "libraryDescending", "fieldDuration", "fieldSize", "fieldResolution", "fieldPath", "fieldDate", "fieldPlayed", "fieldFrameRate", "fieldType", "backgroundPlayback", "videoDisplay", "showPlayerShortcuts", "mirror", "verticalFlip", "playerNight"))
             if (prefs.has(key)) { require(prefs.get(key) is Boolean); values[key] = prefs.getBoolean(key) }
-        for ((key, range) in mapOf("decoderPreference" to 0..2, "theme" to -1..2, "subtitleSize" to 0..2, "subtitleFont" to 0..2, "subtitlePosition" to 0..35, "aspectRatio" to 0..2, "libraryMode" to 0..2, "librarySort" to 0..9, "minimumSeconds" to 0..3600, "playerOrientation" to 0..2)) {
+        for ((key, range) in mapOf("decoderPreference" to 0..2, "theme" to -1..2, "subtitleSize" to 0..2, "subtitleFont" to 0..2, "subtitlePosition" to 0..35, "aspectRatio" to 0..2, "libraryMode" to 0..2, "librarySort" to 0..MediaSort.values().lastIndex, "minimumSeconds" to 0..3600, "playerOrientation" to 0..2)) {
             if (prefs.has(key)) { val number = prefs.getInt(key); require(number in range && (key != "theme" || number != 0)); values[key] = number }
         }
         for (slot in com.tplayer.mediaplayer.ui.GestureSlot.values()) {
@@ -137,10 +137,10 @@ class BackupRepository(private val db: MediaDatabase) {
             val raw = db.raw(); val lists = raw.backupPlaylists().sortedBy { it.id }; require(lists.size <= 200)
             val favorites = raw.backupFavorites(); val marks = raw.backupBookmarks()
             require(favorites.size <= 10000 && marks.size <= 10000)
-            LibraryBackup(preferences, favorites.filter { BackupFormat.local(it.uri) }, lists.map { list ->
+            LibraryBackup(preferences, favorites.filter { BackupFormat.local(it.uri) && !db.isPrivate(it.uri)() }, lists.map { list ->
                 val items = raw.backupItems(list.id); require(items.size <= 10000)
-                BackupPlaylist(list.name, items.filter { BackupFormat.local(it.uri) }.map { Favorite(it.uri, it.title, it.mimeType) })
-            }, marks.filter { BackupFormat.local(it.uri) })
+                BackupPlaylist(list.name, items.filter { BackupFormat.local(it.uri) && !db.isPrivate(it.uri)() }.map { Favorite(it.uri, it.title, it.mimeType) })
+            }, marks.filter { BackupFormat.local(it.uri) && !db.isPrivate(it.uri)() })
         }
     }
     suspend fun merge(backup: LibraryBackup) = withContext(Dispatchers.IO) {
@@ -151,17 +151,17 @@ class BackupRepository(private val db: MediaDatabase) {
             val lists = raw.playlists().sortedBy { it.id }.groupBy { it.name }
                 .mapValues { (_, entries) -> entries.map { it.id }.toMutableList() }.toMutableMap()
             val occurrences = mutableMapOf<String, Int>()
-            for (favorite in value.favorites) raw.addFavorite(favorite)
+            for (favorite in value.favorites) if (!db.isPrivate(favorite.uri)()) raw.addFavorite(favorite)
             for (list in value.playlists) {
                 val ordinal = occurrences[list.name] ?: 0
                 occurrences[list.name] = ordinal + 1
                 val matching = lists.getOrPut(list.name) { mutableListOf() }
-                val id = matching.getOrNull(ordinal) ?: raw.createPlaylist(Playlist(name = list.name)).also { matching += it }
-                for (item in list.items) raw.addToPlaylist(PlaylistItem(id, item.uri, item.title, mimeType = item.mimeType))
+                val id = matching.getOrNull(ordinal) ?: raw.createPlaylist(Playlist(name = list.name, position = raw.lastPlaylistPosition() + 1)).also { matching += it }
+                for (item in list.items) if (!db.isPrivate(item.uri)()) raw.addToPlaylist(PlaylistItem(id, item.uri, item.title, mimeType = item.mimeType, position = raw.lastItemPosition(id) + 1))
             }
             val marks = raw.backupBookmarks(); require(marks.size <= 10000) { "Too many existing bookmarks to merge safely." }
             val existing = marks.map { it.uri to it.position }.toMutableSet()
-            for (mark in value.bookmarks) if (existing.add(mark.uri to mark.position)) raw.addBookmark(mark.copy(id = 0))
+            for (mark in value.bookmarks) if (!db.isPrivate(mark.uri)() && existing.add(mark.uri to mark.position)) raw.addBookmark(mark.copy(id = 0))
         }
     }
 }

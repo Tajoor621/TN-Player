@@ -60,10 +60,12 @@ class MediaAdapter(private val click: (LibraryItem) -> Unit, private val more: (
         holder.detail.ellipsize = android.text.TextUtils.TruncateAt.END
         holder.itemView.contentDescription = "${item.title}, ${item.detail}"
         val local = android.net.Uri.parse(item.uri).scheme in setOf("content", "file")
-        val artwork = item.artworkUri ?: item.uri.takeIf { local && item.mimeType.startsWith("video/") }
+        val privacy = com.tplayer.mediaplayer.security.PrivateFolder.get(holder.itemView.context)
+        val artwork = item.artworkUri?.takeUnless { privacy.hasProtection() } ?: item.uri.takeIf { local && item.mimeType.startsWith("video/") }
         Glide.with(holder.image).clear(holder.image)
-        if (artwork != null) Glide.with(holder.image).load(android.net.Uri.parse(artwork))
+        if (artwork != null && !privacy.hideThumbnail(item.uri)) Glide.with(holder.image).load(android.net.Uri.parse(artwork))
             .override(holder.itemView.context.dp(96), holder.itemView.context.dp(72)).centerCrop()
+            .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.RESOURCE)
             .placeholder(android.R.drawable.ic_media_play).error(android.R.drawable.ic_media_play).into(holder.image)
         else holder.image.setImageResource(if (item.indexedFolder != null || item.detail == "Folder") com.tplayer.mediaplayer.R.drawable.ic_folder else android.R.drawable.ic_media_play)
         val selectable = selection != null && item.indexedFolder == null && item.detail != "Folder"

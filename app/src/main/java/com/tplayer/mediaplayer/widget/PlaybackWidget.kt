@@ -54,7 +54,7 @@ class PlaybackWidget : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(context)
             val ids = targets ?: manager.getAppWidgetIds(ComponentName(context, PlaybackWidget::class.java))
             if (ids.isEmpty()) return
-            val title = player?.mediaMetadata?.title?.toString()?.replace(Regex("(?i)(?:https?|rtsp)://\\S+"), "[network source]")?.take(128) ?: "Open TN-Player to choose media"
+            val title = if (com.tplayer.mediaplayer.security.PrivateMediaPolicy.marked(player?.currentMediaItem)) "Private media" else player?.mediaMetadata?.title?.toString()?.replace(Regex("(?i)(?:https?|rtsp)://\\S+"), "[network source]")?.take(128) ?: "Open TN-Player to choose media"
             val views = RemoteViews(context.packageName, R.layout.playback_widget)
             views.setTextViewText(R.id.widget_title, title)
             views.setImageViewResource(R.id.widget_play, if (player?.isPlaying == true) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)

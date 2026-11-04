@@ -100,7 +100,7 @@ class Settings(context: Context) {
         get() = LibraryDisplay(
             mode = MediaViewMode.values()[prefs.getInt("libraryMode", 2).coerceIn(0, 2)],
             grid = prefs.getBoolean("libraryGrid", false),
-            sort = MediaSort.values()[prefs.getInt("librarySort", 0).coerceIn(0, 9)],
+            sort = MediaSort.values()[prefs.getInt("librarySort", 0).coerceIn(0, MediaSort.values().lastIndex)],
             descending = prefs.getBoolean("libraryDescending", false),
             duration = prefs.getBoolean("fieldDuration", true), size = prefs.getBoolean("fieldSize", true),
             resolution = prefs.getBoolean("fieldResolution", false), path = prefs.getBoolean("fieldPath", false),

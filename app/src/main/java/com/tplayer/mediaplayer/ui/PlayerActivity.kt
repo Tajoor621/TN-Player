@@ -85,6 +85,8 @@ class PlayerActivity : AppCompatActivity() {
     private var subtitleJob: Job? = null
     private var pinRequested = false
     private var loopA: Long? = null
+    private var privatePlayback = false
+    private var hasShownPrivate = false
     private var locked = false
     private var resumeRequested = false
     private val dao by lazy { MediaDatabase.get(this).media() }
@@ -97,6 +99,8 @@ class PlayerActivity : AppCompatActivity() {
         }
         override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
             gestures.cancel()
+            privatePlayback = com.tplayer.mediaplayer.security.PrivateMediaPolicy.marked(item)
+            if (privatePlayback) { hasShownPrivate = true; window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) }
             if (ui.subtitlePreferencesId != item?.mediaId) { ui.subtitlePreferencesId = null; ui.subtitlePreferences = null }
             loopA = null
             if (ui.captions?.mediaId != item?.mediaId) ui.captions = null
@@ -130,6 +134,8 @@ class PlayerActivity : AppCompatActivity() {
         if (settings.amoled) setTheme(R.style.Theme_TNPlayer_Amoled)
         super.onCreate(savedInstanceState)
         pendingIntent = if (savedInstanceState?.getBoolean("consumed") == true) null else intent
+        hasShownPrivate = savedInstanceState?.getBoolean("private") ?: false
+        if (hasShownPrivate) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         locked = savedInstanceState?.getBoolean("locked") ?: false
         fullscreen = savedInstanceState?.getBoolean("fullscreen") ?: false
         pinRequested = savedInstanceState?.getBoolean("pinRequested") ?: false
@@ -187,7 +193,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean("pinRequested", pinRequested); outState.putBoolean("fullscreen", fullscreen); outState.putBoolean("consumed", pendingIntent == null); outState.putBoolean("locked", locked); outState.putBoolean("resumeRequested", resumeRequested)
+        outState.putBoolean("private", hasShownPrivate); outState.putBoolean("pinRequested", pinRequested); outState.putBoolean("fullscreen", fullscreen); outState.putBoolean("consumed", pendingIntent == null); outState.putBoolean("locked", locked); outState.putBoolean("resumeRequested", resumeRequested)
         super.onSaveInstanceState(outState)
     }
     private fun startPlayback(player: Player) {
@@ -212,7 +218,10 @@ class PlayerActivity : AppCompatActivity() {
         connecting.addListener({
             if (future !== connecting) return@addListener
             try {
-                val player = connecting.get(); controller = player; video.player = player
+                val player = connecting.get(); controller = player
+                privatePlayback = com.tplayer.mediaplayer.security.PrivateMediaPolicy.marked(player.currentMediaItem)
+                if (privatePlayback) { hasShownPrivate = true; window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) }
+                video.player = player
                 player.addListener(listener); consumeIntent()
                 ui.pendingSubtitle?.let { attachSubtitle(it) }
                 title.text = player.mediaMetadata.title?.toString() ?: "TN-Player"; applyDisplay(); updateAwake(); updatePip()
@@ -222,6 +231,9 @@ class PlayerActivity : AppCompatActivity() {
     }
     override fun onStop() {
         gestures.cancel(); persistSubtitlePreferences()
+        if (privatePlayback && !isChangingConfigurations) {
+            controller?.stop(); controller?.clearMediaItems(); com.tplayer.mediaplayer.security.PrivateFolder.get(this).lock()
+        }
         inputJob?.cancel(); subtitleJob?.cancel(); restoreCaptionJob?.cancel(); video.removeCallbacks(captionTicker)
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (!settings.backgroundPlayback && !isChangingConfigurations && !inPip()) controller?.pause()
@@ -289,6 +301,7 @@ class PlayerActivity : AppCompatActivity() {
         speedBadge.visibility = if (inPip()) View.GONE else View.VISIBLE
     }
     private suspend fun persistCaptions(captions: ExternalCaptions) {
+        if (privatePlayback) return
         try { withContext(NonCancellable + Dispatchers.IO) { captionStore.save(captions) } }
         catch (e: Exception) { if (!isDestroyed && !isFinishing) info("Subtitles not saved", "Loaded for this session, but persistence failed: ${e.message.orEmpty()}") }
     }
@@ -315,14 +328,25 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
     private suspend fun consumeSource(source: Intent) {
+        @Suppress("DEPRECATION")
+        val candidates = source.getStringArrayListExtra("queue") ?: source.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)?.map { it.toString() }
+            ?: listOfNotNull(source.data?.toString() ?: source.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.toString())
+        if (candidates.isNotEmpty()) {
+            val privacy = com.tplayer.mediaplayer.security.PrivateFolder.get(this)
+            val hidden = withContext(Dispatchers.IO) { candidates.any { privacy.isPrivate(it) } }
+            check(!hidden || privacy.isUnlocked()) { "Unlock this file from Settings → Private Folder first." }
+            privatePlayback = hidden
+            if (hidden) { hasShownPrivate = true; window.addFlags(WindowManager.LayoutParams.FLAG_SECURE); updatePip() }
+        }
         if (source.data != null || source.hasExtra("queue") || source.hasExtra(Intent.EXTRA_STREAM)) com.tplayer.mediaplayer.playback.PlaybackWorkGate.opening()
         val player = controller ?: return
+        val sidecars = com.tplayer.mediaplayer.data.SidecarSubtitles(this)
         val queue = source.getStringArrayListExtra("queue")
         val titles = source.getStringArrayListExtra("titles")
         val mimes = source.getStringArrayListExtra("mimes")
         if (!queue.isNullOrEmpty()) {
             require(PlaybackPolicy.queueError(queue, queue.indices.map { titles?.getOrNull(it)?.take(1024) ?: "Media" }, queue.indices.map { mimes?.getOrNull(it)?.take(128).orEmpty() }) == null)
-            val items = queue.mapIndexedNotNull { index, value -> makeItem(Uri.parse(value), titles?.getOrNull(index) ?: "Media", mimes?.getOrNull(index)) }
+            val items = queue.mapIndexedNotNull { index, value -> makeItem(Uri.parse(value), titles?.getOrNull(index) ?: "Media", mimes?.getOrNull(index), sidecars) }
             if (items.isNotEmpty()) { player.setMediaItems(items); player.prepare(); player.play() }
             return
         }
@@ -333,7 +357,7 @@ class PlayerActivity : AppCompatActivity() {
             val items = shared.mapNotNull { uri ->
                 require(uri.scheme?.lowercase() in setOf("content", "file"))
                 withContext(Dispatchers.IO) { try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: SecurityException) { } }
-                makeItem(uri, withContext(Dispatchers.IO) { displayName(uri) }, source.type?.takeUnless { it.contains('*') })
+                makeItem(uri, withContext(Dispatchers.IO) { displayName(uri) }, source.type?.takeUnless { it.contains('*') }, sidecars)
             }
             if (items.isNotEmpty()) { resumeRequested = false; player.setMediaItems(items); player.prepare(); player.play() }
             return
@@ -346,12 +370,12 @@ class PlayerActivity : AppCompatActivity() {
             }
             return
         }
-        val item = makeItem(uri, source.getStringExtra("title") ?: withContext(Dispatchers.IO) { displayName(uri) }, source.getStringExtra("mime")?.ifBlank { source.type } ?: source.type) ?: return
+        val item = makeItem(uri, source.getStringExtra("title") ?: withContext(Dispatchers.IO) { displayName(uri) }, source.getStringExtra("mime")?.ifBlank { source.type } ?: source.type, sidecars) ?: return
         resumeRequested = false
         if (player.currentMediaItem?.mediaId == item.mediaId && player.mediaMetadata.extras?.getString("mime").orEmpty() == item.mediaMetadata.extras?.getString("mime").orEmpty()) { startPlayback(player); return }
         player.setMediaItem(item); player.prepare(); player.play()
     }
-    private fun makeItem(uri: Uri, name: String, mime: String? = null): MediaItem? {
+    private suspend fun makeItem(uri: Uri, name: String, mime: String?, sidecars: com.tplayer.mediaplayer.data.SidecarSubtitles): MediaItem? {
         require(uri.toString().length <= 32768)
         val scheme = uri.scheme?.lowercase()
         if (scheme !in setOf("content", "file", "https", "rtsp")) {
@@ -361,7 +385,9 @@ class PlayerActivity : AppCompatActivity() {
         if (scheme == "https" || scheme == "rtsp") {
             PlaybackPolicy.validateStream(uri.toString())?.let { info("Invalid stream", it); return null }
         }
+        val sidecar = sidecars.find(uri, mime)
         return MediaItem.Builder().setUri(uri).setMediaId(uri.toString()).setMimeType(mime?.take(128)?.ifBlank { null })
+            .setSubtitleConfigurations(listOfNotNull(sidecar))
             .setMediaMetadata(MediaMetadata.Builder().setTitle(name.take(1024)).setExtras(Bundle().apply { putString("mime", mime.orEmpty().take(128)) }).build()).build()
     }
     private fun displayName(uri: Uri): String {
@@ -651,6 +677,7 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
     private fun captureFrame() {
+        if (hasShownPrivate) { info("Screenshot", "Screenshots are disabled for private playback."); return }
         val surface = video.videoSurfaceView as? android.view.TextureView
         if (surface == null || !surface.isAvailable || controller?.videoSize?.width?.let { it > 0 } != true || !settings.videoDisplay) { info("Screenshot", "Play a visible video first."); return }
         try {
@@ -779,6 +806,8 @@ class PlayerActivity : AppCompatActivity() {
             try {
             val imported = withContext(Dispatchers.IO) {
                 require(uri.scheme in setOf("content", "file")) { "Choose a local subtitle file." }
+                val privacy = com.tplayer.mediaplayer.security.PrivateFolder.get(this@PlayerActivity)
+                check(privacy.authorize(uri.toString()) && (!privacy.isPrivate(uri.toString()) || privatePlayback)) { "Private subtitles require private playback." }
                 val name = displayName(uri)
                 val text = checkNotNull(contentResolver.openInputStream(uri)).use { SubtitleImport.read(it) }
                 Triple(name, text, name.substringAfterLast('.', "").lowercase(java.util.Locale.ROOT))
@@ -786,10 +815,10 @@ class PlayerActivity : AppCompatActivity() {
             if (controller !== player || player.currentMediaItem?.mediaId != item.mediaId) return@launchUi
             if (imported.third in setOf("ass", "ssa", "ttml", "dfxp")) {
                 // Keep native styling; never label this as full libass support.
-                val file = withContext(Dispatchers.IO) { captionFile(imported.second) }
+                val nativeUri = if (privatePlayback) uri else Uri.fromFile(withContext(Dispatchers.IO) { captionFile(imported.second) })
                 if (controller !== player || player.currentMediaItem?.mediaId != item.mediaId) return@launchUi
                 val mime = if (imported.third in setOf("ass", "ssa")) MimeTypes.TEXT_SSA else MimeTypes.APPLICATION_TTML
-                val config = MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(file)).setMimeType(mime).setLanguage("und").setLabel(imported.first).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
+                val config = MediaItem.SubtitleConfiguration.Builder(nativeUri).setMimeType(mime).setLanguage("und").setLabel(imported.first).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
                 replaceCaptions(player, item, listOf(config)); withContext(NonCancellable + Dispatchers.IO) { captionStore.remove(item.mediaId) }; ui.captions = null; ui.pendingSubtitle = null; applyNativeSubtitleDelay(); renderCaptions()
             } else {
                 val document = withContext(Dispatchers.Default) { SubtitleImport.parse(imported.second, imported.first) }
@@ -880,18 +909,19 @@ class PlayerActivity : AppCompatActivity() {
                     isEnabled = when (action) { "PREVIOUS" -> player.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS); "NEXT" -> player.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT); else -> true }
                 } })
         }
-        if (Build.VERSION.SDK_INT >= 31) builder.setAutoEnterEnabled(settings.autoPip && !pinRequested && !locked && player?.isPlaying == true && player.currentTracks.isTypeSelected(C.TRACK_TYPE_VIDEO))
+        if (Build.VERSION.SDK_INT >= 31) builder.setAutoEnterEnabled(settings.autoPip && !privatePlayback && !pinRequested && !locked && player?.isPlaying == true && player.currentTracks.isTypeSelected(C.TRACK_TYPE_VIDEO))
         return builder.build()
     }
     private fun updatePip() { if (pipSupported()) try { setPictureInPictureParams(pipParams()) } catch (_: IllegalArgumentException) { } }
     private fun enterPip() {
+        if (hasShownPrivate) { info("Private playback", "Picture-in-picture is disabled for this private session."); return }
         if (!pipSupported()) { info("Picture-in-picture", "Requires Android 8+ and device support."); return }
         if (controller?.currentTracks?.isTypeSelected(C.TRACK_TYPE_VIDEO) != true) { info("Picture-in-picture", "Play a video first."); return }
         try { enterPictureInPictureMode(pipParams()) } catch (_: IllegalStateException) { info("Picture-in-picture", "Enable PiP for TN-Player in Android Settings.") }
     }
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (Build.VERSION.SDK_INT < 31 && settings.autoPip && !pinRequested && !locked && controller?.isPlaying == true && controller?.currentTracks?.isTypeSelected(C.TRACK_TYPE_VIDEO) == true) enterPip()
+        if (Build.VERSION.SDK_INT < 31 && settings.autoPip && !privatePlayback && !pinRequested && !locked && controller?.isPlaying == true && controller?.currentTracks?.isTypeSelected(C.TRACK_TYPE_VIDEO) == true) enterPip()
     }
     @androidx.annotation.RequiresApi(26)
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
