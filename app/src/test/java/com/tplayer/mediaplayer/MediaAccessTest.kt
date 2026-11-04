@@ -13,6 +13,7 @@ class MediaAccessTest {
             val selected = Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
             val full = Manifest.permission.READ_MEDIA_VIDEO
             assertArrayEquals(arrayOf(full, selected), mediaPermissions(sdk, true))
+            assertArrayEquals(arrayOf(full, Manifest.permission.READ_MEDIA_AUDIO, selected), mediaPermissions(sdk, true, upgrade = true))
             assertEquals(MediaAccess.NONE, mediaAccess(sdk, true) { false })
             assertEquals(MediaAccess.SELECTED, mediaAccess(sdk, true) { it == selected })
             assertEquals(MediaAccess.FULL, mediaAccess(sdk, true) { it == full || it == selected })

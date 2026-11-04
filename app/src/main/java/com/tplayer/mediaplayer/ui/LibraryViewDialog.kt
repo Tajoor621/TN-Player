@@ -56,7 +56,7 @@ fun Context.libraryViewDialog(initial: LibraryDisplay, hidden: Boolean, folderOr
     val minimum = EditText(this).apply { setSingleLine(); inputType = android.text.InputType.TYPE_CLASS_NUMBER; setText(draft.minimumSeconds.toString()); hint = "Seconds (0–3600)"; minHeight = dp(48); contentDescription = "Minimum duration in seconds" }
     advanced.addView(minimum)
     advanced.addView(TextView(this).apply {
-        text = "Folders contain accessible indexed media only. Android may omit .nomedia and protected locations. Use Files → Choose folder for other provider storage.\n\nDate means last modified. Played time/status use this app's retained history (up to 200 items). Folder length/size are totals; date/played time use the newest member. Capture fps is Android's indexed capture rate, not a guaranteed encoded frame rate; unavailable values sort as zero."
+        setText(com.tplayer.mediaplayer.R.string.library_layout_metadata_help)
         textSize = 13f; setPadding(0, dp(12), 0, 0)
     })
     val dialog = MaterialAlertDialogBuilder(this).setTitle("View & layout").setView(scroll)

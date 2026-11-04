@@ -55,7 +55,7 @@ statistical proof. Twenty-four synthetic parser/CLI tests cover these paths.
 | Splash | Uses normal Android startup window | Add AndroidX SplashScreen with measured startup; do not use a redundant launcher Activity |
 | Activities | Main and Player implement working screens | Split by navigation feature when screens grow; avoid two engines or empty shell Activities |
 | External intents | VIEW audio/video; SEND and bounded SEND_MULTIPLE queues | Richer file MIME associations, validated app links only for owned domain |
-| Videos / music | MediaStore volume-aware folder counts/tree, global metadata sorts, list/grid, 200-row display pages, fields/filter preferences, permission/revocation UI and selected-video access | Lifecycle-scoped debounced change observation implemented; benchmark 50,000-file libraries |
+| Videos / music | MediaStore volume-aware folder counts/tree, global metadata sorts, list/grid, 200-row display pages, fields/filter preferences, [in-app access card, selected-video banner and settings recovery](docs/FEATURE_STATUS.md) | Lifecycle-scoped debounced change observation implemented; benchmark 50,000-file libraries |
 | Playback service | Single MediaSessionService, focus/noisy handling, notification and trusted controllers | Encrypted queue/position restoration and explicit resume implemented; validate OEM restrictions; no automatic restart after force-stop |
 | Foreground audio / lock-screen / headset | Delegated to Media3 service/session/audio focus | Test Bluetooth/car/OEM lock-screen paths; optional headset reconnect setting requires explicit behavior design |
 | Seek, speed, loop, shuffle | Standard transport; 0.25–4×; repeat modes; playlists | Frame-accurate stepping requires decoder-specific implementation |

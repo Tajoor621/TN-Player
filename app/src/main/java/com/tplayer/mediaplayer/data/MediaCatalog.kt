@@ -58,7 +58,7 @@ data class CatalogEntry(
         return LibraryItem(uri, title, fields.joinToString(" · "), mime, artwork, if (directory) folder else null)
     }
 }
-data class CatalogPage(val entries: List<CatalogEntry>, val total: Int, val nextCursor: CatalogEntry?, val before: Int) {
+data class CatalogPage(val entries: List<CatalogEntry>, val total: Int, val nextCursor: CatalogEntry?, val before: Int, val accessibleFiles: Int = 0) {
     val hasMore get() = nextCursor != null
 }
 
@@ -145,11 +145,13 @@ class MediaCatalog(private val context: Context) {
         if (video) { projection += listOf("width", "height"); if (Build.VERSION.SDK_INT >= 30) projection += "capture_framerate" }
         else projection += "album_id"
         val recent = history.associateBy { it.uri }
+        var accessibleFiles = 0
         checkNotNull(context.contentResolver.query(collection, projection.toTypedArray(), null, null, "_id DESC")) { "Android's media index is unavailable." }.use { c ->
             fun string(name: String) = c.getColumnIndex(name).takeIf { it >= 0 }?.let { if (c.isNull(it)) "" else c.getString(it) }.orEmpty()
             fun number(name: String) = c.getColumnIndex(name).takeIf { it >= 0 }?.let { if (c.isNull(it)) 0L else c.getLong(it) } ?: 0L
             while (c.moveToNext()) {
                 currentCoroutineContext().ensureActive()
+                accessibleFiles++
                 val volume = if (Build.VERSION.SDK_INT >= 29) string("volume_name").ifBlank { "external_primary" } else "external"
                 val path = if (Build.VERSION.SDK_INT >= 29) string("relative_path") else string("_data").substringBeforeLast('/', "").trimStart('/')
                 val key = IndexedFolder(volume, path.trim('/').let { if (it.isEmpty()) "" else "$it/" })
@@ -167,6 +169,6 @@ class MediaCatalog(private val context: Context) {
                     resumeAt = prior?.let { com.tplayer.mediaplayer.playback.PlaybackPolicy.resumePosition(it.position, it.duration) } ?: 0))
             }
         }
-        collector.finish()
+        collector.finish().copy(accessibleFiles = accessibleFiles)
     }
 }

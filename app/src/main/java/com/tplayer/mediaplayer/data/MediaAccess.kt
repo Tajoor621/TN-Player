@@ -4,7 +4,8 @@ import android.Manifest
 
 internal enum class MediaAccess { FULL, SELECTED, NONE }
 
-internal fun mediaPermissions(sdk: Int, video: Boolean): Array<String> = when {
+internal fun mediaPermissions(sdk: Int, video: Boolean, upgrade: Boolean = false): Array<String> = when {
+    sdk >= 34 && video && upgrade -> arrayOf(Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
     sdk >= 34 && video -> arrayOf(Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
     sdk >= 33 -> arrayOf(if (video) Manifest.permission.READ_MEDIA_VIDEO else Manifest.permission.READ_MEDIA_AUDIO)
     else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
