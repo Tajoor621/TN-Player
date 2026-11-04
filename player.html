@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#081d21">
+<meta name="description" content="Play local video and audio in your browser with TN-Player.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./assets/tn-player-icon.png" type="image/png">
+<link rel="apple-touch-icon" href="./assets/tn-player-icon.png">
+<title>TN-Player Web</title>
+<style>
+:root{color-scheme:dark;background:#081d21;color:#f4f7ff;font:16px/1.55 system-ui,sans-serif}*{box-sizing:border-box}body{margin:0}main{max-width:820px;margin:auto;padding:24px clamp(16px,5vw,40px) 48px}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #355156;padding-bottom:14px}header span{display:flex;align-items:center;gap:10px;font-weight:700}header img{border-radius:9px}h1{font-size:clamp(32px,7vw,52px);line-height:1.1;margin-bottom:.4em}p{color:#b8cbd2}a{color:#8de9ff}video{display:block;width:100%;max-height:56vh;min-height:64px;border-radius:12px;background:#020607;margin-top:20px}video[hidden]{display:none}button,input::file-selector-button{background:#d6f6ff;color:#081d21;border:0;border-radius:8px;min-height:44px;padding:8px 14px;font:inherit;font-weight:650;cursor:pointer}input{max-width:100%;min-height:44px;font:inherit}label{display:block;margin-bottom:8px;font-weight:650}:focus-visible{outline:3px solid #38cdee;outline-offset:4px}#status{overflow-wrap:anywhere}
+</style>
+<script src="./pwa.js" defer></script>
+</head>
+<body>
+<main>
+<header><span><img src="./assets/tn-player-icon.png" width="38" height="38" alt="">TN-Player Web</span><a href="./#title">Android download</a></header>
+<h1>Play a file</h1>
+<p>Open video or audio from this device. The file stays in your browser and is never uploaded.</p>
+<label for="media-file">Choose video or audio</label>
+<input id="media-file" type="file" accept="video/*,audio/*,.mkv,.m4a,.flac,.wav,.ogg,.webm,.mp4,.mp3">
+<video id="media" controls playsinline preload="metadata" aria-label="Media playback controls" hidden></video>
+<p id="status" role="status">No file selected.</p>
+<button id="install" type="button" hidden>Install web player</button>
+<p>Playback formats depend on your browser. For Media3 features and additional formats, use the native Android app.</p>
+</main>
+</body>
+</html>

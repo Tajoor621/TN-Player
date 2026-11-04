@@ -5,7 +5,8 @@ root=Path(__file__).resolve().parents[1]
 out=root/'_site'
 if out.exists():shutil.rmtree(out)
 out.mkdir();(out/'downloads').mkdir()
-shutil.copyfile(root/'index.html',out/'index.html')
+for name in ('index.html','player.html','manifest.webmanifest','pwa.js','sw.js'):
+    shutil.copyfile(root/name,out/name)
 shutil.copytree(root/'assets',out/'assets')
 html=(out/'index.html').read_text()
 credit='<p class="status">This software uses <a href="https://ffmpeg.org/">FFmpeg</a> under LGPL 2.1 or later, with Media3, libvpx and libgav1 decoder extensions. <a href="downloads/TN-Player-native-sources.tar.xz">Download corresponding native sources and relink materials</a>. See the <a href="https://github.com/Tajoor621/TN-Player/blob/main/docs/FORMATS.md">format and decoding-path matrix</a>.</p>'
