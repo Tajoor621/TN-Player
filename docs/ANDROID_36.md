@@ -32,10 +32,15 @@ Production changes replace untyped share-intent extras with AndroidX typed acces
 
 | Remaining use | Reason |
 |---|---|
+| `Virtualizer` type and constructor, `getStrengthSupported()`, and both `setStrength(short)` calls in `AudioEffects.kt` | Retain the existing optional device effect. Android’s [Spatializer guidance](https://developer.android.com/reference/android/media/audiofx/Virtualizer) provides system capability and playback-policy APIs, not a replacement for the per-session strength control. |
 | `KeyPairGeneratorSpec.Builder` in `SecretCodec.kt` | Deliberately retained in the guarded API 21–22 compatibility helper; the newer Keystore API is used from 23 |
 | `Bundle.get(String)` in `PlaybackBenchmarkTest.kt` | Test-only CSV export of a mixed-type metrics bundle |
 | Three-argument Espresso `GeneralClickAction` constructor in `PlayerControlsDeviceTest.kt` | Test-only tap helper; no production dependency upgrade needed |
 | Theme `android:statusBarColor` / `android:navigationBarColor` | Legacy appearance before Android 15. Modern activities place their content using insets; the API 35+ sheet requests a transparent navigation region. |
 | MediaStore `_data` fallback in catalog/subtitle lookup | Restricted to pre-29 devices, where `relative_path` is unavailable. It is not used on API 36. |
+
+The [initial API 36 source run](https://github.com/Tajoor621/TN-Player/actions/runs/41808815346) compiled both modules and passed 97 JVM tests and lint with 0 errors / 170 warnings; 0 APKs were produced. Compiler output and the pinned Media3 source identified the obsolete subtitle callbacks/toggle, context-free FFmpeg sink, legacy Keystore import, and Virtualizer/test APIs inventoried above.
+
+The [validated migration code](https://github.com/Tajoor621/TN-Player/actions/runs/41809273727) passed application and instrumentation source compilation (including the codec Java module), all 97 JVM tests, and lint with 0 errors and 170 warnings, compared with 88 warnings on the previous toolchain. Lint’s biggest category is 77 `UseKtx` suggestions. CI produced 0 APKs and skipped native rebuilding and emulator jobs. The final compiler reported six Virtualizer warnings covering the calls above and one warning each for the benchmark and Espresso test helpers. The guarded legacy Keystore call remains intentionally suppressed.
 
 Gradle plugin and CI runner diagnostics are tracked separately from Android API calls. No APK, install, device test, or publication was requested for this migration.
