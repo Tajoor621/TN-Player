@@ -23,3 +23,6 @@ val verifyNativeCodecs by tasks.registering {
     }
 }
 tasks.named("preBuild").configure { dependsOn(verifyNativeCodecs) }
+
+// Report exact vendored Java deprecations in source-only compiler output.
+tasks.withType<JavaCompile>().configureEach { options.compilerArgs.add("-Xlint:deprecation") }

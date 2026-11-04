@@ -2,7 +2,6 @@ package com.tplayer.mediaplayer.security
 
 import android.content.Context
 import android.os.Build
-import android.security.KeyPairGeneratorSpec
 import android.util.AtomicFile
 import android.util.Base64
 import androidx.annotation.RequiresApi
@@ -70,7 +69,7 @@ class AndroidSecretCodec(context: Context) : SecretCodec {
         check(!existing || store.containsAlias(alias)) { "Saved keys are unavailable. Re-add saved sources after resetting secure data." }
         if (!store.containsAlias(alias)) {
             val start = Calendar.getInstance(); val end = Calendar.getInstance().apply { add(Calendar.YEAR, 30) }
-            val spec = KeyPairGeneratorSpec.Builder(app).setAlias(alias).setKeySize(2048)
+            val spec = android.security.KeyPairGeneratorSpec.Builder(app).setAlias(alias).setKeySize(2048)
                 .setSubject(X500Principal("CN=TN-Player local keys")).setSerialNumber(BigInteger.ONE)
                 .setStartDate(start.time).setEndDate(end.time).build()
             KeyPairGenerator.getInstance("RSA", "AndroidKeyStore").apply { initialize(spec); generateKeyPair() }

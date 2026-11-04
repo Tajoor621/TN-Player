@@ -47,7 +47,7 @@ statistical proof. Twenty-four synthetic parser/CLI tests cover these paths.
 
 | Requirement | Current implementation | Remaining work / concrete solution |
 |---|---|---|
-| Identity, version, Android baseline | com.tplayer.mediaplayer; 1.0.0; API 21–34 build baseline | Maintain IDs; measure each release on supported Android versions |
+| Identity, version, Android baseline | com.tplayer.mediaplayer; 1.0.0; minSdk 21; compileSdk and targetSdk 36 | Maintain IDs; measure each release on supported Android versions |
 | Application / multidex / debug checks | MultiDexApplication, StrictMode, WorkManager | Add DI only when feature boundaries need it |
 | Firebase crash/analytics/remote flags | Excluded; no telemetry by default | Add configured Firebase variant, consent persisted before SDK collection, Firebase Analytics (not a duplicate Google Analytics pipeline), consent withdrawal and deletion policy |
 | Image loading / thumbnails | Glide local video thumbnails and MediaStore album art; recycled-view cancellation; 16 MB memory/64 MB disk cache | Benchmark thumbnail throughput and removable-provider artwork |
@@ -102,7 +102,7 @@ statistical proof. Twenty-four synthetic parser/CLI tests cover these paths.
 
 Do not turn every declaration in an extracted third-party manifest into a required TN-Player component. Add only components that own actual behavior.
 
-Latest prioritized source/security/release findings: [AUDIT.md](AUDIT.md). Current compile/target 34 is a development baseline; API 36/toolchain migration remains necessary for a new Google Play phone-app submission under the requirements checked in October 2026.
+Latest prioritized source/security/release findings: [AUDIT.md](AUDIT.md). This source branch targets and compiles against API 36 while retaining minSdk 21. See the [toolchain changes, device checks and tracked deprecations](docs/ANDROID_36.md). The published APK has not been replaced.
 
 ## MX Player comparison additions
 

@@ -49,7 +49,7 @@ class DiagnosticExtractorsFactory(private val diagnostics: PlaybackDiagnostics) 
     private val delegate = DefaultExtractorsFactory()
     override fun createExtractors(): Array<Extractor> = wrap(delegate.createExtractors(), null)
     override fun createExtractors(uri: Uri, headers: Map<String, List<String>>): Array<Extractor> = wrap(delegate.createExtractors(uri, headers), uri.toString())
-    override fun experimentalSetTextTrackTranscodingEnabled(enabled: Boolean): ExtractorsFactory { delegate.experimentalSetTextTrackTranscodingEnabled(enabled); return this }
+    // Keep Media3 1.4.1’s default subtitle parsing during extraction. The app never opts out.
     override fun setSubtitleParserFactory(factory: SubtitleParser.Factory): ExtractorsFactory { delegate.setSubtitleParserFactory(factory); return this }
     private fun wrap(extractors: Array<Extractor>, source: String?): Array<Extractor> = extractors.map { extractor -> object : Extractor by extractor {
         override fun sniff(input: ExtractorInput): Boolean = extractor.sniff(input).also { if (it) diagnostics.containerDetected(source, extractor.javaClass.simpleName) }

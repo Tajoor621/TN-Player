@@ -186,6 +186,13 @@ class PlayerActivity : AppCompatActivity() {
         frame.addView(speedBadge, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = dp(120); marginStart = dp(24) })
         buildChrome(frame)
         setContentView(frame)
+        if (Build.VERSION.SDK_INT >= 35) {
+            frame.setBackgroundColor(android.graphics.Color.BLACK)
+            androidx.core.view.WindowCompat.getInsetsController(window, frame).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
+        }
         applyActivityInsets(window, frame, includeBars = { !fullscreen && !inPip() }, includeCutout = { !inPip() })
         applyFullscreen()
         video.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->

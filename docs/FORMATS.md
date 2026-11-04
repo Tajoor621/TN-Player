@@ -75,7 +75,7 @@ FFmpeg's static archives are linked with the open JNI wrapper into **replaceable
 
 ## Build, size and evidence
 
-Install Java 17, Android platform 34/build-tools 34, NDK **27.2.12479018**, CMake **3.22.1**, yasm and ffmpeg (the latter only generates synthetic test fixtures). Run:
+Install Java 17, Android platform 36/build-tools 35.0.0, NDK **27.2.12479018**, CMake **3.22.1**, yasm and ffmpeg (the latter only generates synthetic test fixtures). Run:
 
 ```sh
 bash scripts/build-native-codecs.sh

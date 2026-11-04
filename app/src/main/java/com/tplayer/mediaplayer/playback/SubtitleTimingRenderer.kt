@@ -72,11 +72,11 @@ internal class CueHistory(private val downstream: TextOutput, looper: Looper) : 
         if (last === cues && lastDelay == delayUs) return
         last = cues; lastDelay = delayUs; val version = epoch
         val shifted = CueGroup(cues.cues, (cues.presentationTimeUs + delayUs).coerceAtLeast(0))
-        handler.post { if (version == epoch) { downstream.onCues(shifted.cues); downstream.onCues(shifted) } }
+        handler.post { if (version == epoch) downstream.onCues(shifted) }
     }
     fun reset() {
         epoch++; history.clear(); bytes = 0; last = null
         val version = epoch
-        handler.post { if (version == epoch) { downstream.onCues(CueGroup.EMPTY_TIME_ZERO.cues); downstream.onCues(CueGroup.EMPTY_TIME_ZERO) } }
+        handler.post { if (version == epoch) downstream.onCues(CueGroup.EMPTY_TIME_ZERO) }
     }
 }

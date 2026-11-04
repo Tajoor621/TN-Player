@@ -83,7 +83,7 @@ Implementation and publication results are recorded in [VALIDATION.md](VALIDATIO
 
 | Priority | Area | Concrete completion criteria |
 |---|---|---|
-| Release blocker | Modern Android/toolchain and dependency migration | Upgrade compile/target and the compatible AGP/Gradle/library set together; test edge-to-edge insets, Android 15/16 media focus/foreground behavior and permissions on API 35/36. Keep the API 21 requirement explicit when evaluating dependencies. Current target 34 is not a new Google Play phone-app submission target. |
+| Release blocker | Modern Android/toolchain and dependency migration | Source targets API 36 with minSdk 21. Validate edge-to-edge, media focus/foreground behavior, permissions and large-screen behavior on API 35/36; see [migration notes](docs/ANDROID_36.md). |
 | Release blocker | Production signing and delivery | Owner-controlled signing outside the repository, monotonic version codes, signed release AAB/APK, upgrade-install tests retaining Room/preferences/grants, recovery/rotation plan and complete notices. Current debug signing may change between runners. |
 | High | Downloads backend replacement | Android's security guidance recommends an app-controlled HTTP client plus scheduler instead of DownloadManager. Keep legacy records readable while migrating to bounded streaming writes, HTTPS-only redirect validation, authenticated source storage, atomic finalization, network/storage fault tests and cancel/retry/process-recovery semantics. The current update improves legacy management; it does not replace the system backend. |
 | High | External share/import queues | Shared-file display-name lookup already runs off the UI thread. Add slow-provider and rotate-during-resolution tests for the bounded share queue. |
@@ -103,7 +103,7 @@ Remaining privacy work includes a user-facing recovery path for invalidated secu
 
 ## Primary references checked
 
-- [Google Play target API requirements](https://developer.android.com/google/play/requirements/target-sdk): as checked on 17 October 2026, new phone-app submissions/updates require API 36, with stated exceptions and extension provisions. The requested API 34 development baseline was preserved in this change; migration is an outstanding release blocker.
+- [Google Play target API requirements](https://developer.android.com/google/play/requirements/target-sdk): as checked on 17 October 2026, new phone-app submissions/updates require API 36, with stated exceptions and extension provisions. The API 36 source migration is documented [here](docs/ANDROID_36.md); device and release validation are still open.
 - [Android DownloadManager security guidance](https://developer.android.com/privacy-and-security/risks/unsafe-download-manager): recommends an app-owned HTTP-client/scheduling implementation. HTTPS validation and app-specific destinations reduce some exposure but do not remove system-backend risks.
 - [DownloadManager reference](https://developer.android.com/reference/android/app/DownloadManager): status, reason, byte counters and removal behavior used by the legacy management screen.
 
