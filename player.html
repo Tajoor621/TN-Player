@@ -3,58 +3,110 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play a local file · TN-Player</title>
+<meta name="description" content="Play video and audio from this device in the TN-Player web player. Files stay in your browser and are never uploaded.">
+<meta name="robots" content="index, follow">
 <meta name="theme-color" content="#081d21">
-<meta name="description" content="Play local video and audio in your browser with TN-Player.">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://tajoor621.github.io/TN-Player/player.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TN-Player">
+<meta property="og:title" content="Play a local file · TN-Player">
+<meta property="og:description" content="Browser player for video and audio on this device. Nothing is uploaded. Not a streaming catalog.">
+<meta property="og:url" content="https://tajoor621.github.io/TN-Player/player.html">
+<meta property="og:image" content="https://tajoor621.github.io/TN-Player/assets/tn-player-brand.png">
+<meta property="og:image:alt" content="TN-Player icon: gold TN headphones and a cyan play symbol">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Play a local file · TN-Player">
+<meta name="twitter:description" content="Browser player for video and audio on this device. Nothing is uploaded.">
+<meta name="twitter:image" content="https://tajoor621.github.io/TN-Player/assets/tn-player-brand.png">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./assets/tn-player-icon.png" type="image/png">
 <link rel="apple-touch-icon" href="./assets/tn-player-icon.png">
-<title>TN-Player Web</title>
-<style>
-:root{color-scheme:dark;background:#081d21;color:#f4f7ff;font:16px/1.55 system-ui,sans-serif}*{box-sizing:border-box}body{margin:0}main{max-width:820px;margin:auto;padding:24px clamp(16px,5vw,40px) 48px}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #355156;padding-bottom:14px}header span{display:flex;align-items:center;gap:10px;font-weight:700}header img{border-radius:9px}h1{font-size:clamp(32px,7vw,52px);line-height:1.1;margin-bottom:.4em}p{color:#b8cbd2}a{color:#8de9ff}video{display:block;width:100%;max-height:56vh;min-height:64px;border-radius:12px;background:#020607;margin-top:20px}video[hidden]{display:none}button,input::file-selector-button{background:#d6f6ff;color:#081d21;border:0;border-radius:8px;min-height:44px;padding:8px 14px;font:inherit;font-weight:650;cursor:pointer}input{max-width:100%;min-height:44px;font:inherit}label{display:block;margin-bottom:8px;font-weight:650}:focus-visible{outline:3px solid #38cdee;outline-offset:4px}#status{overflow-wrap:anywhere}
-
-/* Only active in an installed desktop window with visible overlay controls. */
-.wco-visible body{padding-top:calc(env(titlebar-area-y, 0px) + env(titlebar-area-height, 0px))}
-.wco-visible .app-titlebar{
-    position:fixed;
-    top:env(titlebar-area-y, 0px);
-    left:env(titlebar-area-x, 0px);
-    width:env(titlebar-area-width, 100%);
-    height:env(titlebar-area-height, 0px);
-    max-width:none;
-    margin:0;
-    padding:0 12px;
-    flex-wrap:nowrap;
-    overflow:hidden;
-    background:#081d21;
-    z-index:3;
-    -webkit-app-region:drag;
-    app-region:drag;
-}
-.wco-visible .app-titlebar a{
-    -webkit-app-region:no-drag;
-    app-region:no-drag;
-}
-.wco-visible .app-titlebar img{
-    width:min(28px, env(titlebar-area-height, 28px));
-    height:min(28px, env(titlebar-area-height, 28px));
-}
-.wco-visible .app-titlebar a:focus-visible{outline-offset:-2px}
-.wco-visible .skip:focus{z-index:4}
-</style>
+<link rel="stylesheet" href="./site.css">
 <script src="./pwa.js" defer></script>
 </head>
-<body>
-<main>
-<header class="app-titlebar"><span><img src="./assets/tn-player-icon.png" width="38" height="38" alt="">TN-Player Web</span><a href="./#title">Android download</a></header>
-<h1>Play a file</h1>
-<p>Open video or audio from this device. The file stays in your browser and is never uploaded.</p>
+<body class="player-page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="app-titlebar">
+<div class="bar">
+<a class="brand" href="./"><img src="./assets/tn-player-icon.png" width="40" height="40" alt="">TN-Player</a>
+<button type="button" class="menu-button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+<nav id="primary-nav" aria-label="Primary">
+<a href="./#download">Android download</a>
+<a href="./player.html" aria-current="page">Web player</a>
+<a href="https://github.com/Tajoor621/TN-Player">GitHub</a>
+</nav>
+</div>
+</header>
+<main id="main">
+<p class="eyebrow">Browser player</p>
+<h1>Play a local file</h1>
+<p class="lede">Choose video or audio from this device, or drop it on this page. The file stays in this browser tab and is never uploaded. TN-Player does not send it to a server or add it to a cloud library.</p>
+<div class="picker">
 <label for="media-file">Choose video or audio</label>
-<input id="media-file" type="file" accept="video/*,audio/*,.mkv,.m4a,.flac,.wav,.ogg,.webm,.mp4,.mp3">
-<video id="media" controls playsinline preload="metadata" aria-label="Media playback controls" hidden></video>
-<p id="status" role="status">No file selected.</p>
-<button id="install" type="button" hidden>Install web player</button>
-<p>Playback formats depend on your browser. For Media3 features and additional formats, use the native Android app.</p>
+<input id="media-file" type="file" multiple accept="video/*,audio/*,.mkv,.m4a,.flac,.wav,.ogg,.webm,.mp4,.mp3,.aac,.opus,.srt,.vtt" aria-describedby="file-hint">
+<p id="file-hint">You can choose more than one file. A new selection replaces the queue, up to 100 files. The queue below is what plays. A WebVTT or plain SRT file in the same selection is used as captions.</p>
+<label for="subtitle-file">Optional captions (WebVTT or plain SRT)</label>
+<input id="subtitle-file" type="file" accept=".vtt,.srt,text/vtt" aria-describedby="caption-hint">
+<p id="caption-hint">Captions stay in this tab. Styled ASS and SSA files are not rendered here. The Android app has separate subtitle support.</p>
+</div>
+<video id="media" controls playsinline preload="metadata" aria-label="Local media playback" hidden></video>
+<p id="status" role="status" aria-live="polite">No file selected.</p>
+<fieldset id="tools" hidden>
+<legend>Playback options</legend>
+<label for="rate">Speed
+<select id="rate">
+<option value="0.5">0.5×</option>
+<option value="0.75">0.75×</option>
+<option value="1" selected>1×</option>
+<option value="1.25">1.25×</option>
+<option value="1.5">1.5×</option>
+<option value="2">2×</option>
+</select>
+</label>
+<label for="repeat">Repeat
+<select id="repeat">
+<option value="off" selected>Off</option>
+<option value="one">This file</option>
+<option value="all">Queue</option>
+</select>
+</label>
+<label for="sleep">Sleep timer
+<select id="sleep">
+<option value="0" selected>Off</option>
+<option value="15">15 minutes</option>
+<option value="30">30 minutes</option>
+<option value="45">45 minutes</option>
+<option value="60">60 minutes</option>
+</select>
+</label>
+<button id="pip" type="button">Picture in picture</button>
+<button id="clear-queue" type="button">Clear queue</button>
+</fieldset>
+<ol id="queue" hidden aria-label="Playback queue"></ol>
+<button id="install" class="primary" type="button" hidden>Install web player</button>
+<details class="faq">
+<summary>Keyboard shortcuts</summary>
+<ul class="shortcuts">
+<li><kbd>Space</kbd> or <kbd>K</kbd> plays or pauses when focus is not on a control or the video</li>
+<li><kbd>Left</kbd> and <kbd>Right</kbd> seek 10 seconds</li>
+<li><kbd>M</kbd> mutes, <kbd>F</kbd> toggles full screen</li>
+<li><kbd>N</kbd> plays the next file, <kbd>P</kbd> the previous file</li>
+</ul>
+<p>The video controls keep their own keys while that control is focused. The Android app supports 0.25× to 4×. This page offers the speeds above.</p>
+</details>
+<p>Resume position for the same file name, size, and modified time is stored in this tab only and cleared when the tab closes. Playback formats depend on your browser. For Media3, direct streams, and more formats, install the Android app.</p>
+<noscript><p>Choosing a file needs JavaScript so the page can play it locally. Files are not uploaded either way.</p></noscript>
 </main>
+<footer>
+<p>TN-Player · Noor E Sahar</p>
+<nav aria-label="Footer">
+<a href="./">Project page</a>
+<a href="./#download">Android download</a>
+<a href="https://github.com/Tajoor621/TN-Player/blob/main/docs/PWA.md">Web notes</a>
+</nav>
+</footer>
 <script>
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(error => {

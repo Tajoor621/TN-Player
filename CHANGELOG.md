@@ -1,5 +1,12 @@
 # TN-Player 1.0.0 reliability revision
 
+## 5 November 2026 — project site and repository presentation
+
+- Refresh the GitHub Pages project page: clearer structure, contrast, landmarks, metadata, and reference screens from the existing emulator captures.
+- Extend the browser player with a local queue, playback speed, repeat, sleep timer, picture-in-picture, drag-and-drop, and WebVTT or plain SRT captions. Files stay in the tab and are not uploaded.
+- Describe the project as TN-Player (Noor E Sahar) in the README and on the site.
+- This pass does not change the Android player and does not count as the remaining feature prompt. The published APK is unchanged.
+
 ## 2 November 2026 — decoder source integration (APK deferred)
 
 - Add pinned source-built FFmpeg AC3/EAC3/DTS/TrueHD audio and libgav1 AV1/libvpx VP9 fallback to the existing service-owned Media3 player.

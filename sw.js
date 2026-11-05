@@ -2,12 +2,14 @@
 
 const scope = self.registration.scope;
 const prefix = `tn-player-shell:${scope}:`;
-const cacheName = `${prefix}v2`;
+const cacheName = `${prefix}v3`;
 const shell = [
-    "./", "./index.html", "./player.html", "./manifest.webmanifest", "./pwa.js",
+    "./", "./index.html", "./player.html", "./manifest.webmanifest", "./pwa.js", "./site.css",
     "./assets/tn-player-icon.png", "./assets/tn-player-brand.png", "./assets/tn-player-maskable.png",
-    "./assets/tn-player-icon.png?brand=tn-gold-cyan-20261018",
-    "./assets/tn-player-brand.png?brand=tn-gold-cyan-20261018"
+    "./validation/reference-ui/player-portrait.png",
+    "./validation/reference-ui/player-landscape.png",
+    "./validation/reference-ui/folders.png",
+    "./validation/reference-ui/settings-hub.png"
 ].map(path => new URL(path, scope).href);
 const known = new Set(shell);
 

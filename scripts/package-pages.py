@@ -5,9 +5,11 @@ root=Path(__file__).resolve().parents[1]
 out=root/'_site'
 if out.exists():shutil.rmtree(out)
 out.mkdir();(out/'downloads').mkdir()
-for name in ('index.html','player.html','manifest.webmanifest','pwa.js','sw.js'):
+for name in ('index.html','player.html','manifest.webmanifest','pwa.js','sw.js','site.css','robots.txt','sitemap.xml'):
     shutil.copyfile(root/name,out/name)
 shutil.copytree(root/'assets',out/'assets')
+(out/'validation').mkdir()
+shutil.copytree(root/'validation'/'reference-ui', out/'validation'/'reference-ui')
 html=(out/'index.html').read_text()
 credit='<p class="status">This software uses <a href="https://ffmpeg.org/">FFmpeg</a> under LGPL 2.1 or later, with Media3, libvpx and libgav1 decoder extensions. <a href="downloads/TN-Player-native-sources.tar.xz">Download corresponding native sources and relink materials</a>. See the <a href="https://github.com/Tajoor621/TN-Player/blob/main/docs/FORMATS.md">format and decoding-path matrix</a>.</p>'
 if 'TN-Player-native-sources.tar.xz' not in html:html=html.replace('</main>',credit+'\n</main>')

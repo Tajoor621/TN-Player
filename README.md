@@ -1,16 +1,20 @@
-# TN-Player 1.0.0
+# TN-Player
 
-> **Development phase — 2 November 2026:** Decoder workflow is integrated as source. The owner has deferred the final APK build/publication until three additional feature prompts are integrated. Performance and gesture prompts **2 of 3** are integrated; one feature prompt remains. Normal pushes run source/script checks, Kotlin compilation, JVM tests and lint with an APK-task guard; APK/device checks and publication require explicit manual inputs. See [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md), [FORMATS.md](docs/FORMATS.md) and [BENCHMARKS.md](docs/BENCHMARKS.md). The public APK remains the prior published build.
+Local-first Android media player for video, music, and direct streams.
+
+**Also known as Noor E Sahar.** Package `com.tplayer.mediaplayer` · version 1.0.0 · Android 5.0+ (minSdk 21, target/compileSdk 34).
+
+[Project site](https://tajoor621.github.io/TN-Player/) · [Testing APK](https://tajoor621.github.io/TN-Player/downloads/TN-Player-1.0.0-debug.apk) · [Source](https://github.com/Tajoor621/TN-Player) · [Feature status](FEATURE_STATUS.md)
 
 <img src="branding/TN-Player-logo.png" width="112" alt="TN-Player gold headphones and cyan play icon">
 
-Native Android media-player core built from the TN-Player master specification.
+TN-Player plays media you already have. It reads the device library and folders you choose, resumes each file at its saved position, and opens direct HTTPS or RTSP streams you enter. There is no account, no hosted catalog, and no cloud library. The [project site](https://tajoor621.github.io/TN-Player/) is the download and overview page, plus a browser player for local files. It is not a streaming service.
 
-**Package:** `com.tplayer.mediaplayer` · **minSdk:** 21 · **target/compileSdk:** 34
+This repository is a hardened playback and local-library core. It does not yet implement the entire master specification. See [FEATURE_STATUS.md](FEATURE_STATUS.md) for exact boundaries. The tagline on the project site describes the goal; it is not a guarantee that every codec or DRM service can be played.
 
-This is a hardened implementation of the playback and local-library core. It does not yet implement the entire master specification. See [FEATURE_STATUS.md](FEATURE_STATUS.md) for exact boundaries and concrete next steps. The tagline is the product vision; it is not a guarantee that every codec or DRM service can be played.
+> **Development phase — 2 November 2026:** Decoder workflow is integrated as source. The owner has deferred the final APK build until three additional feature prompts are integrated. Performance and gesture prompts **2 of 3** are integrated; one feature prompt remains. Normal pushes run source, script, Kotlin, JVM test, and lint checks with an APK-task guard. APK, device, and publication jobs stay on explicit manual input. See [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md), [FORMATS.md](docs/FORMATS.md), and [BENCHMARKS.md](docs/BENCHMARKS.md). The file on the project site remains the previously published build.
 
-The original logo is in `branding/`. APK rebuilding/publication is manually gated and currently deferred; see `CONTENTS.md`, `DEVELOPMENT_PHASE.md` and `VALIDATION.md`.
+The original logo is in `branding/`. Rebuilding and publishing an APK is manually gated and currently deferred. See [CONTENTS.md](CONTENTS.md), [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md), and [VALIDATION.md](VALIDATION.md).
 
 ## Build and run
 
@@ -33,11 +37,17 @@ Debug APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 
 The GitHub Actions workflow builds debug/release, runs unit tests/lint, and includes Android 9 and Android 14 emulator navigation, playback, Keystore, PiP and process-recovery checks. APK/device jobs run only on a manual dispatch with `build_apk=true`; normal pushes perform the guarded source-only checks. Check the Actions tab for current results; historical validation is kept separately.
 
-## Branding and GitHub Pages
+## Project site
 
-The original TN icon is integrated into Android and the root Pages page. The manually gated Pages workflow requires a successful full Android run on the exact current source, then publishes a matching debug APK, decoder source archive, notices and checksum. It is paused during the three-prompt integration phase. Publishing supports this repository's configured **main / root** Pages source. The workflow commits the rebuilt APK, checksum and build manifest to that source, requests a Pages build, and verifies the public APK against its SHA-256 before reporting success. Workflow results are available in the Actions tab.
+GitHub Pages serves this repository from `main` at the root: [tajoor621.github.io/TN-Player](https://tajoor621.github.io/TN-Player/).
 
-Debug APKs may use different signing keys between runs. Android may reject an in-place update; preserve needed data before uninstalling an existing build. Do not commit private development or release keys.
+- **Home** explains what the Android app does today, links the testing download and checksum, and shows emulator reference screens.
+- **Web player** ([player.html](player.html)) plays video and audio chosen on the device. A queue, playback speed, repeat, sleep timer, picture-in-picture, and WebVTT or plain SRT captions stay in the browser tab. Nothing is uploaded. Browser codecs are narrower than the Android app. There is no stream catalog.
+- **Installable shell.** The manifest and service worker cache the site shell after an online visit. They do not cache your media or the APK. See [PWA.md](docs/PWA.md).
+
+The manually gated Pages workflow requires a successful full Android run on the exact current source, then publishes a matching debug APK, decoder source archive, notices, and checksum. It is paused during the three-prompt integration phase. Publishing supports this repository's configured **main / root** Pages source. The workflow commits the rebuilt APK, checksum, and build manifest to that source, requests a Pages build, and verifies the public APK against its SHA-256 before reporting success. Workflow results are available in the Actions tab.
+
+Debug APKs may use different signing keys between runs. Android may reject an in-place update. Keep anything you need before uninstalling an older test build. Do not commit private development or release keys.
 
 ## TN-Player feature upgrade
 
@@ -48,7 +58,7 @@ Debug APKs may use different signing keys between runs. Android may reject an in
 - **Files → item options:** create ZIP from a file/folder or extract ZIP to a new sibling folder. Originals are retained; no overwrite. ZIP operations are cancellable and bounded to 512 MB, 5,000 entries and 24 directory levels. Extraction rejects unsafe/colliding paths; creation checks written entry CRCs. Process interruption may leave a hidden `.tn-archive-*` staging result to review.
 - **Share to TN-Player:** multiple media files become a queue (maximum 1,000 entries). Temporary source permissions remain controlled by Android.
 - **Home screen:** add the TN-Player playback widget using your launcher's widget picker. The title opens the app; buttons control the service and can resume a saved queue. Long-press the launcher icon for Resume, Files or New stream. PiP has custom transport actions.
-- **Theme:** Your supplied black TN and blue/cyan play identity, light/dark/system and an AMOLED option. Package, version and Room schema remain unchanged.
+- **Theme:** Black TN and blue/cyan play identity, light/dark/system, and an AMOLED option. Package, version, and Room schema remain unchanged.
 
 ## Folder browser and reference-style controls
 
@@ -120,6 +130,12 @@ Pinned libraries preserve the requested API 21 / compile 34 compatibility baseli
 - [TEST_PLAN.md](TEST_PLAN.md): automated and physical-device validation.
 - [VALIDATION.md](VALIDATION.md): checks actually completed for this delivery.
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): dependencies and license review requirements.
+- [docs/FORMATS.md](docs/FORMATS.md): codec and container matrix, including paths that are not in the published APK yet.
+- [docs/GESTURES.md](docs/GESTURES.md): player gestures and their limits.
+- [docs/BENCHMARKS.md](docs/BENCHMARKS.md): performance measurements and what is still pending.
+- [docs/PWA.md](docs/PWA.md): installable project site and browser player.
+- [DEVELOPMENT_PHASE.md](DEVELOPMENT_PHASE.md): why APK publication is deferred.
+- [CHANGELOG.md](CHANGELOG.md): source revisions for this version.
 
 ## Reliability improvements
 

@@ -1,55 +1,224 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TN-Player — Your media. Your player.</title>
-<meta name="description" content="Meet TN-Player, a local-first Android media player. Explore the project and download the latest testing build.">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TN-Player — local Android media player</title>
+<meta name="description" content="TN-Player (Noor E Sahar) is a local-first Android player for video, music, and direct streams. Download the testing build or open a file in the browser. No account.">
+<meta name="application-name" content="TN-Player">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#081d21">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://tajoor621.github.io/TN-Player/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TN-Player">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="TN-Player — local Android media player">
+<meta property="og:description" content="Local-first Android player for video, music, and direct streams. Testing build, public source, and a browser player for files on your device.">
+<meta property="og:url" content="https://tajoor621.github.io/TN-Player/">
+<meta property="og:image" content="https://tajoor621.github.io/TN-Player/assets/tn-player-brand.png">
+<meta property="og:image:alt" content="TN-Player icon: gold TN headphones and a cyan play symbol">
+<meta property="og:image:width" content="768">
+<meta property="og:image:height" content="768">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TN-Player — local Android media player">
+<meta name="twitter:description" content="Local-first Android player for video, music, and direct streams. No account and no cloud library.">
+<meta name="twitter:image" content="https://tajoor621.github.io/TN-Player/assets/tn-player-brand.png">
+<meta name="twitter:image:alt" content="TN-Player icon: gold TN headphones and a cyan play symbol">
 <link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" href="assets/tn-player-icon.png">
+<link rel="apple-touch-icon" href="assets/tn-player-icon.png">
+<link rel="stylesheet" href="./site.css">
 <script src="./pwa.js" defer></script>
-<meta name="theme-color" content="#081d21"><link rel="icon" type="image/png" href="assets/tn-player-icon.png?brand=tn-gold-cyan-20261018"><link rel="apple-touch-icon" href="assets/tn-player-icon.png?brand=tn-gold-cyan-20261018">
-<style>
-:root{color-scheme:dark;--ink:#081d21;--text:#f4f7ff;--muted:#9aa9c1;--line:#263046;--accent:#38cdee}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--ink);color:var(--text);font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}a:focus-visible{outline:3px solid var(--accent);outline-offset:6px}button,a{touch-action:manipulation}main,header,footer{max-width:1200px;margin:auto;padding:0 40px}header{height:104px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:12px;font-size:21px;font-weight:750;letter-spacing:-.6px}.brand img{width:46px;height:46px;border-radius:12px}nav{display:flex;gap:28px;color:var(--muted);font-size:14px}nav a:hover{color:white}.hero{min-height:650px;display:grid;grid-template-columns:1.1fr 1fr;align-items:center;gap:20px;padding:74px 0 64px}.eyebrow{font-size:12px;font-weight:650;letter-spacing:2px;color:var(--accent);text-transform:uppercase;display:flex;align-items:center;gap:10px}.eyebrow:before{content:"";width:6px;height:6px;border-radius:100%;background:var(--accent)}h1{font-size:clamp(48px,6.6vw,82px);line-height:1.05;font-weight:720;letter-spacing:-4px;margin:24px 0}.gradient{background:linear-gradient(100deg,#458bff,#22b9ff 72%,#38e0ed);color:transparent;background-clip:text}p{color:var(--muted)}.intro{max-width:435px;font-size:18px;line-height:1.75}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}.button{display:inline-flex;align-items:center;justify-content:center;gap:14px;padding:14px 22px;min-height:52px;border:1px solid var(--line);border-radius:9px;font-size:14px;font-weight:650;transition:background .2s}.button.primary{background:#eff5ff;color:#101725;border-color:#eff5ff}.button:hover{background:#1a263e}.button.primary:hover{background:#bfeefb}.note{font-size:12px;margin-top:18px;max-width:450px}.art{position:relative;display:flex;flex-direction:column;align-items:center}.art img{display:block;width:100%;max-width:480px;aspect-ratio:1;object-fit:contain}.art-label{color:#69809f;font:11px/1.6 ui-monospace,monospace;letter-spacing:2px;margin-top:6px}.facts{display:flex;gap:26px;flex-wrap:wrap;padding:24px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:#b4c0d4;font-size:13px}.facts span:before{content:"✓";color:var(--accent);margin-right:8px}.details{padding:76px 0}.section-head{display:flex;justify-content:space-between;align-items:end;gap:28px;margin-bottom:34px}h2{font-size:32px;line-height:1.2;letter-spacing:-1.1px;margin:0}.section-head p{max-width:400px;font-size:14px;margin:0}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{border:1px solid var(--line);border-radius:12px;padding:28px;background:#0b1220}.number{font:12px ui-monospace,monospace;color:#5e83ae;letter-spacing:1px}h3{font-size:19px;font-weight:620;margin:24px 0 10px;letter-spacing:-.4px}.card p{font-size:14px;margin:0}.identity{display:flex;align-items:center;justify-content:space-between;gap:24px;border:1px solid var(--line);border-radius:12px;padding:30px;margin-bottom:58px}.identity h2{font-size:24px}.identity p{font-size:14px;margin:8px 0 0}.status{color:#a4b0c4;font-size:12px;max-width:820px;padding-bottom:38px}.status a{text-decoration:underline}footer{display:flex;justify-content:space-between;gap:20px;padding-top:24px;padding-bottom:32px;border-top:1px solid var(--line);font-size:12px;color:#7f91ad}.skip{position:absolute;left:-9999px}.skip:focus{left:20px;top:10px;background:#fff;color:#000;padding:10px;z-index:2}@media(max-width:760px){main,header,footer{padding-left:24px;padding-right:24px}header{height:82px}nav{gap:18px}nav .optional{display:none}.hero{grid-template-columns:1fr;padding:48px 0 32px;gap:20px}.hero h1{letter-spacing:-2.5px}.intro{font-size:17px}.art{grid-row:2;max-width:330px;margin:auto}.art img{max-width:300px}.art-label{font-size:10px}.facts{gap:16px;font-size:12px}.details{padding:48px 0}.section-head{display:block}.section-head p{margin-top:18px}.cards{grid-template-columns:1fr}.card{padding:24px}.card h3{margin-top:14px}.identity{align-items:start;flex-direction:column;padding:24px}footer{flex-wrap:wrap}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
-
-/* Only active in an installed desktop window with visible overlay controls. */
-.wco-visible body{padding-top:calc(env(titlebar-area-y, 0px) + env(titlebar-area-height, 0px))}
-.wco-visible .app-titlebar{
-    position:fixed;
-    top:env(titlebar-area-y, 0px);
-    left:env(titlebar-area-x, 0px);
-    width:env(titlebar-area-width, 100%);
-    height:env(titlebar-area-height, 0px);
-    max-width:none;
-    margin:0;
-    padding:0 12px;
-    flex-wrap:nowrap;
-    overflow:hidden;
-    background:#081d21;
-    z-index:3;
-    -webkit-app-region:drag;
-    app-region:drag;
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "TN-Player",
+  "alternateName": "Noor E Sahar",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Android 5.0 and later",
+  "softwareVersion": "1.0.0",
+  "url": "https://tajoor621.github.io/TN-Player/",
+  "downloadUrl": "https://tajoor621.github.io/TN-Player/downloads/TN-Player-1.0.0-debug.apk",
+  "codeRepository": "https://github.com/Tajoor621/TN-Player",
+  "description": "Local-first Android media player for video, music, and direct streams. Development build with no account and no cloud library.",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "sameAs": "https://github.com/Tajoor621/TN-Player",
+  "screenshot": [
+    {
+      "@type": "ImageObject",
+      "url": "https://tajoor621.github.io/TN-Player/validation/reference-ui/player-portrait.png",
+      "caption": "Portrait playback on an Android 14 emulator"
+    },
+    {
+      "@type": "ImageObject",
+      "url": "https://tajoor621.github.io/TN-Player/validation/reference-ui/folders.png",
+      "caption": "Folder browser on an Android 14 emulator"
+    }
+  ]
 }
-.wco-visible .app-titlebar a{
-    -webkit-app-region:no-drag;
-    app-region:no-drag;
-}
-.wco-visible .app-titlebar img{
-    width:min(28px, env(titlebar-area-height, 28px));
-    height:min(28px, env(titlebar-area-height, 28px));
-}
-.wco-visible .app-titlebar a:focus-visible{outline-offset:-2px}
-.wco-visible .skip:focus{z-index:4}
-</style>
+</script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="app-titlebar"><a class="brand" href="./" aria-label="TN-Player home"><img src="assets/tn-player-icon.png?brand=tn-gold-cyan-20261018" alt="" width="46" height="46">TN-Player</a><nav aria-label="Main navigation"><a class="optional" href="#experience">Experience</a><a href="https://github.com/Tajoor621/TN-Player">GitHub ↗</a></nav></header>
+<header class="app-titlebar">
+<div class="bar">
+<a class="brand" href="./" aria-current="page"><img src="assets/tn-player-icon.png" alt="" width="40" height="40">TN-Player</a>
+<button type="button" class="menu-button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+<nav id="primary-nav" aria-label="Primary">
+<a href="#experience">Features</a>
+<a href="#screens">On device</a>
+<a href="#download">Download</a>
+<a href="./player.html">Web player</a>
+<a href="https://github.com/Tajoor621/TN-Player">GitHub</a>
+</nav>
+</div>
+</header>
 <main id="main">
-<section class="hero" aria-labelledby="title"><div><div class="eyebrow">Android media player</div><h1 id="title">Your media.<br>Your space.<br><span class="gradient">Your player.</span></h1><p class="intro">A personal home for video, music, and streams. Built for Android, with your media at the center.</p><div class="actions"><a class="button primary" href="downloads/TN-Player-1.0.0-debug.apk" download>Download for Android <span aria-hidden="true">↓</span></a><a class="button" href="https://github.com/Tajoor621/TN-Player">Explore the source <span aria-hidden="true">↗</span></a><a class="button" href="./player.html">Open web player</a></div><p class="note">Version 1.0.0 · Development APK · Android 5.0+<br><a href="downloads/SHA256SUMS.txt">Verify download checksum</a></p></div><div class="art"><img src="assets/tn-player-brand.png?brand=tn-gold-cyan-20261018" alt="TN-Player icon: gold TN headphones and a cyan-blue play symbol" width="480" height="480" fetchpriority="high"><div class="art-label">TN / PLAY IN YOUR OWN WAY</div></div></section>
-<div class="facts" aria-label="App principles"><span>Local-first</span><span>No account required</span><span>Native Android</span><span>Open development</span></div>
-<section class="details" id="experience" aria-labelledby="experience-title"><div class="section-head"><h2 id="experience-title">Made around your media.</h2><p>A focused player foundation. Explore what works today and follow the project as it grows.</p></div><div class="cards"><article class="card"><span class="number">01 / WATCH &amp; LISTEN</span><h3>One place to press play.</h3><p>Play local video and audio in portrait or landscape. Pick up each file at its saved position and customize your player shortcuts.</p></article><article class="card"><span class="number">02 / CONNECT</span><h3>Bring your own stream.</h3><p>Open supported network streams, including HLS, DASH and RTSP, using Media3 playback.</p></article><article class="card"><span class="number">03 / STAY IN CONTROL</span><h3>Your library, your device.</h3><p>Browse folders, select files, inspect details and confirm deletions. Track downloads, retry failures, and resume each file from its saved position.</p></article></div></section>
-<section class="identity" aria-labelledby="identity-title"><div><h2 id="identity-title">A new mark. The same ambition.</h2><p>Your gold TN headphones, cyan-blue play symbol and musical mark, adapted for your home screen.</p></div><a class="button" href="assets/tn-player-icon.png?brand=tn-gold-cyan-20261018" download="TN-Player-logo.png">Download the icon <span aria-hidden="true">↓</span></a></section>
-<p class="status"><strong>Development preview.</strong> This is an Android testing build, not a production release. Format support depends on the device and playback engine. See the <a href="https://github.com/Tajoor621/TN-Player/blob/main/FEATURE_STATUS.md">feature status</a> and <a href="https://github.com/Tajoor621/TN-Player/blob/main/VALIDATION.md">validation notes</a> for current limits. Read the <a href="https://github.com/Tajoor621/TN-Player/blob/main/AUDIT.md">repository audit and roadmap</a>. View the <a href="https://github.com/Tajoor621/TN-Player/blob/main/validation/reference-ui/README.md">native app screenshots</a>. Signing may differ from previously installed test builds; preserve needed data before any uninstall.</p>
-</main><footer><span>TN-Player · Universal Media Player</span><a href="https://github.com/Tajoor621/TN-Player/actions">Build status ↗</a></footer>
+<section class="hero" aria-labelledby="title">
+<div>
+<p class="eyebrow">Android media player</p>
+<h1 id="title">Your media.<br>Your space.<br><span class="gradient">Your player.</span></h1>
+<p class="lede">TN-Player, also known as Noor E Sahar, plays video, music, and direct streams on your Android device. There is no account and no cloud library. This page is the project home: a testing download, the source, and a browser player for files already on your device.</p>
+<div class="actions">
+<a class="button primary" href="downloads/TN-Player-1.0.0-debug.apk" download>Download for Android <span aria-hidden="true">↓</span></a>
+<a class="button" href="https://github.com/Tajoor621/TN-Player">View source</a>
+<a class="button" href="./player.html">Open web player</a>
+</div>
+<p class="note" id="build-meta">Version 1.0.0 · Development APK · Android 5.0+</p>
+</div>
+<figure class="art">
+<img src="assets/tn-player-brand.png" alt="TN-Player icon: gold TN headphones and a cyan play symbol" width="768" height="768" fetchpriority="high">
+<figcaption>TN / PLAY IN YOUR OWN WAY</figcaption>
+</figure>
+</section>
+<ul class="facts" aria-label="Product facts">
+<li><span aria-hidden="true">✓</span>Local-first</li>
+<li><span aria-hidden="true">✓</span>No account</li>
+<li><span aria-hidden="true">✓</span>Native Android</li>
+<li><span aria-hidden="true">✓</span>Public source</li>
+</ul>
+<section id="experience" aria-labelledby="experience-title">
+<div class="section-head">
+<h2 id="experience-title">What the Android app does</h2>
+<p>A local player built on Media3. These are the pieces that exist in the app today, not a catalog of services.</p>
+</div>
+<div class="cards">
+<article class="card"><p class="number">01 / VIDEO AND MUSIC</p><h3>Library, folders, and resume</h3><p>Play local video and audio in portrait or landscape. Browse folders with counts, switch list or grid, sort, and pick up a file at its saved position.</p></article>
+<article class="card"><p class="number">02 / DIRECT STREAMS</p><h3>A URL you enter</h3><p>Open a direct HTTPS or RTSP media URL. HLS, DASH, and SmoothStreaming modules are included. A normal website address is not treated as a stream. Plain HTTP is blocked.</p></article>
+<article class="card"><p class="number">03 / PLAYER TOOLS</p><h3>Control the file you opened</h3><p>Speed from 0.25× to 4×, A-B repeat, sleep timer, bookmarks, favorites, external subtitles, aspect ratio, gestures, and picture-in-picture on Android 8 and later.</p></article>
+<article class="card"><p class="number">04 / FILES</p><h3>Work on device storage</h3><p>Choose a folder, then copy, move, rename, share, or delete with confirmation. Create or extract ZIP archives inside the published size and path limits. Direct HTTPS downloads use Android DownloadManager.</p></article>
+<article class="card"><p class="number">05 / PRIVACY</p><h3>No account and no telemetry</h3><p>There is no Firebase, advertising ID, or sign-in. Media stays where you put it. Network addresses the app stores are encrypted on the device. A stream you choose still contacts that server.</p></article>
+<article class="card"><p class="number">06 / ON THIS SITE</p><h3>A browser player for local files</h3><p>The web player opens files from this device in the tab. It can queue them, change speed, repeat, sleep, and show WebVTT or plain SRT captions. It does not upload them.</p></article>
+</div>
+</section>
+<section id="screens" aria-labelledby="screens-title">
+<div class="section-head">
+<h2 id="screens-title">On device</h2>
+<p>Android 14 emulator captures from 17 October 2026, source <a href="https://github.com/Tajoor621/TN-Player/commit/5a8c4a9e59e757985556f12bd675808cd22215e5">5a8c4a9</a>. These are real screens, not mockups. Folder names and the color bars are test files. <a href="https://github.com/Tajoor621/TN-Player/blob/main/validation/reference-ui/README.md">All reference screens</a>.</p>
+</div>
+<div class="shots">
+<figure class="shot">
+<img src="validation/reference-ui/player-portrait.png" width="320" height="640" alt="Portrait Android player with a color-bar test video, seek bar at 8 seconds of 1 minute 30, and Rotate, Lock, Mute, and Full screen controls." loading="lazy" decoding="async">
+<figcaption>Portrait playback, with shortcuts and the seek bar.</figcaption>
+</figure>
+<figure class="shot">
+<img src="validation/reference-ui/player-landscape.png" width="640" height="320" alt="Landscape Android player showing the same color-bar video, with Equalizer and A-B repeat shortcuts above the transport controls." loading="lazy" decoding="async">
+<figcaption>Landscape playback keeps the active item and position.</figcaption>
+</figure>
+<figure class="shot">
+<img src="validation/reference-ui/folders.png" width="320" height="640" alt="Videos tab in folder view listing two test folders with media counts, plus bottom tabs for Videos, Music, Files, Streams, and Settings." loading="lazy" decoding="async">
+<figcaption>Folder browser with counts for indexed media.</figcaption>
+</figure>
+<figure class="shot">
+<img src="validation/reference-ui/settings-hub.png" width="320" height="640" alt="Settings hub titled Me. File Transfer, video playlists, media manager, and music are available. Private Folder, Local Network, and Recycle Bin are marked not included. Cloud Drive opens Android providers." loading="lazy" decoding="async">
+<figcaption>Me hub. Unavailable tools are marked, not faked.</figcaption>
+</figure>
+</div>
+</section>
+<section id="download" aria-labelledby="download-title">
+<div class="split">
+<div class="panel">
+<h2 id="download-title">Download the testing build</h2>
+<p>Version 1.0.0 for Android 5.0 and later. Package <code>com.tplayer.mediaplayer</code>. This is a debug APK for testing, not a Play Store release.</p>
+<div class="actions">
+<a class="button primary" href="downloads/TN-Player-1.0.0-debug.apk" download>Download APK <span aria-hidden="true">↓</span></a>
+<a class="button" href="downloads/SHA256SUMS.txt">Checksum file</a>
+<a class="button" href="build-info.json">Build manifest</a>
+</div>
+<p class="hash"><span class="visually-hidden">SHA-256 checksum. </span><span id="checksum">The checksum loads from SHA256SUMS.txt when this page is online.</span></p>
+<p><button type="button" id="copy-checksum">Copy checksum</button> <span id="checksum-status" role="status"></span></p>
+<noscript><p>JavaScript fills the published commit and checksum from the build files. The download links work without it.</p></noscript>
+<p>Compare the checksum before you install. Debug builds can be signed with a different key than an older test install. Android may refuse the update. Copy anything you need before uninstalling. There is no cloud copy of your library.</p>
+</div>
+<div class="panel">
+<h2>Honest limits</h2>
+<ul>
+<li>No streaming catalog, cast, cloud sync, DRM storefront, or encrypted vault.</li>
+<li>The published APK predates the software decoders now in source: FFmpeg AC3, EAC3, DTS, and TrueHD, plus libgav1 AV1 and libvpx VP9. Those paths are not in the file you download today.</li>
+<li>Codec support still depends on the device. The app does not claim to play every format.</li>
+<li>Read the <a href="https://github.com/Tajoor621/TN-Player/blob/main/FEATURE_STATUS.md">feature status</a>, <a href="https://github.com/Tajoor621/TN-Player/blob/main/docs/FORMATS.md">format matrix</a>, <a href="https://github.com/Tajoor621/TN-Player/blob/main/VALIDATION.md">validation notes</a>, and <a href="https://github.com/Tajoor621/TN-Player/blob/main/AUDIT.md">audit</a>.</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="web" aria-labelledby="web-title" class="panel">
+<h2 id="web-title">Play a local file in the browser</h2>
+<p>The web player is a companion on this site. Choose a file, or drop one on the page. You can queue up to 100 files, set speed, repeat, a sleep timer, picture-in-picture where the browser allows it, and WebVTT or plain SRT captions. Resume position for the same file is kept in this tab only.</p>
+<p>Nothing is uploaded. The page does not connect to a streaming service. Browser codecs are narrower than the Android app. Styled ASS and SSA captions are not rendered here.</p>
+<p><a class="button primary" href="./player.html">Open web player</a></p>
+</section>
+<section id="questions" aria-labelledby="questions-title">
+<div class="section-head">
+<h2 id="questions-title">Questions</h2>
+</div>
+<div class="faq">
+<details>
+<summary>Is TN-Player a streaming service?</summary>
+<p>No. It plays media on your device and direct stream URLs you enter. It does not host a catalog.</p>
+</details>
+<details>
+<summary>Are files uploaded?</summary>
+<p>The Android app reads local files and the URLs you add. The web player keeps the file in the browser tab. A stream you choose contacts that server. Embedded passwords in stream URLs are rejected.</p>
+</details>
+<details>
+<summary>Which Android versions can install it?</summary>
+<p>Android 5.0 (API 21) and later. The project compiles against API 34. Picture-in-picture needs Android 8 or later.</p>
+</details>
+<details>
+<summary>Why might an update fail to install?</summary>
+<p>The download is a debug testing build. Its signing key can differ from an older test build. Uninstalling the older copy may be required. Save what you need first.</p>
+</details>
+<details>
+<summary>Where is the source?</summary>
+<p>The repository is <a href="https://github.com/Tajoor621/TN-Player">github.com/Tajoor621/TN-Player</a>. Build instructions are in the README. Publishing a new APK is manually gated while feature work is still open.</p>
+</details>
+</div>
+</section>
+<section class="identity" aria-labelledby="identity-title">
+<div>
+<h2 id="identity-title">The TN mark</h2>
+<p>Gold headphones and a cyan play symbol, used on the home screen, the playback widget, and this site.</p>
+</div>
+<a class="button" href="assets/tn-player-icon.png" download="TN-Player-logo.png">Download the icon <span aria-hidden="true">↓</span></a>
+</section>
+<p class="status"><strong>Development preview.</strong> This page distributes an Android testing build. It is not a production release. Signing may differ from a build you already installed. One Android feature prompt is still open before the deferred APK publication. This site update does not replace that build.</p>
+</main>
+<footer>
+<p>TN-Player · Noor E Sahar</p>
+<nav aria-label="Footer">
+<a href="https://github.com/Tajoor621/TN-Player">Source</a>
+<a href="https://github.com/Tajoor621/TN-Player/blob/main/FEATURE_STATUS.md">Feature status</a>
+<a href="https://github.com/Tajoor621/TN-Player/blob/main/VALIDATION.md">Validation</a>
+<a href="https://github.com/Tajoor621/TN-Player/actions">Build status</a>
+</nav>
+</footer>
 <script>
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(error => {
@@ -57,4 +226,5 @@ if ("serviceWorker" in navigator) {
     });
 }
 </script>
-</body></html>
+</body>
+</html>

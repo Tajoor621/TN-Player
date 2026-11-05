@@ -5,12 +5,19 @@
 | app/ | Android app, tests and media fixtures |
 | branding/ | User-supplied original logo, square adaptation and editing notes |
 | assets/ | Shared Pages icon |
-| index.html | GitHub Pages landing page |
+| index.html | GitHub Pages project and download page |
+| player.html | Browser player for local files |
+| site.css | Shared project-site styles |
+| pwa.js | Install prompt, local playback tools, and published checksum lookup |
+| sw.js | Offline cache for the site shell only |
+| manifest.webmanifest | Installable web app manifest |
+| robots.txt, sitemap.xml | Crawler hints for the two public pages |
 | downloads/ | Built testing APK and its SHA-256 checksum |
 | build-info.json | APK source commit, byte count and SHA-256 |
 | .nojekyll | Publish root assets without Jekyll processing |
 | .github/workflows/android.yml | Android regression, build and emulator checks |
 | .github/workflows/pages.yml | Build APK, publish to main/root and verify the public download |
+| scripts/check-site.py | Static project-site, manifest, and checksum checks |
 | scripts/package-pages.py | Assemble matching page, APK and manifest |
 | scripts/verify-pages.py | Verify the public source commit and full APK checksum |
 | scripts/process-recovery-check.sh | Prepare, force-stop and verify cold restoration |

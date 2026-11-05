@@ -28,11 +28,11 @@ detected registration or that the worker installed.
 
 ## Static detection and desktop window controls
 
-Both HTML entry points now declare one guarded service-worker registration
-inline. It still resolves `./sw.js` in the same scope. The shell cache version
-was bumped to refresh the HTML, manifest and script for offline clients. The
-asset allowlist is unchanged: local media is never uploaded or stored in the
-offline cache.
+Both HTML entry points declare one guarded service-worker registration
+inline. It resolves `./sw.js` in the same scope. The shell cache name is
+`v3` and includes the shared stylesheet plus the four reference screens used
+on the project page. Local media, the APK, and checksum files stay outside
+that cache. Nothing the visitor plays is uploaded.
 
 The manifest prefers `window-controls-overlay` and falls back to
 `standalone`. In a supporting desktop install, the existing header fits the
@@ -47,6 +47,22 @@ geometry and offline playback setup still need browser verification. Real
 web-app screenshots could improve the manifest report once captured and
 served. Store associations or content ratings should only be added if they
 actually exist and apply.
+
+## Local playback tools
+
+The browser player can queue up to 100 files from the picker or a drop,
+change speed, repeat one file or the queue, run a sleep timer, open
+picture-in-picture where the browser allows it, and attach WebVTT or plain
+SRT captions. A resume position for the same file name, size, and modified
+time is kept in `sessionStorage` for that tab. Styled ASS/SSA captions,
+direct network streams, and the Android gesture surface are not part of this
+page. Drag-and-drop and the file input are in-page only. They are not
+`file_handlers`.
+
+`scripts/check-site.py` checks the local HTML, manifest limits, shell files,
+and the published APK checksum. It does not fetch the live site. Run
+`scripts/check-web-manifest.py` against the public URL after Pages serves
+the update.
 
 ## Deliberately omitted
 
